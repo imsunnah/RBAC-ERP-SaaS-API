@@ -1,0 +1,65 @@
+### API Test File
+# You can run these requests directly inside VS Code if you install the "REST Client" extension.
+# Change the @token and @orgId variables after logging in!
+
+@baseUrl = http://localhost:8000/api/v1
+@token = YOUR_ACCESS_TOKEN_HERE
+@orgId = YOUR_ORGANIZATION_UUID_HERE
+
+### ── 1. LOGIN ────────────────────────────────────────────────────────────
+# Send this request to get your Token and Organization ID (from "organizations" array)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "superadmin@erp.test",
+    "password": "Password@123"
+}
+
+### ── 2. GET ROLES (Index) ──────────────────────────────────────────────────
+# Requires: Bearer Token, X-ORG-ID, and 'admin.role.view' permission
+GET {{baseUrl}}/roles
+Authorization: Bearer {{token}}
+X-ORG-ID: {{orgId}}
+Accept: application/json
+
+### ── 3. CREATE A ROLE (Store) ──────────────────────────────────────────────
+# Requires: Bearer Token, X-ORG-ID, and 'admin.role.create' permission
+POST {{baseUrl}}/roles
+Authorization: Bearer {{token}}
+X-ORG-ID: {{orgId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+    "name": "Financial Auditor",
+    "slug": "finance-auditor",
+    "description": "Read-only access to all financial records.",
+    "is_inheritable": false,
+    "is_active": true
+}
+
+### ── 4. UPDATE A ROLE (Update) ─────────────────────────────────────────────
+# Requires: admin.role.update permission
+@roleIdToUpdate = ROLE_UUID_HERE
+
+PUT {{baseUrl}}/roles/{{roleIdToUpdate}}
+Authorization: Bearer {{token}}
+X-ORG-ID: {{orgId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+    "description": "Updated description for the role.",
+    "is_active": false
+}
+
+### ── 5. DELETE A ROLE (Destroy) ────────────────────────────────────────────
+# Requires: admin.role.delete permission
+@roleIdToDelete = ROLE_UUID_HERE
+
+DELETE {{baseUrl}}/roles/{{roleIdToDelete}}
+Authorization: Bearer {{token}}
+X-ORG-ID: {{orgId}}
+Accept: application/json

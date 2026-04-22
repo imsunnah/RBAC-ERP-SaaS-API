@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Permission\PermissionResource;
+use App\Http\Requests\Permission\PermissionRequest;
 use App\Http\Requests\Permission\SyncRolePermissionsRequest;
 use App\Models\Permission;
 use App\Models\Role;
@@ -38,6 +39,58 @@ class PermissionController extends Controller
         return response()->json([
             'success' => true,
             'data' => PermissionResource::collection($permissions),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/permissions
+     */
+    public function store(PermissionRequest $request): JsonResponse
+    {
+        $permission = Permission::create($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permission created successfully.',
+            'data' => new PermissionResource($permission->load('module')),
+        ], 201);
+    }
+
+    /**
+     * GET /api/v1/permissions/{permission}
+     */
+    public function show(Permission $permission): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => new PermissionResource($permission->load('module')),
+        ]);
+    }
+
+    /**
+     * PUT /api/v1/permissions/{permission}
+     */
+    public function update(PermissionRequest $request, Permission $permission): JsonResponse
+    {
+        $permission->update($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permission updated successfully.',
+            'data' => new PermissionResource($permission->load('module')),
+        ]);
+    }
+
+    /**
+     * DELETE /api/v1/permissions/{permission}
+     */
+    public function destroy(Permission $permission): JsonResponse
+    {
+        $permission->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permission deleted successfully.',
         ]);
     }
 

@@ -17,13 +17,15 @@ class SidebarController extends Controller
     /**
      * GET /api/v1/sidebar
      * Returns the role-filtered, module-scoped sidebar for the current user + organization.
+     * Optional: ?module={slug} to filter sidebar to a specific module.
      */
     public function index(IndexSidebarRequest $request): JsonResponse
     {
         $user = $request->user();
         $organization = app('current_organization');
+        $moduleSlug = $request->query('module');
 
-        $sidebar = $this->sidebarService->build($user, $organization);
+        $sidebar = $this->sidebarService->build($user, $organization, $moduleSlug);
 
         return response()->json([
             'success' => true,

@@ -8,13 +8,16 @@ use App\Http\Requests\Auth\LogoutRequest;
 use App\Http\Requests\Auth\MeRequest;
 use App\Http\Resources\Auth\UserResource;
 use App\Services\Auth\AuthService;
+use App\Services\RBAC\RBACService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function __construct(private AuthService $authService)
-    {
+    public function __construct(
+        private AuthService $authService,
+        private RBACService $rbacService,
+    ) {
     }
 
     /**
@@ -78,14 +81,23 @@ class AuthController extends Controller
 
     /**
      * GET /api/v1/auth/me
+     * Returns authenticated user profile with resolved permissions for current org.
      */
     public function me(MeRequest $request): JsonResponse
     {
         $user = $request->user()->load(['organizations:id,uuid,name,slug,logo']);
 
+        $data = (new UserResource($user))->toArray($request);
+
+        // If org context is available, include resolved permissions
+        if (app()->bound('current_organization')) {
+            $org = app('current_organization');
+            $data['permissions'] = $this->rbacService->getUserPermissions($user, $org->id);
+        }
+
         return response()->json([
             'success' => true,
-            'data' => new UserResource($user),
+            'data' => $data,
         ]);
     }
 }

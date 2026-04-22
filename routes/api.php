@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SidebarController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\MenuController;
+use App\Http\Controllers\Api\V1\SubmenuController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,8 +46,14 @@ Route::prefix('v1')->group(function () {
             // Sidebar
             Route::get('sidebar', [SidebarController::class, 'index']);
 
-            // Modules (Organization's available specific subscriptions)
-            Route::get('modules', [ModuleController::class, 'index']);
+            // Modules
+            Route::prefix('modules')->group(function () {
+                Route::get('/', [ModuleController::class, 'index']);
+                Route::post('/', [ModuleController::class, 'store']);
+                Route::get('/{module}', [ModuleController::class, 'show']);
+                Route::put('/{module}', [ModuleController::class, 'update']);
+                Route::delete('/{module}', [ModuleController::class, 'destroy']);
+            });
 
             // Roles — requires role management permissions
             Route::prefix('roles')->group(function () {
@@ -60,6 +68,8 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/{role}', [RoleController::class, 'destroy'])
                     ->middleware('permission:admin.role.delete');
                 Route::put('/{role}/modules', [RoleController::class, 'syncModules'])
+                    ->middleware('permission:admin.role.update');
+                Route::put('/{role}/menus', [RoleController::class, 'syncMenus'])
                     ->middleware('permission:admin.role.update');
             });
 
@@ -79,15 +89,37 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.user.update');
             });
 
-            // Permissions — (Role assignments)
+            // Permissions
             Route::prefix('permissions')->group(function () {
                 Route::get('/', [PermissionController::class, 'index'])
                     ->middleware('permission:admin.permission.view');
+                Route::post('/', [PermissionController::class, 'store']);
+                Route::get('/{permission}', [PermissionController::class, 'show']);
+                Route::put('/{permission}', [PermissionController::class, 'update']);
+                Route::delete('/{permission}', [PermissionController::class, 'destroy']);
             });
 
             // Assign Permissions to Roles specifically
             Route::put('roles/{role}/permissions', [PermissionController::class, 'sync'])
                 ->middleware('permission:admin.permission.assign');
+
+            // Menus
+            Route::prefix('menus')->group(function () {
+                Route::get('/', [MenuController::class, 'index']);
+                Route::post('/', [MenuController::class, 'store']);
+                Route::get('/{menu}', [MenuController::class, 'show']);
+                Route::put('/{menu}', [MenuController::class, 'update']);
+                Route::delete('/{menu}', [MenuController::class, 'destroy']);
+            });
+
+            // Submenus
+            Route::prefix('submenus')->group(function () {
+                Route::get('/', [SubmenuController::class, 'index']);
+                Route::post('/', [SubmenuController::class, 'store']);
+                Route::get('/{submenu}', [SubmenuController::class, 'show']);
+                Route::put('/{submenu}', [SubmenuController::class, 'update']);
+                Route::delete('/{submenu}', [SubmenuController::class, 'destroy']);
+            });
 
             /*
             |-------------------------------------------------------------------

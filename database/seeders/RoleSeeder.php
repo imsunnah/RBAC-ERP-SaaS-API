@@ -75,6 +75,26 @@ class RoleSeeder extends Seeder
             $employee->roles()->attach($employeeRole->id, ['organization_id' => $org->id]);
         }
 
+        // ── Assign modules to roles via role_modules ──────────────────────────
+        $allModules = \App\Models\Module::all();
+        $adminModule = $allModules->firstWhere('slug', 'admin');
+        $nonAdminModules = $allModules->where('slug', '!=', 'admin');
+
+        // Org Admin → ALL modules (including admin/GAC)
+        $adminRole->modules()->syncWithoutDetaching($allModules->pluck('id')->toArray());
+
+        // Manager → All modules EXCEPT admin
+        $managerRole->modules()->syncWithoutDetaching($nonAdminModules->pluck('id')->toArray());
+
+        // Employee → Only non-admin modules they'd typically use (HRM)
+        $hrmModule = $allModules->firstWhere('slug', 'hrm');
+        if ($hrmModule) {
+            $employeeRole->modules()->syncWithoutDetaching([$hrmModule->id]);
+        }
+
         $this->command->info('Roles seeded: Super Admin > Org Admin > Manager > Employee');
+        $this->command->info('  ├─ Org Admin: all modules assigned');
+        $this->command->info('  ├─ Manager: non-admin modules assigned');
+        $this->command->info('  └─ Employee: HRM module assigned');
     }
 }

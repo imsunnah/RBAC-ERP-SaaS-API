@@ -1,59 +1,93 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# RBAC ERP SaaS API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A robust, enterprise-grade multi-tenant Role-Based Access Control (RBAC) API with a fully functional interactive Demo UI. Built entirely on **Laravel 13** and tailored for modern SaaS products.
 
-## About Laravel
+## ✨ Key Features & Architecture
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### 🏢 True Multi-Tenancy (Organization Context)
+- **Isolation:** Every user, role, permission, and module subscription is strictly scoped to an `Organization`.
+- **Context Middleware:** The custom `X-ORG-ID` header enforces access control via the `OrganizationContext` middleware. Users cannot access data across tenants.
+- **Billing Awareness:** Features subscription modeling (`OrganizationPlan`) to automatically gate access when trials or payments expire.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 🛡️ Global Access Control (GAC) & Granular RBAC
+- **Super Admin Bypass:** Built-in absolute bypass capability for platform owners (accessible via the `is_super_admin` flag on the `users` table). 
+- **Role Hierarchies:** Roles support infinite `parent_role_id` inheritance. An `Org Admin` role passes its permissions down the tree if configured.
+- **Module Subscriptions:** Roles are assigned modules. The API serves modules precisely based on the intersection of what the exact *Organization* has paid for and what the *User's Role* grants.
+- **Permission Caching:** A highly optimized `RBACService` aggregates hierarchy-inherited permissions and direct user overrides, caching the final resolved map locally per-user per-org.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 🧩 Dynamic Navigation Ecosystem
+- **Intelligent Sidebar API:** The `SidebarService` resolves the navigation tree in real-time. It checks:
+  1. Does the Org have the Module?
+  2. Does the User's Role have access to that Module?
+  3. Are the specific Menus granted to the Role?
+  4. Does the User have the required `permission_id` to view deep Submenus?
+- Fully automates the frontend rendering of layouts so the client-side remains completely dumb and secure.
 
-## Learning Laravel
+### 🏗️ Complete UUID First Implementation
+- Security-first approach leveraging the `HasUuidColumn` trait. Internal integer IDs are completely masked from the public REST API payloads in favor of `uuid` parameters. Implicit route binding intercepts and casts UUIDs directly to Models.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🚀 Live Demo UI
 
-## Laravel Sponsors
+The repository ships with an incredibly sleek, dark-mode native HTML/CSS/JS Single Page Application frontend built strictly to test this exact architecture. 
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+It implements interactive token-based Authentication, Topbar Organization switching, seamless API REST requests, dynamic Grid module layouts, and JSON API response debugging.
 
-### Premium Partners
+### To Access the Demo:
+Run your local dev server:
+```bash
+php artisan serve
+```
+Then navigate to: **`http://localhost:8000/demo/index.html`**
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+**Test Accounts Provided (Password is `Password@123` for all):**
+- `superadmin@erp.test` *(Full GAC View)*
+- `admin@demo-corp.test` *(Org Admin View)*
+- `employee@demo-corp.test` *(Restricted Employee View)*
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🛠️ Tech Stack & Requirements
 
-## Code of Conduct
+- **PHP:** 8.2 or higher
+- **Framework:** Laravel 13 
+- **Database:** SQLite (dev) / MySQL 8.0+ ready
+- **Authentication:** Laravel Passport (`v12+` / `v13`) for OAuth2 Bearer Tokens
+- **Frontend Demo:** Pure Vanilla CSS (Glassmorphism & Orbs) + Vanilla JS state management
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 📦 Local Installation & Setup
 
-## Security Vulnerabilities
+1. **Clone & Install Dependencies**
+```bash
+composer install
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+2. **Environment Configuration**
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+*Note: Ensure your `DB_CONNECTION` is mapped properly (to either MySQL or the provided SQLite database file).*
 
-## License
+3. **Install Passport Clients & Keys**
+Because Passport handles OAuth, generate the cryptographic keys and a Personal Access Client.
+```bash
+php artisan passport:install --force
+php artisan passport:client --personal --name="ERP Personal Access Client"
+```
+*(Add the returned Client ID and Secret to `.env` if prompted by your Passport version)*
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+4. **Fresh Migration & Complete Seeding**
+Deploy the complete architecture with the deterministic seeders (Creates the Demo Corp, Users, Roles, Modules, Menus, Permissions).
+```bash
+php artisan migrate:fresh --seed
+```
+
+## 📖 Key Directories
+
+- `/app/Http/Controllers/Api/V1/*` : RESTful endpoints
+- `/app/Http/Middleware/*` : Org, Billing, and Permission gates
+- `/app/Models/Traits/*` : Architecture traits (like UUID behavior)
+- `/app/Services/*` : Heavy business logic isolating permissions (`RBACService`, `SidebarService`)
+- `/public/demo/*` : The interactive test harness UI

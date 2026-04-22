@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP SaaS — RBAC Demo</title>
+    <meta name="description" content="Interactive demo for the ERP SaaS RBAC system with module-based access control">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.460.0/font/lucide.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     LOGIN SCREEN
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="loginScreen" class="login-screen">
+    <div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
+    <div class="login-card">
+        <div class="login-brand">
+            <div class="brand-icon-lg"><i class="icon-layers"></i></div>
+            <h1>ERP SaaS</h1>
+            <p class="login-sub">Role Based Access Control Demo</p>
+        </div>
+        <form id="loginForm">
+            <div class="login-field">
+                <label>Email</label>
+                <div class="input-icon-wrap">
+                    <i class="icon-mail"></i>
+                    <input type="email" id="loginEmail" value="superadmin@erp.test" placeholder="you@company.com">
+                </div>
+            </div>
+            <div class="login-field">
+                <label>Password</label>
+                <div class="input-icon-wrap">
+                    <i class="icon-lock"></i>
+                    <input type="password" id="loginPassword" value="Password@123" placeholder="••••••••">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-login" id="btnLogin">
+                <span>Sign In</span>
+                <i class="icon-arrow-right"></i>
+            </button>
+            <div class="demo-creds">
+                <p class="cred-title">Demo Accounts</p>
+                <div class="cred-row" data-email="superadmin@erp.test"><span class="cred-badge cred-sa">SA</span> superadmin@erp.test</div>
+                <div class="cred-row" data-email="admin@demo-corp.test"><span class="cred-badge cred-ad">AD</span> admin@demo-corp.test</div>
+                <div class="cred-row" data-email="employee@demo-corp.test"><span class="cred-badge cred-em">EM</span> employee@demo-corp.test</div>
+                <p class="cred-pw">All passwords: <code>Password@123</code></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MAIN APPLICATION SHELL
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="appShell" class="app-shell" style="display:none">
+
+    <!-- ─── Top Navigation Bar ─── -->
+    <header class="topbar" id="topbar">
+        <div class="topbar-left">
+            <button class="topbar-hamburger" id="btnHamburger" style="display:none" title="Toggle sidebar">
+                <i class="icon-menu"></i>
+            </button>
+            <div class="topbar-brand" id="btnBackToModules" title="Back to module selection">
+                <div class="brand-icon"><i class="icon-layers"></i></div>
+                <span class="brand-name">ERP SaaS</span>
+            </div>
+        </div>
+
+        <div class="topbar-center">
+            <!-- Organization Switcher -->
+            <div class="topbar-dropdown" id="orgSwitcher">
+                <button class="topbar-dropdown-btn" id="btnOrgSwitcher">
+                    <i class="icon-building-2"></i>
+                    <span>Organization: <strong id="currentOrgName">—</strong></span>
+                    <i class="icon-chevron-down"></i>
+                </button>
+                <div class="topbar-dropdown-menu" id="orgDropdownMenu"></div>
+            </div>
+
+            <!-- Module Switcher (visible when inside a module) -->
+            <div class="topbar-dropdown" id="moduleSwitcher" style="display:none">
+                <button class="topbar-dropdown-btn" id="btnModuleSwitcher">
+                    <i class="icon-grid-2x2"></i>
+                    <span>Switch Module <i class="icon-chevron-down"></i></span>
+                </button>
+                <div class="topbar-dropdown-menu" id="moduleDropdownMenu"></div>
+            </div>
+        </div>
+
+        <div class="topbar-right">
+            <div class="topbar-user" id="topbarUser">
+                <div class="user-avatar" id="userAvatar">SA</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">—</span>
+                    <span class="user-role" id="userRole">—</span>
+                </div>
+                <button class="btn-icon" id="btnLogout" title="Logout"><i class="icon-log-out"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ─── Content Area ─── -->
+    <div class="main-area">
+
+        <!-- Sidebar (visible when inside a module) -->
+        <aside class="sidebar" id="sidebar" style="display:none">
+            <div class="sidebar-header">
+                <div class="sidebar-module-icon" id="sidebarModuleIcon"><i class="icon-shield-check"></i></div>
+                <div>
+                    <div class="sidebar-module-name" id="sidebarModuleName">—</div>
+                    <div class="sidebar-module-slug" id="sidebarModuleSlug">—</div>
+                </div>
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content" id="contentArea">
+
+            <!-- ═══ MODULE SELECTION GRID ═══ -->
+            <section id="viewModuleGrid" class="view active">
+                <div class="module-grid-header">
+                    <div class="grid-banner">
+                        <i class="icon-layout-grid"></i>
+                        <span>Please Select Your Module</span>
+                    </div>
+                </div>
+                <div class="module-grid" id="moduleGrid"></div>
+            </section>
+
+            <!-- ═══ MODULE CONTENT (sidebar pages) ═══ -->
+            <section id="viewModuleContent" class="view">
+                <div class="content-header" id="contentHeader">
+                    <h2 id="contentTitle">—</h2>
+                    <p id="contentDesc">—</p>
+                </div>
+                <div class="content-body" id="contentBody"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ─── API Response Drawer ─── -->
+    <div class="response-drawer" id="responseDrawer">
+        <div class="drawer-toggle" id="drawerToggle">
+            <i class="icon-terminal"></i>
+            <span>API Response</span>
+            <span class="drawer-status" id="drawerStatus">—</span>
+            <span class="drawer-time" id="drawerTime">—</span>
+            <i class="icon-chevron-up" id="drawerChevron"></i>
+        </div>
+        <pre class="drawer-body" id="drawerBody"><span class="placeholder">Make an API call to see the response here…</span></pre>
+    </div>
+</div>
+
+<!-- ─── Toast Container ─── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

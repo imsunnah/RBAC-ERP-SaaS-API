@@ -98,7 +98,6 @@ class RBACService
         }
 
         // 2. User direct overrides (highest priority — always overwrite)
-        $directPerms = $user->directPermissionsInOrg($orgId)->load('permissions');
         foreach ($user->directPermissions()->wherePivot('organization_id', $orgId)->get() as $perm) {
             $map[$perm->slug] = (bool) $perm->pivot->is_granted;
         }

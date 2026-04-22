@@ -9,6 +9,7 @@ use App\Http\Requests\Role\IndexRoleRequest;
 use App\Http\Requests\Role\ShowRoleRequest;
 use App\Http\Requests\Role\StoreRoleRequest;
 use App\Http\Requests\Role\SyncRoleModulesRequest;
+use App\Http\Requests\Role\SyncRoleMenusRequest;
 use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Repositories\RoleRepository;
@@ -165,6 +166,38 @@ class RoleController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Role modules assigned successfully.',
+        ]);
+    }
+
+    /**
+     * PUT /api/v1/roles/{role}/menus
+     * Sync Sidebar Menus and Submenus to a role.
+     */
+    public function syncMenus(SyncRoleMenusRequest $request, Role $role): JsonResponse
+    {
+        $orgId = app('current_organization')->id;
+
+        if ($role->organization_id !== $orgId) {
+            return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
+        }
+
+        $menuIds = $request->validated('menus');
+        $submenuIds = $request->validated('submenus');
+
+        $role->menus()->sync($menuIds);
+        $role->submenus()->sync($submenuIds);
+
+        // Invalidate sidebar cache for users assigned to this role
+        $role->users->each(fn($u) => \Illuminate\Support\Facades\Cache::forget("erp:sidebar:{$orgId}:{$u->id}"));
+
+        $this->auditService->logAction('update', $role, 'sidebar_menus', [
+            'menus' => $menuIds,
+            'submenus' => $submenuIds,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Role sidebar menus updated successfully.'
         ]);
     }
 }

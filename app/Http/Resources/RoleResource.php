@@ -26,7 +26,7 @@ class RoleResource extends JsonResource
                 'permissions',
                 fn() =>
                 $this->permissions->map(fn($p) => [
-                    'id' => $p->id,
+                    'id' => $p->uuid,
                     'slug' => $p->slug,
                     'name' => $p->name,
                     'is_granted' => $p->pivot->is_granted,

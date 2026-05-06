@@ -61,13 +61,20 @@ class UserController extends Controller
 
         $user = $this->userRepository->create($payload);
 
-        // Attach to Organization
-        $user->organizations()->attach($orgId, [
-            'is_owner' => false,
-            'is_primary' => true,
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
+        $orgIdsToAttach = [$orgId];
+        if (!empty($payload['organizations'])) {
+            $extraOrgIds = \App\Models\Organization::whereIn('uuid', $payload['organizations'])->pluck('id')->toArray();
+            $orgIdsToAttach = array_unique(array_merge($orgIdsToAttach, $extraOrgIds));
+        }
+
+        foreach ($orgIdsToAttach as $idToAttach) {
+            $user->organizations()->attach($idToAttach, [
+                'is_owner' => false,
+                'is_primary' => ($idToAttach === $orgId),
+                'status' => 'active',
+                'joined_at' => now(),
+            ]);
+        }
 
         if (!empty($payload['roles'])) {
             $roleIds = \App\Models\Role::whereIn('uuid', $payload['roles'])->pluck('id');
@@ -131,6 +138,21 @@ class UserController extends Controller
 
         $original = $user->getAttributes();
         $this->userRepository->update($user, $payload);
+
+        if (isset($payload['organizations'])) {
+            $extraOrgIds = \App\Models\Organization::whereIn('uuid', $payload['organizations'])->pluck('id')->toArray();
+            $orgIdsToSync = array_unique(array_merge([$orgId], $extraOrgIds));
+
+            $syncData = [];
+            foreach ($orgIdsToSync as $idToSync) {
+                $syncData[$idToSync] = [
+                    'is_owner' => false,
+                    'status' => 'active',
+                ];
+            }
+            $user->organizations()->syncWithoutDetaching($syncData);
+        }
+
         $this->auditService->logUpdated($user->fresh(), $original);
 
         return response()->json([

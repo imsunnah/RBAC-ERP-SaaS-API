@@ -61,7 +61,7 @@ class AuthController extends Controller
             'data' => [
                 'token_type' => 'Bearer',
                 'access_token' => $token,
-                'user' => new UserResource($user->load('organizations')),
+                'user' => new UserResource($user->load(['organizations.company'])),
             ],
         ]);
     }
@@ -85,7 +85,7 @@ class AuthController extends Controller
      */
     public function me(MeRequest $request): JsonResponse
     {
-        $user = $request->user()->load(['organizations:id,uuid,name,slug,logo']);
+        $user = $request->user()->load(['organizations.company']);
 
         $data = (new UserResource($user))->toArray($request);
 

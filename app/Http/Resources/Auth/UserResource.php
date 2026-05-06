@@ -21,6 +21,11 @@ class UserResource extends JsonResource
                     'name' => $org->name,
                     'slug' => $org->slug,
                     'logo' => $org->logo ?? null,
+                    'company' => $org->company ? [
+                        'id' => $org->company->id,
+                        'name' => $org->company->name,
+                        'slug' => $org->company->slug,
+                    ] : null,
                 ]);
             }),
         ];

@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\V1\SidebarController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\MenuController;
 use App\Http\Controllers\Api\V1\SubmenuController;
+use App\Http\Controllers\Api\V1\CompanyController;
+use App\Http\Controllers\Api\V1\OrganizationController;
+use App\Http\Controllers\Api\V1\HrmEmployeeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +41,13 @@ Route::prefix('v1')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
             Route::get('me', [AuthController::class, 'me']);
         });
+
+        // Global Management (no org context needed)
+        Route::get('companies', [CompanyController::class, 'index']);
+        Route::get('companies/{company}', [CompanyController::class, 'show']);
+        Route::get('organizations', [OrganizationController::class, 'index']);
+        Route::post('organizations', [OrganizationController::class, 'store']);
+        Route::get('organizations/{organization}', [OrganizationController::class, 'show']);
 
         // ─── Organization-Scoped Routes ───────────────────────────────────────
         // All routes below require X-ORG-ID header and active billing plan
@@ -120,6 +130,9 @@ Route::prefix('v1')->group(function () {
                 Route::put('/{submenu}', [SubmenuController::class, 'update']);
                 Route::delete('/{submenu}', [SubmenuController::class, 'destroy']);
             });
+
+            // HRM Employees
+            Route::apiResource('hrm-employees', HrmEmployeeController::class);
 
             /*
             |-------------------------------------------------------------------

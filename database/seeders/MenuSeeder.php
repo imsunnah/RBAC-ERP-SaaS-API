@@ -104,6 +104,21 @@ class MenuSeeder extends Seeder
             );
             $this->assignSubmenuToRoles($empSubmenu, [$adminRole, $managerRole, $employeeRole]);
 
+            // All Employee Submenu
+            $allEmpSubmenu = Submenu::firstOrCreate(
+                ['menu_id' => $employeeMenu->id, 'slug' => 'hrm-all-employees'],
+                [
+                    'name' => 'All Employee',
+                    'icon' => 'users',
+                    'route' => 'hrm-employees.index',
+                    'url' => '/hrm-employees',
+                    'permission_id' => $empViewPerm?->id,
+                    'sort_order' => 2,
+                    'is_active' => true,
+                ]
+            );
+            $this->assignSubmenuToRoles($allEmpSubmenu, [$adminRole, $managerRole]);
+
             // Attendance Menu
             $attendanceMenu = Menu::firstOrCreate(
                 ['module_id' => $hrmModule->id, 'slug' => 'hrm-attendance'],

@@ -3,18 +3,20 @@
 namespace App\Models;
 
 use App\Models\Traits\HasUuidColumn;
+use App\Models\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserOrganization extends Model
 {
-    use HasUuidColumn, HasFactory;
+    use HasUuidColumn, BelongsToCompany, HasFactory;
 
     protected $table = 'user_organizations';
 
     protected $fillable = [
         'user_id',
+        'company_id',
         'organization_id',
         'is_owner',
         'is_primary',

@@ -12,10 +12,13 @@ class OrganizationSeeder extends Seeder
 {
     public function run(): void
     {
+        $company = \App\Models\Company::first();
+
         // ── Seed a demo organization ──────────────────────────────────────────
         $org = Organization::firstOrCreate(
             ['slug' => 'demo-corp'],
             [
+                'company_id' => $company?->id,
                 'name' => 'Demo Corporation',
                 'slug' => 'demo-corp',
                 'timezone' => 'Asia/Dhaka',

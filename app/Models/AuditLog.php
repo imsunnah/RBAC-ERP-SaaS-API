@@ -3,16 +3,18 @@
 namespace App\Models;
 
 use App\Models\Traits\HasUuidColumn;
+use App\Models\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class AuditLog extends Model
 {
-    use HasUuidColumn, HasFactory;
+    use HasUuidColumn, BelongsToCompany, HasFactory;
 
     public $timestamps = false;
 
     protected $fillable = [
+        'company_id',
         'organization_id',
         'user_id',
         'action',

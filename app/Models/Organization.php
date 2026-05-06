@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Organization extends Model
@@ -15,6 +16,7 @@ class Organization extends Model
     use HasUuidColumn, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
         'name',
         'slug',
         'logo',
@@ -31,6 +33,11 @@ class Organization extends Model
     ];
 
     // ─── Relationships ─────────────────────────────────────────────────────────
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     public function users(): BelongsToMany
     {

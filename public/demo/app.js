@@ -16,6 +16,7 @@
         orgId: null,
         orgUuid: null,
         orgName: null,
+        companyName: null,
         organizations: [],
         modules: [],             // modules user has access to
         sidebarData: [],         // sidebar structure from API
@@ -197,6 +198,7 @@
         state.orgId = org.id;
         state.orgUuid = org.uuid;
         state.orgName = org.name || org.slug;
+        state.companyName = org.company?.name || '—';
         updateTopbar();
     }
 
@@ -206,7 +208,13 @@
         state.organizations.forEach(org => {
             const btn = document.createElement('button');
             btn.className = `dd-item ${org.uuid === state.orgUuid ? 'active' : ''}`;
-            btn.innerHTML = `<i class="icon-building-2"></i> ${org.name || org.slug}`;
+            btn.innerHTML = `
+                <i class="icon-building-2"></i>
+                <div style="display:flex; flex-direction:column; align-items:flex-start">
+                    <small style="font-size:0.6rem; opacity:0.6; text-transform:uppercase">${org.company?.name || 'No Company'}</small>
+                    <span>${org.name || org.slug}</span>
+                </div>
+            `;
             btn.addEventListener('click', () => {
                 selectOrg(org);
                 menu.classList.remove('open');
@@ -239,6 +247,7 @@
 
     function updateTopbar() {
         $('#currentOrgName').textContent = state.orgName || '—';
+        $('#currentCompanyName').textContent = state.companyName || '—';
         const u = state.user;
         if (u) {
             $('#userName').textContent = u.name || u.email;
@@ -340,6 +349,8 @@
 
         // Show sidebar with GAC menus
         const sidebarData = [
+            { name: 'Companies', slug: 'gac-companies', icon: 'building-2', action: renderGACCompanies },
+            { name: 'Organizations', slug: 'gac-orgs', icon: 'building', action: renderGACOrganizations },
             { name: 'Users', slug: 'gac-users', icon: 'users', action: renderGACUsers },
             { name: 'Roles', slug: 'gac-roles', icon: 'shield', action: renderGACRoles },
             { name: 'Permissions', slug: 'gac-permissions', icon: 'settings', action: renderGACPermissions },
@@ -356,6 +367,48 @@
         // Auto-select first item
         sidebarData[0].action();
         activateSidebarItem(sidebarData[0].slug);
+    }
+
+    // ─── GAC: Companies ──────────────────────────────────────────────────
+    async function renderGACCompanies() {
+        setContentHeader('Company Management', 'Manage top-level tenant companies.');
+        const body = $('#contentBody');
+        body.innerHTML = `
+            <div class="card">
+                <div class="card-title"><span class="method-badge get">GET</span> /api/v1/companies</div>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" id="gacFetchCompanies"><i class="icon-refresh-cw"></i> Fetch Companies</button>
+                </div>
+                <div id="gacCompaniesTable"></div>
+            </div>
+        `;
+        $('#gacFetchCompanies').addEventListener('click', async () => {
+            const { ok, data } = await api('GET', '/companies');
+            if (ok && data?.data) renderTable('#gacCompaniesTable', data.data, ['id', 'uuid', 'name', 'slug', 'domain', 'status']);
+        });
+        $('#gacFetchCompanies').click();
+    }
+
+    // ─── GAC: Organizations ───────────────────────────────────────────────
+    async function renderGACOrganizations() {
+        setContentHeader('Organization Management', 'Manage organizations within companies.');
+        const body = $('#contentBody');
+        body.innerHTML = `
+            <div class="card">
+                <div class="card-title"><span class="method-badge get">GET</span> /api/v1/organizations</div>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" id="gacFetchOrgs"><i class="icon-refresh-cw"></i> Fetch Organizations</button>
+                </div>
+                <div id="gacOrgsTable"></div>
+            </div>
+        `;
+        $('#gacFetchOrgs').addEventListener('click', async () => {
+            const { ok, data } = await api('GET', '/organizations');
+            if (ok && data?.data) renderTable('#gacOrgsTable', data.data, ['id', 'uuid', 'name', 'slug', 'company_name', 'status'], {
+                company_name: (_, item) => item.company?.name || '—'
+            });
+        });
+        $('#gacFetchOrgs').click();
     }
 
     // ─── GAC: Users ──────────────────────────────────────────────────────

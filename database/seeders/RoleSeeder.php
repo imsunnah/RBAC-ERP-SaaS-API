@@ -11,15 +11,17 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
+        $company = \App\Models\Company::first();
         $org = Organization::where('slug', 'demo-corp')->firstOrFail();
-        $admin = User::where('email', 'admin@demo-corp.test')->firstOrFail();
-        $employee = User::where('email', 'employee@demo-corp.test')->firstOrFail();
+        $admin = User::where('email', 'admin@atilimited.net')->firstOrFail();
+        $employee = User::where('email', 'employee@atilimited.net')->firstOrFail();
 
         // ── Role hierarchy: Super Admin > Admin > Manager > Employee ──────────
 
         $superAdminRole = Role::firstOrCreate(
             ['organization_id' => $org->id, 'slug' => 'super-admin'],
             [
+                'company_id' => $company?->id,
                 'name' => 'Super Admin',
                 'description' => 'Full system access. No restrictions.',
                 'is_inheritable' => false,
@@ -31,6 +33,7 @@ class RoleSeeder extends Seeder
         $adminRole = Role::firstOrCreate(
             ['organization_id' => $org->id, 'slug' => 'org-admin'],
             [
+                'company_id' => $company?->id,
                 'name' => 'Organization Admin',
                 'description' => 'Full access within the organization.',
                 'parent_role_id' => $superAdminRole->id,
@@ -43,6 +46,7 @@ class RoleSeeder extends Seeder
         $managerRole = Role::firstOrCreate(
             ['organization_id' => $org->id, 'slug' => 'manager'],
             [
+                'company_id' => $company?->id,
                 'name' => 'Manager',
                 'description' => 'Can manage teams and approve requests.',
                 'parent_role_id' => $adminRole->id,
@@ -55,6 +59,7 @@ class RoleSeeder extends Seeder
         $employeeRole = Role::firstOrCreate(
             ['organization_id' => $org->id, 'slug' => 'employee'],
             [
+                'company_id' => $company?->id,
                 'name' => 'Employee',
                 'description' => 'Standard employee access.',
                 'parent_role_id' => $managerRole->id,
@@ -67,12 +72,18 @@ class RoleSeeder extends Seeder
         // ── Assign roles to users ─────────────────────────────────────────────
         // admin user → Org Admin role
         if (!$admin->roles()->wherePivot('organization_id', $org->id)->wherePivot('role_id', $adminRole->id)->exists()) {
-            $admin->roles()->attach($adminRole->id, ['organization_id' => $org->id]);
+            $admin->roles()->attach($adminRole->id, [
+                'organization_id' => $org->id,
+                'company_id' => $company?->id
+            ]);
         }
 
         // employee user → Employee role
         if (!$employee->roles()->wherePivot('organization_id', $org->id)->wherePivot('role_id', $employeeRole->id)->exists()) {
-            $employee->roles()->attach($employeeRole->id, ['organization_id' => $org->id]);
+            $employee->roles()->attach($employeeRole->id, [
+                'organization_id' => $org->id,
+                'company_id' => $company?->id
+            ]);
         }
 
         // ── Assign modules to roles via role_modules ──────────────────────────

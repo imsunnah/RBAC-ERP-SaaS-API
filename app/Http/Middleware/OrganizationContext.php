@@ -47,6 +47,12 @@ class OrganizationContext
         $request->merge(['current_organization' => $organization]);
         app()->instance('current_organization', $organization);
 
+        // Also bind the current company
+        $company = $organization->company;
+        if ($company) {
+            app()->instance('current_company', $company);
+        }
+
         return $next($request);
     }
 }

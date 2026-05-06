@@ -11,6 +11,10 @@ use App\Services\Auth\AuthService;
 use App\Services\Billing\BillingService;
 use App\Services\RBAC\RBACService;
 use App\Services\Sidebar\SidebarService;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityRequirement;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
@@ -58,5 +62,16 @@ class AppServiceProvider extends ServiceProvider
                 }
             });
         }
+        Scramble::afterOpenApiGenerated(function (OpenApi $openApi) {
+            $openApi->components->addSecurityScheme('bearer', SecurityScheme::http('bearer'));
+            $openApi->components->addSecurityScheme('X-ORG-ID', SecurityScheme::apiKey('header', 'X-ORG-ID'));
+
+            $openApi->security = [
+                new SecurityRequirement([
+                    'bearer' => [],
+                    'X-ORG-ID' => [],
+                ]),
+            ];
+        });
     }
 }

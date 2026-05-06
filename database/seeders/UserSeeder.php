@@ -12,12 +12,14 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        $company = \App\Models\Company::first();
         $org = Organization::where('slug', 'demo-corp')->firstOrFail();
 
         // ── Super Admin ───────────────────────────────────────────────────────
         $superAdmin = User::firstOrCreate(
-            ['email' => 'superadmin@erp.test'],
+            ['email' => 'superadmin@atilimited.net'],
             [
+                'company_id' => $company?->id,
                 'name' => 'Super Admin',
                 'first_name' => 'Super',
                 'last_name' => 'Admin',
@@ -34,8 +36,9 @@ class UserSeeder extends Seeder
 
         // ── Org Admin ─────────────────────────────────────────────────────────
         $admin = User::firstOrCreate(
-            ['email' => 'admin@demo-corp.test'],
+            ['email' => 'admin@atilimited.net'],
             [
+                'company_id' => $company?->id,
                 'name' => 'Org Admin',
                 'first_name' => 'Org',
                 'last_name' => 'Admin',
@@ -52,8 +55,9 @@ class UserSeeder extends Seeder
 
         // ── Regular Employee ──────────────────────────────────────────────────
         $employee = User::firstOrCreate(
-            ['email' => 'employee@demo-corp.test'],
+            ['email' => 'employee@atilimited.net'],
             [
+                'company_id' => $company?->id,
                 'name' => 'John Employee',
                 'first_name' => 'John',
                 'last_name' => 'Employee',
@@ -69,8 +73,8 @@ class UserSeeder extends Seeder
         );
 
         $this->command->info('Users seeded:');
-        $this->command->info('  superadmin@erp.test    / Password@123  (Super Admin)');
-        $this->command->info('  admin@demo-corp.test   / Password@123  (Org Admin)');
-        $this->command->info('  employee@demo-corp.test / Password@123 (Employee)');
+        $this->command->info('  superadmin@atilimited.net    / Password@123  (Super Admin)');
+        $this->command->info('  admin@atilimited.net   / Password@123  (Org Admin)');
+        $this->command->info('  employee@atilimited.net / Password@123 (Employee)');
     }
 }

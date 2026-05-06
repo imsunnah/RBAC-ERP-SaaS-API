@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasUuidColumn;
+use App\Models\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -12,9 +13,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Role extends Model
 {
-    use HasUuidColumn, HasFactory, SoftDeletes;
+    use HasUuidColumn, BelongsToCompany, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
         'organization_id',
         'parent_role_id',
         'name',
@@ -57,7 +59,7 @@ class Role extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_roles')
-            ->withPivot('organization_id')
+            ->withPivot(['organization_id', 'company_id'])
             ->withTimestamps();
     }
 

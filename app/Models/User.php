@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasUuidColumn;
+use App\Models\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -14,9 +15,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements OAuthenticatable
 {
-    use HasUuidColumn, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasUuidColumn, BelongsToCompany, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
         'name',
         'first_name',
         'last_name',
@@ -65,7 +67,7 @@ class User extends Authenticatable implements OAuthenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_roles')
-            ->withPivot('organization_id')
+            ->withPivot(['organization_id', 'company_id'])
             ->withTimestamps();
     }
 
@@ -80,7 +82,7 @@ class User extends Authenticatable implements OAuthenticatable
     public function directPermissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'user_permissions')
-            ->withPivot(['organization_id', 'is_granted'])
+            ->withPivot(['organization_id', 'company_id', 'is_granted'])
             ->withTimestamps();
     }
 

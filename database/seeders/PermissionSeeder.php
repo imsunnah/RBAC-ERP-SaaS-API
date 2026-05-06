@@ -10,11 +10,7 @@ use Illuminate\Database\Seeder;
 
 class PermissionSeeder extends Seeder
 {
-    /**
-     * Permission naming: {module}.{resource}.{action}
-     */
     private array $permissions = [
-        // ── Administration ────────────────────────────────────────────────────
         'admin' => [
             ['name' => 'View Roles', 'slug' => 'admin.role.view', 'group' => 'admin.role'],
             ['name' => 'Create Role', 'slug' => 'admin.role.create', 'group' => 'admin.role'],
@@ -29,8 +25,6 @@ class PermissionSeeder extends Seeder
             ['name' => 'View Modules', 'slug' => 'admin.module.view', 'group' => 'admin.module'],
             ['name' => 'Manage Modules', 'slug' => 'admin.module.manage', 'group' => 'admin.module'],
         ],
-
-        // ── HRM ───────────────────────────────────────────────────────────────
         'hrm' => [
             ['name' => 'View Employees', 'slug' => 'hrm.employee.view', 'group' => 'hrm.employee'],
             ['name' => 'Create Employee', 'slug' => 'hrm.employee.create', 'group' => 'hrm.employee'],
@@ -43,59 +37,15 @@ class PermissionSeeder extends Seeder
             ['name' => 'View Payroll', 'slug' => 'hrm.payroll.view', 'group' => 'hrm.payroll'],
             ['name' => 'Process Payroll', 'slug' => 'hrm.payroll.process', 'group' => 'hrm.payroll'],
         ],
-
-        // ── Sales ─────────────────────────────────────────────────────────────
-        'sales' => [
-            ['name' => 'View Customers', 'slug' => 'sales.customer.view', 'group' => 'sales.customer'],
-            ['name' => 'Create Customer', 'slug' => 'sales.customer.create', 'group' => 'sales.customer'],
-            ['name' => 'Update Customer', 'slug' => 'sales.customer.update', 'group' => 'sales.customer'],
-            ['name' => 'View Invoices', 'slug' => 'sales.invoice.view', 'group' => 'sales.invoice'],
-            ['name' => 'Create Invoice', 'slug' => 'sales.invoice.create', 'group' => 'sales.invoice'],
-            ['name' => 'Update Invoice', 'slug' => 'sales.invoice.update', 'group' => 'sales.invoice'],
-            ['name' => 'Delete Invoice', 'slug' => 'sales.invoice.delete', 'group' => 'sales.invoice'],
-            ['name' => 'View Orders', 'slug' => 'sales.order.view', 'group' => 'sales.order'],
-            ['name' => 'Create Order', 'slug' => 'sales.order.create', 'group' => 'sales.order'],
-            ['name' => 'Approve Order', 'slug' => 'sales.order.approve', 'group' => 'sales.order'],
-        ],
-
-        // ── Inventory ─────────────────────────────────────────────────────────
-        'inventory' => [
-            ['name' => 'View Products', 'slug' => 'inventory.product.view', 'group' => 'inventory.product'],
-            ['name' => 'Create Product', 'slug' => 'inventory.product.create', 'group' => 'inventory.product'],
-            ['name' => 'Update Product', 'slug' => 'inventory.product.update', 'group' => 'inventory.product'],
-            ['name' => 'Delete Product', 'slug' => 'inventory.product.delete', 'group' => 'inventory.product'],
-            ['name' => 'View Stock', 'slug' => 'inventory.stock.view', 'group' => 'inventory.stock'],
-            ['name' => 'Adjust Stock', 'slug' => 'inventory.stock.adjust', 'group' => 'inventory.stock'],
-            ['name' => 'View Warehouses', 'slug' => 'inventory.warehouse.view', 'group' => 'inventory.warehouse'],
-            ['name' => 'Manage Warehouse', 'slug' => 'inventory.warehouse.manage', 'group' => 'inventory.warehouse'],
-        ],
-
-        // ── Finance ───────────────────────────────────────────────────────────
-        'finance' => [
-            ['name' => 'View Accounts', 'slug' => 'finance.account.view', 'group' => 'finance.account'],
-            ['name' => 'Create Account', 'slug' => 'finance.account.create', 'group' => 'finance.account'],
-            ['name' => 'View Ledger', 'slug' => 'finance.ledger.view', 'group' => 'finance.ledger'],
-            ['name' => 'Post Voucher', 'slug' => 'finance.voucher.post', 'group' => 'finance.voucher'],
-            ['name' => 'View Reports', 'slug' => 'finance.report.view', 'group' => 'finance.report'],
-            ['name' => 'Export Reports', 'slug' => 'finance.report.export', 'group' => 'finance.report'],
-        ],
     ];
 
     public function run(): void
     {
-        $org = Organization::where('slug', 'demo-corp')->firstOrFail();
-
-        // Load roles
-        $adminRole = Role::where('organization_id', $org->id)->where('slug', 'org-admin')->firstOrFail();
-        $managerRole = Role::where('organization_id', $org->id)->where('slug', 'manager')->firstOrFail();
-        $employeeRole = Role::where('organization_id', $org->id)->where('slug', 'employee')->firstOrFail();
+        $orgs = Organization::all();
 
         foreach ($this->permissions as $moduleSlug => $perms) {
             $module = Module::where('slug', $moduleSlug)->first();
-
-            if (!$module) {
-                continue;
-            }
+            if (!$module) continue;
 
             foreach ($perms as $permData) {
                 $permission = Permission::firstOrCreate(
@@ -108,28 +58,21 @@ class PermissionSeeder extends Seeder
                     ]
                 );
 
-                // ── Assign permissions to roles ───────────────────────────────
-                // Admin gets ALL permissions
-                $adminRole->permissions()->syncWithoutDetaching([
-                    $permission->id => ['is_granted' => true],
-                ]);
+                foreach ($orgs as $org) {
+                    $adminRole = Role::where('organization_id', $org->id)->where('slug', 'org-admin')->first();
+                    $employeeRole = Role::where('organization_id', $org->id)->where('slug', 'employee')->first();
 
-                // Manager gets view + limited actions (not delete)
-                if (!str_contains($permData['slug'], '.delete')) {
-                    $managerRole->permissions()->syncWithoutDetaching([
-                        $permission->id => ['is_granted' => true],
-                    ]);
-                }
+                    if ($adminRole) {
+                        $adminRole->permissions()->syncWithoutDetaching([$permission->id => ['is_granted' => true]]);
+                    }
 
-                // Employee gets only view permissions
-                if (str_ends_with($permData['slug'], '.view')) {
-                    $employeeRole->permissions()->syncWithoutDetaching([
-                        $permission->id => ['is_granted' => true],
-                    ]);
+                    if ($employeeRole && str_ends_with($permData['slug'], '.view')) {
+                        $employeeRole->permissions()->syncWithoutDetaching([$permission->id => ['is_granted' => true]]);
+                    }
                 }
             }
         }
 
-        $this->command->info('Permissions seeded and assigned to roles.');
+        $this->command->info('Permissions seeded and assigned to roles across all organizations.');
     }
 }

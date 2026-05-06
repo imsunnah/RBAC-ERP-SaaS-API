@@ -15,6 +15,7 @@ class HrmEmployee extends Model
     protected $fillable = [
         'uuid',
         'company_id',
+        'organization_id',
         'user_employee_id',
         'biometric_id',
         'national_id',

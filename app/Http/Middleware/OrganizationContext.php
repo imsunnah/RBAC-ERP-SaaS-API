@@ -36,7 +36,7 @@ class OrganizationContext
         // Verify the authenticated user belongs to this organization
         $user = $request->user();
 
-        if ($user && !$user->belongsToOrganization($organization->id)) {
+        if ($user && !$user->is_super_admin && !$user->belongsToOrganization($organization->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied. You are not a member of this organization.',

@@ -1,93 +1,107 @@
-# RBAC ERP SaaS API
+# Enterprise RBAC ERP SaaS API
 
-A robust, enterprise-grade multi-tenant Role-Based Access Control (RBAC) API with a fully functional interactive Demo UI. Built entirely on **Laravel 13** and tailored for modern SaaS products.
+A robust, enterprise-grade multi-tenant Role-Based Access Control (RBAC) API with a fully functional interactive Demo UI. Built on **Laravel 13**, this system is designed for complex SaaS products requiring strict data isolation, hierarchical roles, and module-based subscription management.
 
 ## ✨ Key Features & Architecture
 
-### 🏢 True Multi-Tenancy (Organization Context)
-- **Isolation:** Every user, role, permission, and module subscription is strictly scoped to an `Organization`.
-- **Context Middleware:** The custom `X-ORG-ID` header enforces access control via the `OrganizationContext` middleware. Users cannot access data across tenants.
-- **Billing Awareness:** Features subscription modeling (`OrganizationPlan`) to automatically gate access when trials or payments expire.
+### 🏢 Hierarchical Multi-Tenancy
+- **Structure:** `Company` -> `Organization` -> `User`.
+- **Isolation:** Every user, role, permission, and module subscription is strictly scoped to an `Organization` and its parent `Company`.
+- **Context Middleware:** The `org.context` middleware resolves the `X-ORG-ID` header, ensuring users cannot access data across tenant boundaries.
+- **Billing Awareness:** Features subscription modeling (`OrganizationPlan`) to automatically gate access based on active trials or payments.
 
-### 🛡️ Global Access Control (GAC) & Granular RBAC
-- **Super Admin Bypass:** Built-in absolute bypass capability for platform owners (accessible via the `is_super_admin` flag on the `users` table). 
-- **Role Hierarchies:** Roles support infinite `parent_role_id` inheritance. An `Org Admin` role passes its permissions down the tree if configured.
-- **Module Subscriptions:** Roles are assigned modules. The API serves modules precisely based on the intersection of what the exact *Organization* has paid for and what the *User's Role* grants.
-- **Permission Caching:** A highly optimized `RBACService` aggregates hierarchy-inherited permissions and direct user overrides, caching the final resolved map locally per-user per-org.
+### 🛡️ Advanced RBAC System
+- **Super Admin Bypass:** Built-in absolute bypass for platform owners via the `is_super_admin` flag.
+- **Role Hierarchies:** Infinite role inheritance (`parent_role_id`). Permissions propagate down the tree, allowing granular delegation.
+- **Module Subscriptions:** Organizations subscribe to modules (HRM, Sales, Finance, etc.). Access is granted only if *both* the organization has the module and the user's role permits it.
+- **Permission Overrides:** Supports both role-based permissions and direct user permission overrides (explicit grant/deny).
 
-### 🧩 Dynamic Navigation Ecosystem
-- **Intelligent Sidebar API:** The `SidebarService` resolves the navigation tree in real-time. It checks:
-  1. Does the Org have the Module?
-  2. Does the User's Role have access to that Module?
-  3. Are the specific Menus granted to the Role?
-  4. Does the User have the required `permission_id` to view deep Submenus?
-- Fully automates the frontend rendering of layouts so the client-side remains completely dumb and secure.
+### 🧩 Dynamic Navigation & UI Sync
+- **Intelligent Sidebar API:** Resolves the navigation tree in real-time by checking module availability, role permissions, and menu assignments.
+- **Audit & Security:** Integrated audit logging (`audit_logs`), login tracking (`user_login_attempts`), and password history.
 
-### 🏗️ Complete UUID First Implementation
-- Security-first approach leveraging the `HasUuidColumn` trait. Internal integer IDs are completely masked from the public REST API payloads in favor of `uuid` parameters. Implicit route binding intercepts and casts UUIDs directly to Models.
+### 🏗️ Security First
+- **UUID Masking:** Leverages the `HasUuidColumn` trait. Internal integer IDs are completely hidden; all public API interactions use UUIDs.
+- **Safe Migrations:** All migrations are idempotent (using existence checks), allowing them to safely run on existing databases without data loss or "duplicate table" errors.
 
 ---
 
 ## 🚀 Live Demo UI
 
-The repository ships with an incredibly sleek, dark-mode native HTML/CSS/JS Single Page Application frontend built strictly to test this exact architecture. 
-
-It implements interactive token-based Authentication, Topbar Organization switching, seamless API REST requests, dynamic Grid module layouts, and JSON API response debugging.
+The repository includes a sleek, dark-mode Single Page Application (SPA) built with Vanilla CSS/JS to test the API architecture.
 
 ### To Access the Demo:
-Run your local dev server:
-```bash
-php artisan serve
-```
-Then navigate to: **`http://localhost:8000/demo/index.html`**
+1. Start your local server: `php artisan serve`
+2. Navigate to: **`http://localhost:8000/demo/index.html`**
 
-**Test Accounts Provided (Password is `Password@123` for all):**
-- `superadmin@erp.test` *(Full GAC View)*
-- `admin@demo-corp.test` *(Org Admin View)*
-- `employee@demo-corp.test` *(Restricted Employee View)*
+**Test Accounts (Password: `Password@123`):**
+- **Super Admin:** `superadmin@atilimited.net`
+- **Org Admin:** `admin@atilimited.net`
+- **Employee:** `employee@atilimited.net`
 
 ---
 
 ## 🛠️ Tech Stack & Requirements
 
-- **PHP:** 8.2 or higher
-- **Framework:** Laravel 13 
-- **Database:** SQLite (dev) / MySQL 8.0+ ready
-- **Authentication:** Laravel Passport (`v12+` / `v13`) for OAuth2 Bearer Tokens
-- **Frontend Demo:** Pure Vanilla CSS (Glassmorphism & Orbs) + Vanilla JS state management
+- **PHP:** 8.2+
+- **Framework:** Laravel 13
+- **Database:** PostgreSQL (Optimized) / MySQL ready
+- **Authentication:** Laravel Passport for OAuth2 Bearer Tokens
+- **Frontend Demo:** Pure Vanilla CSS (Glassmorphism) + Vanilla JS
+
+---
 
 ## 📦 Local Installation & Setup
 
 1. **Clone & Install Dependencies**
-```bash
-composer install
-```
+   ```bash
+   composer install
+   ```
 
 2. **Environment Configuration**
-```bash
-cp .env.example .env
-php artisan key:generate
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+3. **Install Passport Keys**
+   ```bash
+   php artisan passport:install --force
+   php artisan passport:client --personal --name="ERP Personal Access Client"
+   ```
+
+4. **Database Migration & Seeding**
+   ```bash
+   php artisan migrate:fresh --seed
+   ```
+
+---
+
+## 📖 API Usage
+
+### Authentication
+**POST** `/api/v1/auth/login`
+```json
+{
+    "email": "admin@atilimited.net",
+    "password": "Password@123"
+}
 ```
-*Note: Ensure your `DB_CONNECTION` is mapped properly (to either MySQL or the provided SQLite database file).*
 
-3. **Install Passport Clients & Keys**
-Because Passport handles OAuth, generate the cryptographic keys and a Personal Access Client.
-```bash
-php artisan passport:install --force
-php artisan passport:client --personal --name="ERP Personal Access Client"
-```
-*(Add the returned Client ID and Secret to `.env` if prompted by your Passport version)*
-
-4. **Fresh Migration & Complete Seeding**
-Deploy the complete architecture with the deterministic seeders (Creates the Demo Corp, Users, Roles, Modules, Menus, Permissions).
-```bash
-php artisan migrate:fresh --seed
+### Accessing Scoped Data
+Most routes require the `X-ORG-ID` header (Organization UUID):
+```http
+GET /api/v1/sidebar
+X-ORG-ID: 414e33dc-312a-4536-9fe6-bf42b15678fd
+Authorization: Bearer <token>
 ```
 
-## 📖 Key Directories
+---
 
-- `/app/Http/Controllers/Api/V1/*` : RESTful endpoints
-- `/app/Http/Middleware/*` : Org, Billing, and Permission gates
-- `/app/Models/Traits/*` : Architecture traits (like UUID behavior)
-- `/app/Services/*` : Heavy business logic isolating permissions (`RBACService`, `SidebarService`)
-- `/public/demo/*` : The interactive test harness UI
+## 📂 Project Structure
+
+- `/app/Http/Controllers/Api/V1/*`: RESTful API Endpoints
+- `/app/Http/Middleware/*`: Multi-tenancy and Permission gates
+- `/app/Services/*`: Core business logic (`RBACService`, `SidebarService`)
+- `/database/migrations/*`: Idempotent schema definitions
+- `/public/demo/*`: Interactive test harness UI

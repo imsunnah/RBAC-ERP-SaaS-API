@@ -12,14 +12,17 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $company = \App\Models\Company::first();
-        $org = Organization::where('slug', 'demo-corp')->firstOrFail();
+        $company = \App\Models\Company::where('slug', 'ati-limited')->first();
+        $techOrg = Organization::where('slug', 'ati-tech')->firstOrFail();
+        $servOrg = Organization::where('slug', 'ati-services')->firstOrFail();
+        $demoOrg = Organization::where('slug', 'demo-corp')->firstOrFail();
 
-        // ── Super Admin ───────────────────────────────────────────────────────
+        // ── Existing Admin Users ──────────────────────────────────────────────
         $superAdmin = User::firstOrCreate(
             ['email' => 'superadmin@atilimited.net'],
             [
                 'company_id' => $company?->id,
+                'organization_id' => $demoOrg->id,
                 'name' => 'Super Admin',
                 'first_name' => 'Super',
                 'last_name' => 'Admin',
@@ -30,15 +33,60 @@ class UserSeeder extends Seeder
         );
 
         UserOrganization::firstOrCreate(
-            ['user_id' => $superAdmin->id, 'organization_id' => $org->id],
+            ['user_id' => $superAdmin->id, 'organization_id' => $demoOrg->id],
             ['is_owner' => true, 'is_primary' => true, 'status' => 'active', 'joined_at' => now()]
         );
 
-        // ── Org Admin ─────────────────────────────────────────────────────────
+        // ── Ati Tech Employees (2) ─────────────────────────────────────────────
+        foreach (range(1, 2) as $i) {
+            $user = User::firstOrCreate(
+                ['email' => "tech.emp$i@atilimited.net"],
+                [
+                    'company_id' => $company?->id,
+                    'organization_id' => $techOrg->id,
+                    'name' => "Tech Employee $i",
+                    'first_name' => 'Tech',
+                    'last_name' => "Employee $i",
+                    'password' => Hash::make('Password@123'),
+                    'is_super_admin' => false,
+                    'status' => 'active',
+                ]
+            );
+
+            UserOrganization::firstOrCreate(
+                ['user_id' => $user->id, 'organization_id' => $techOrg->id],
+                ['is_owner' => false, 'is_primary' => true, 'status' => 'active', 'joined_at' => now()]
+            );
+        }
+
+        // ── Ati Services Employees (3) ─────────────────────────────────────────
+        foreach (range(1, 3) as $i) {
+            $user = User::firstOrCreate(
+                ['email' => "serv.emp$i@atilimited.net"],
+                [
+                    'company_id' => $company?->id,
+                    'organization_id' => $servOrg->id,
+                    'name' => "Service Employee $i",
+                    'first_name' => 'Service',
+                    'last_name' => "Employee $i",
+                    'password' => Hash::make('Password@123'),
+                    'is_super_admin' => false,
+                    'status' => 'active',
+                ]
+            );
+
+            UserOrganization::firstOrCreate(
+                ['user_id' => $user->id, 'organization_id' => $servOrg->id],
+                ['is_owner' => false, 'is_primary' => true, 'status' => 'active', 'joined_at' => now()]
+            );
+        }
+
+        // Keep old ones for backward compatibility
         $admin = User::firstOrCreate(
             ['email' => 'admin@atilimited.net'],
             [
                 'company_id' => $company?->id,
+                'organization_id' => $demoOrg->id,
                 'name' => 'Org Admin',
                 'first_name' => 'Org',
                 'last_name' => 'Admin',
@@ -47,34 +95,11 @@ class UserSeeder extends Seeder
                 'status' => 'active',
             ]
         );
-
         UserOrganization::firstOrCreate(
-            ['user_id' => $admin->id, 'organization_id' => $org->id],
+            ['user_id' => $admin->id, 'organization_id' => $demoOrg->id],
             ['is_owner' => false, 'is_primary' => true, 'status' => 'active', 'joined_at' => now()]
         );
 
-        // ── Regular Employee ──────────────────────────────────────────────────
-        $employee = User::firstOrCreate(
-            ['email' => 'employee@atilimited.net'],
-            [
-                'company_id' => $company?->id,
-                'name' => 'John Employee',
-                'first_name' => 'John',
-                'last_name' => 'Employee',
-                'password' => Hash::make('Password@123'),
-                'is_super_admin' => false,
-                'status' => 'active',
-            ]
-        );
-
-        UserOrganization::firstOrCreate(
-            ['user_id' => $employee->id, 'organization_id' => $org->id],
-            ['is_owner' => false, 'is_primary' => true, 'status' => 'active', 'joined_at' => now()]
-        );
-
-        $this->command->info('Users seeded:');
-        $this->command->info('  superadmin@atilimited.net    / Password@123  (Super Admin)');
-        $this->command->info('  admin@atilimited.net   / Password@123  (Org Admin)');
-        $this->command->info('  employee@atilimited.net / Password@123 (Employee)');
+        $this->command->info('Users and Organizations seeded successfully with organization_id.');
     }
 }

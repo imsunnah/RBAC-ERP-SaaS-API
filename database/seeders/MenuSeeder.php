@@ -14,13 +14,9 @@ class MenuSeeder extends Seeder
 {
     public function run(): void
     {
-        $org = Organization::where('slug', 'demo-corp')->firstOrFail();
+        $orgs = Organization::all();
 
-        $adminRole = Role::where('organization_id', $org->id)->where('slug', 'org-admin')->firstOrFail();
-        $managerRole = Role::where('organization_id', $org->id)->where('slug', 'manager')->firstOrFail();
-        $employeeRole = Role::where('organization_id', $org->id)->where('slug', 'employee')->firstOrFail();
-
-        // ── Seed Admin Module Menus ───────────────────────────────────────────
+        // ── Admin Module Menus ───────────────────────────────────────────
         $adminModule = Module::where('slug', 'admin')->first();
         if ($adminModule) {
             $settingsMenu = Menu::firstOrCreate(
@@ -35,9 +31,7 @@ class MenuSeeder extends Seeder
                 ]
             );
 
-            $this->assignToRoles($settingsMenu, [$adminRole]);
-
-            // Role Submenu
+            // Submenus
             $rolePerm = Permission::where('slug', 'admin.role.view')->first();
             $roleSubmenu = Submenu::firstOrCreate(
                 ['menu_id' => $settingsMenu->id, 'slug' => 'admin-roles'],
@@ -51,9 +45,7 @@ class MenuSeeder extends Seeder
                     'is_active' => true,
                 ]
             );
-            $this->assignSubmenuToRoles($roleSubmenu, [$adminRole]);
 
-            // User Submenu
             $userPerm = Permission::where('slug', 'admin.user.view')->first();
             $userSubmenu = Submenu::firstOrCreate(
                 ['menu_id' => $settingsMenu->id, 'slug' => 'admin-users'],
@@ -67,10 +59,18 @@ class MenuSeeder extends Seeder
                     'is_active' => true,
                 ]
             );
-            $this->assignSubmenuToRoles($userSubmenu, [$adminRole]);
+
+            foreach ($orgs as $org) {
+                $adminRole = Role::where('organization_id', $org->id)->where('slug', 'org-admin')->first();
+                if ($adminRole) {
+                    $this->assignToRoles($settingsMenu, [$adminRole]);
+                    $this->assignSubmenuToRoles($roleSubmenu, [$adminRole]);
+                    $this->assignSubmenuToRoles($userSubmenu, [$adminRole]);
+                }
+            }
         }
 
-        // ── Seed HRM Module Menus ─────────────────────────────────────────────
+        // ── HRM Module Menus ─────────────────────────────────────────────
         $hrmModule = Module::where('slug', 'hrm')->first();
         if ($hrmModule) {
             $employeeMenu = Menu::firstOrCreate(
@@ -85,10 +85,6 @@ class MenuSeeder extends Seeder
                 ]
             );
 
-            // Give managers and admins access, limit employees to their own profile (which could be another sub-menu, but for simplicity they get access to view)
-            $this->assignToRoles($employeeMenu, [$adminRole, $managerRole, $employeeRole]);
-
-            // Employee Directory Submenu
             $empViewPerm = Permission::where('slug', 'hrm.employee.view')->first();
             $empSubmenu = Submenu::firstOrCreate(
                 ['menu_id' => $employeeMenu->id, 'slug' => 'hrm-employee-directory'],
@@ -102,57 +98,23 @@ class MenuSeeder extends Seeder
                     'is_active' => true,
                 ]
             );
-            $this->assignSubmenuToRoles($empSubmenu, [$adminRole, $managerRole, $employeeRole]);
 
-            // All Employee Submenu
-            $allEmpSubmenu = Submenu::firstOrCreate(
-                ['menu_id' => $employeeMenu->id, 'slug' => 'hrm-all-employees'],
-                [
-                    'name' => 'All Employee',
-                    'icon' => 'users',
-                    'route' => 'hrm-employees.index',
-                    'url' => '/hrm-employees',
-                    'permission_id' => $empViewPerm?->id,
-                    'sort_order' => 2,
-                    'is_active' => true,
-                ]
-            );
-            $this->assignSubmenuToRoles($allEmpSubmenu, [$adminRole, $managerRole]);
-
-            // Attendance Menu
-            $attendanceMenu = Menu::firstOrCreate(
-                ['module_id' => $hrmModule->id, 'slug' => 'hrm-attendance'],
-                [
-                    'name' => 'Attendance',
-                    'icon' => 'clock',
-                    'route' => 'hrm.attendance.index',
-                    'url' => '/hrm/attendance',
-                    'sort_order' => 2,
-                    'is_active' => true,
-                ]
-            );
-            $this->assignToRoles($attendanceMenu, [$adminRole, $managerRole, $employeeRole]);
+            foreach ($orgs as $org) {
+                $adminRole = Role::where('organization_id', $org->id)->where('slug', 'org-admin')->first();
+                $employeeRole = Role::where('organization_id', $org->id)->where('slug', 'employee')->first();
+                
+                if ($adminRole) {
+                    $this->assignToRoles($employeeMenu, [$adminRole]);
+                    $this->assignSubmenuToRoles($empSubmenu, [$adminRole]);
+                }
+                if ($employeeRole) {
+                    $this->assignToRoles($employeeMenu, [$employeeRole]);
+                    $this->assignSubmenuToRoles($empSubmenu, [$employeeRole]);
+                }
+            }
         }
 
-        // ── Seed Sales Module Menus ───────────────────────────────────────────
-        $salesModule = Module::where('slug', 'sales')->first();
-        if ($salesModule) {
-            $salesMenu = Menu::firstOrCreate(
-                ['module_id' => $salesModule->id, 'slug' => 'sales-invoices'],
-                [
-                    'name' => 'Invoicing',
-                    'icon' => 'file-text',
-                    'route' => 'sales.invoices.index',
-                    'url' => '/sales/invoices',
-                    'sort_order' => 1,
-                    'is_active' => true,
-                ]
-            );
-            // Employees may not be in sales, but assuming demo
-            $this->assignToRoles($salesMenu, [$adminRole, $managerRole]);
-        }
-
-        $this->command->info('Menus and Submenus seeded and linked to Roles & Permissions.');
+        $this->command->info('Menus and Submenus seeded and linked to Roles across all organizations.');
     }
 
     private function assignToRoles(Menu $menu, array $roles): void

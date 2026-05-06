@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             ModuleSeeder::class,
             OrganizationSeeder::class,
             UserSeeder::class,
+            HrmEmployeeSeeder::class,
             RoleSeeder::class,
             PermissionSeeder::class,
             MenuSeeder::class,

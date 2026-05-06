@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\User;
+use App\Models\HrmEmployee;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\IndexUserRequest;
 use App\Http\Requests\User\StoreUserRequest;
@@ -58,6 +59,7 @@ class UserController extends Controller
 
         // Ensure standard users cannot be created as super admins
         $payload['is_super_admin'] = false;
+        $payload['organization_id'] = $orgId; // Primary organization
 
         $user = $this->userRepository->create($payload);
 
@@ -82,6 +84,18 @@ class UserController extends Controller
                 $roleIds->mapWithKeys(fn($roleId) => [$roleId => ['organization_id' => $orgId]])->toArray()
             );
         }
+
+        // ── Create HRM Employee record ────────────────────────────────────────
+        HrmEmployee::create([
+            'company_id' => $user->company_id,
+            'organization_id' => $orgId,
+            'full_name' => $user->name,
+            'office_email' => $user->email,
+            'personal_email' => $user->email,
+            'is_active' => true,
+            'user_employee_id' => substr((string) $user->id, 0, 16),
+            'created_by' => auth()->id() ?? $user->id,
+        ]);
 
         $this->auditService->logCreated($user);
 

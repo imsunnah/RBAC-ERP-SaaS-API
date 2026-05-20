@@ -49,6 +49,30 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Check if the user has at least one active organization plan
+        if (!$user->is_super_admin) {
+            $user->load('organizations.plan');
+            $hasActivePlan = false;
+
+            foreach ($user->organizations as $org) {
+                if ($org->plan && !$org->plan->isExpired()) {
+                    $hasActivePlan = true;
+                    break;
+                }
+            }
+
+            if (!$hasActivePlan && $user->organizations->count() > 0) {
+                Auth::logout();
+                $this->authService->logLoginAttempt($request->email, 'blocked', 'Subscription expired', $user);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your subscription plan has expired or is inactive. Please renew to continue.',
+                    'code' => 'PLAN_EXPIRED',
+                ], 402);
+            }
+        }
+
         $token = $user->createToken('ERP Personal Access Token')->accessToken;
 
         $this->authService->logLoginAttempt($request->email, 'success', null, $user);

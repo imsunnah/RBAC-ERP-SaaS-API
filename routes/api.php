@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\PermissionController;
@@ -44,6 +45,7 @@ Route::prefix('v1')->group(function () {
 
         // Global Management (no org context needed)
         Route::get('companies', [CompanyController::class, 'index']);
+        Route::get('departments', [DepartmentController::class, 'index']);
         Route::get('companies/{company}', [CompanyController::class, 'show']);
         Route::get('organizations', [OrganizationController::class, 'index']);
         Route::post('organizations', [OrganizationController::class, 'store']);
@@ -142,7 +144,6 @@ Route::prefix('v1')->group(function () {
             |        ->middleware('permission:sales.invoice.view');
             |-------------------------------------------------------------------
             */
-
         });
     });
 });

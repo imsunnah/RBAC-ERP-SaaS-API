@@ -11,6 +11,7 @@ use App\Services\Auth\AuthService;
 use App\Services\RBAC\RBACService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -51,11 +52,23 @@ class AuthController extends Controller
 
         // Check if the user has at least one active organization plan
         if (!$user->is_super_admin) {
+            // Ensure organizations and their plans are eager-loaded
             $user->load('organizations.plan');
+            // Log detailed organization plan information for debugging
+            $orgPlans = $user->organizations->map(function ($org) {
+                return [
+                    'org_id' => $org->id,
+                    'plan_status' => optional($org->plan)->status,
+                    'plan_expires_at' => optional($org->plan)->expires_at,
+                    'plan_is_active' => optional($org->plan)->isActive(),
+                ];
+            });
+            Log::info('Auth login plan check', ['user_id' => $user->id, 'org_plans' => $orgPlans]);
+
             $hasActivePlan = false;
 
             foreach ($user->organizations as $org) {
-                if ($org->plan && !$org->plan->isExpired()) {
+                if ($org->plan && $org->plan->isActive()) {
                     $hasActivePlan = true;
                     break;
                 }
@@ -115,8 +128,10 @@ class AuthController extends Controller
 
         // If org context is available, include resolved permissions
         if (app()->bound('current_organization')) {
-            $org = app('current_organization');
-            $data['permissions'] = $this->rbacService->getUserPermissions($user, $org->id);
+            $organization = app('current_organization');
+            // Ensure the organization's plan relationship is loaded
+            $organization->load('plan');
+            $data['permissions'] = $this->rbacService->getUserPermissions($user, $organization->id);
         }
 
         return response()->json([

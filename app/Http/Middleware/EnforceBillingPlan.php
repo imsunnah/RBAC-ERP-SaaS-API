@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use Illuminate\Support\Facades\Log;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -12,6 +13,10 @@ class EnforceBillingPlan
     public function handle(Request $request, Closure $next): SymfonyResponse
     {
         $organization = app('current_organization');
+        // Ensure the organization’s plan relationship is loaded
+        if ($organization) {
+            $organization->load('plan');
+        }
 
         if (!$organization) {
             return response()->json([
@@ -27,7 +32,15 @@ class EnforceBillingPlan
             return $next($request);
         }
 
-        if (!$plan || $plan->isExpired()) {
+        // Log detailed plan information for debugging
+        Log::info('EnforceBillingPlan middleware check', [
+            'organization_id' => $organization->id ?? null,
+            'plan_status' => optional($organization->plan)->status,
+            'plan_expires_at' => optional($organization->plan)->expires_at,
+            'plan_is_active' => optional($organization->plan)->isActive(),
+        ]);
+        // If there is no plan or the plan is not active, block the request
+        if (!$plan || !$plan->isActive()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Your subscription plan has expired or is inactive. Please renew to continue.',

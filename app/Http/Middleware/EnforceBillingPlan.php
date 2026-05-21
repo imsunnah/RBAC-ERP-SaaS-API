@@ -22,6 +22,11 @@ class EnforceBillingPlan
 
         $plan = $organization->plan;
 
+        // Allow read-only access (GET, HEAD, OPTIONS) even if the plan is expired
+        if ($request->isMethod('GET') || $request->isMethod('HEAD') || $request->isMethod('OPTIONS')) {
+            return $next($request);
+        }
+
         if (!$plan || $plan->isExpired()) {
             return response()->json([
                 'success' => false,

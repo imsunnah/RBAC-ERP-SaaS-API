@@ -14,7 +14,7 @@ class CompanyController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => CompanyResource::collection(Company::all()),
+            'data' => CompanyResource::collection(Company::with('organizations')->get()),
         ]);
     }
 

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToCompany;
+use App\Models\Traits\BelongsToOrganization;
 use App\Models\Traits\HasUuidColumn;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HrmEmployee extends Model
 {
-    use HasFactory, HasUuidColumn, BelongsToCompany;
+    use HasFactory, HasUuidColumn, BelongsToOrganization;
 
     protected $fillable = [
         'uuid',

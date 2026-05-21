@@ -15,10 +15,18 @@ class OrganizationContext
     {
         $orgId = $request->header('X-ORG-ID');
 
-        if (!$orgId) {
+        if (!$orgId || $orgId === 'undefined') {
             return response()->json([
                 'success' => false,
-                'message' => 'Organization context is required. Provide X-ORG-ID header.',
+                'message' => 'Organization context is required. Provide valid X-ORG-ID header.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Basic UUID format validation to prevent SQL errors
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $orgId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid Organization ID format.',
             ], Response::HTTP_BAD_REQUEST);
         }
 

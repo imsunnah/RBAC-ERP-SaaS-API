@@ -32,10 +32,13 @@ class UserSeeder extends Seeder
             ]
         );
 
-        UserOrganization::firstOrCreate(
-            ['user_id' => $superAdmin->id, 'organization_id' => $demoOrg->id],
-            ['is_owner' => true, 'is_primary' => true, 'status' => 'active', 'joined_at' => now()]
-        );
+        // ── Ensure superadmin has access to ALL organizations ──────────────────
+        foreach ([$demoOrg, $techOrg, $servOrg] as $org) {
+            UserOrganization::firstOrCreate(
+                ['user_id' => $superAdmin->id, 'organization_id' => $org->id],
+                ['is_owner' => true, 'is_primary' => ($org->id === $demoOrg->id), 'status' => 'active', 'joined_at' => now()]
+            );
+        }
 
         // ── Ati Tech Employees (2) ─────────────────────────────────────────────
         foreach (range(1, 2) as $i) {

@@ -14,6 +14,7 @@
         "essa/api-tool-kit": "*",
         "laravel/framework": "^13.0",
         "laravel/passport": "*",
+        "laravel/telescope": "*",
         "laravel/tinker": "*"
     },
     "require-dev": {

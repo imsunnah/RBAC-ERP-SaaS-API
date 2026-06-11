@@ -43,6 +43,46 @@ class PermissionController extends Controller
     }
 
     /**
+     * GET /api/v1/permissions/grouped
+     * List all available permissions grouped by module with CRUD attributes.
+     */
+    public function groupedByModule(Request $request): JsonResponse
+    {
+        $activeModuleIds = app('current_organization')->activeModules()->pluck('modules.id');
+
+        $modules = \App\Models\Module::whereIn('id', $activeModuleIds)
+            ->with(['permissions'])
+            ->get();
+
+        $grouped = $modules->map(function ($module) {
+            $perms = $module->permissions->map(function ($perm) {
+                // Determine CRUD type from slug (e.g., "hrm.employee.create" -> "create")
+                $parts = explode('.', $perm->slug);
+                $action = end($parts);
+                return [
+                    'id' => $perm->uuid,
+                    'name' => $perm->name,
+                    'slug' => $perm->slug,
+                    'action' => in_array($action, ['create', 'read', 'update', 'delete']) ? $action : 'other',
+                ];
+            });
+
+            return [
+                'id' => $module->uuid,
+                'name' => $module->name,
+                'slug' => $module->slug,
+                'icon' => $module->icon,
+                'permissions' => $perms,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $grouped,
+        ]);
+    }
+
+    /**
      * POST /api/v1/permissions
      */
     public function store(PermissionRequest $request): JsonResponse
@@ -102,7 +142,7 @@ class PermissionController extends Controller
     {
         $orgId = app('current_organization')->id;
 
-        if ($role->organization_id !== $orgId) {
+        if ((int) $role->organization_id !== (int) $orgId) {
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 

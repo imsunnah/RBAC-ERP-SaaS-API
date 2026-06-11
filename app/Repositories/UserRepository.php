@@ -38,7 +38,9 @@ class UserRepository extends BaseRepository
      */
     public function findWithOrgRoles(string $userId, string $orgId): ?User
     {
-        return User::with(['roles' => fn($q) => $q->wherePivot('organization_id', $orgId)->with('permissions')])
-            ->find($userId);
+        return User::with([
+            'roles'          => fn($q) => $q->wherePivot('organization_id', $orgId)->with(['permissions', 'modules']),
+            'organizations',
+        ])->find($userId);
     }
 }

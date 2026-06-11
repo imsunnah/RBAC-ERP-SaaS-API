@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\SubmenuController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\HrmEmployeeController;
+use App\Http\Controllers\Api\V1\BulkAccessController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -83,6 +84,8 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.role.update');
                 Route::put('/{role}/menus', [RoleController::class, 'syncMenus'])
                     ->middleware('permission:admin.role.update');
+                Route::post('/{role}/users/bulk', [BulkAccessController::class, 'bulkAssignRole'])
+                    ->middleware('permission:admin.role.assign');
             });
 
             // Users — requires user management permissions
@@ -103,6 +106,8 @@ Route::prefix('v1')->group(function () {
 
             // Permissions
             Route::prefix('permissions')->group(function () {
+                Route::get('/grouped', [PermissionController::class, 'groupedByModule'])
+                    ->middleware('permission:admin.permission.view');
                 Route::get('/', [PermissionController::class, 'index'])
                     ->middleware('permission:admin.permission.view');
                 Route::post('/', [PermissionController::class, 'store']);
@@ -113,6 +118,10 @@ Route::prefix('v1')->group(function () {
 
             // Assign Permissions to Roles specifically
             Route::put('roles/{role}/permissions', [PermissionController::class, 'sync'])
+                ->middleware('permission:admin.permission.assign');
+
+            // Bulk Assign Direct User Permissions
+            Route::post('permissions/bulk-assign', [BulkAccessController::class, 'bulkAssignPermissions'])
                 ->middleware('permission:admin.permission.assign');
 
             // Menus

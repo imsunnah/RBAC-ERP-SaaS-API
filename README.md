@@ -70,7 +70,7 @@ The repository includes a sleek, dark-mode Single Page Application (SPA) built w
    php artisan passport:client --personal --name="ERP Personal Access Client"
    ```
 
-4. **Database Migration & Seeding**
+4. **Database Migration &  **
    ```bash
    php artisan migrate:fresh --seed
    ```

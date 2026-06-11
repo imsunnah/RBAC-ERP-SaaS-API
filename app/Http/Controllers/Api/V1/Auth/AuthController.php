@@ -122,17 +122,62 @@ class AuthController extends Controller
      */
     public function me(MeRequest $request): JsonResponse
     {
-        $user = $request->user()->load(['organizations.company']);
+        $user = $request->user()->load(['organizations.company', 'organizations.modules', 'organizations.modules.menus', 'organizations.modules.menus.submenus']);
 
         $data = (new UserResource($user))->toArray($request);
 
-        // If org context is available, include resolved permissions
+        // If org context is available, include resolved permissions and allowed modules
         if (app()->bound('current_organization')) {
-            $organization = app('current_organization');
-            // Ensure the organization's plan relationship is loaded
-            $organization->load('plan');
-            $data['permissions'] = $this->rbacService->getUserPermissions($user, $organization->id);
+            $org = app('current_organization');
+            $data['permissions'] = $this->rbacService->getUserPermissions($user, $org->id);
+
+            // DB slug → Frontend module ID mapping
+            // Most slugs match directly (sales, inventory, finance, procurement, projects, meetings, mrp, assets, quality, it, admin, payroll)
+            // Special case: hrm DB module covers both 'hr' and 'payroll' frontend modules
+            $slugToFrontendIds = [
+                'hrm'         => ['hr', 'payroll'],
+                'sales'       => ['sales'],
+                'inventory'   => ['inventory'],
+                'finance'     => ['finance'],
+                'procurement' => ['procurement'],
+                'projects'    => ['projects'],
+                'meetings'    => ['meetings'],
+                'mrp'         => ['mrp'],
+                'assets'      => ['assets'],
+                'quality'     => ['quality'],
+                'it'          => ['it'],
+                'admin'       => ['admin'],
+                'payroll'     => ['payroll'],
+                'crm'         => ['sales'],  // legacy crm maps to sales module
+            ];
+
+            if ($user->is_super_admin) {
+                // Superadmin sees ALL frontend modules
+                $data['allowed_modules'] = [
+                    'hr', 'payroll', 'sales', 'inventory', 'finance',
+                    'procurement', 'mrp', 'meetings', 'projects',
+                    'assets', 'quality', 'it', 'admin',
+                ];
+            } else {
+                $roles = $user->rolesInOrg($org->id)->load('modules');
+                $allowedModuleIds = [];
+                foreach ($roles as $role) {
+                    foreach ($role->modules as $module) {
+                        if ($module->is_active) {
+                            $dbSlug = $module->slug;
+                            $frontendIds = $slugToFrontendIds[$dbSlug] ?? [$dbSlug];
+                            foreach ($frontendIds as $fId) {
+                                $allowedModuleIds[] = $fId;
+                            }
+                        }
+                    }
+                }
+                $data['allowed_modules'] = array_values(array_unique($allowedModuleIds));
+            }
+        } else {
+            $data['allowed_modules'] = [];
         }
+
 
         return response()->json([
             'success' => true,

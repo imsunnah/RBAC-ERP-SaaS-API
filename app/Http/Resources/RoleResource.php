@@ -35,7 +35,7 @@ class RoleResource extends JsonResource
             'modules' => $this->whenLoaded(
                 'modules',
                 fn() =>
-                $this->modules->map(fn($m) => ['id' => $m->id, 'name' => $m->name, 'slug' => $m->slug])
+                $this->modules->map(fn($m) => ['id' => $m->uuid, 'name' => $m->name, 'slug' => $m->slug])
             ),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

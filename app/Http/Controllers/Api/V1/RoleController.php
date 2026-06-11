@@ -80,7 +80,7 @@ class RoleController extends Controller
     {
         $orgId = app('current_organization')->id;
 
-        if ($role->organization_id !== $orgId) {
+        if ((int) $role->organization_id !== (int) $orgId) {
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 
@@ -97,7 +97,7 @@ class RoleController extends Controller
     {
         $orgId = app('current_organization')->id;
 
-        if ($role->organization_id !== $orgId) {
+        if ((int) $role->organization_id !== (int) $orgId) {
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 
@@ -128,7 +128,7 @@ class RoleController extends Controller
     {
         $orgId = app('current_organization')->id;
 
-        if ($role->organization_id !== $orgId) {
+        if ((int) $role->organization_id !== (int) $orgId) {
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 
@@ -148,7 +148,7 @@ class RoleController extends Controller
     {
         $orgId = app('current_organization')->id;
 
-        if ($role->organization_id !== $orgId) {
+        if ((int) $role->organization_id !== (int) $orgId) {
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 
@@ -177,7 +177,7 @@ class RoleController extends Controller
     {
         $orgId = app('current_organization')->id;
 
-        if ($role->organization_id !== $orgId) {
+        if ((int) $role->organization_id !== (int) $orgId) {
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 

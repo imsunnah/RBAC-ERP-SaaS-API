@@ -33,6 +33,9 @@ class UserController extends Controller
     {
         $orgId = app('current_organization')->id;
         $users = $this->userRepository->getByOrganization($orgId, perPage: $request->input('per_page', 20));
+        
+        // Eager load roles scoped to current organization for UI
+        $users->getCollection()->load(['roles' => fn($q) => $q->wherePivot('organization_id', $orgId)]);
 
         return response()->json([
             'success' => true,

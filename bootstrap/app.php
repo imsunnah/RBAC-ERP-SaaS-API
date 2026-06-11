@@ -38,6 +38,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // Return all unhandled exceptions as JSON for API consumers
         $exceptions->render(function (\Throwable $e, Request $request) {
             if ($request->is('api/*')) {
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->getMessage(),
+                        'errors' => $e->errors(),
+                    ], $e->status);
+                }
+
                 $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 $message = $e->getMessage() ?: 'An unexpected error occurred.';
 

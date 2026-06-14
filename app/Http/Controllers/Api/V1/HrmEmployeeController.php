@@ -16,7 +16,8 @@ class HrmEmployeeController extends Controller
     public function index(): JsonResponse
     {
         // By default, CompanyScope will filter this to the current company
-        $employees = HrmEmployee::latest()->paginate(15);
+        $employees = HrmEmployee::orderBy('user_employee_id', 'asc')
+            ->paginate(15);
 
         return response()->json([
             'success' => true,

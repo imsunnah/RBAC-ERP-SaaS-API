@@ -17,7 +17,12 @@ class ModuleRequest extends FormRequest
 
         return [
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:modules,slug,' . $moduleId,
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('modules', 'slug')->ignore($moduleId),
+            ],
             'description' => 'nullable|string',
             'icon' => 'nullable|string|max:255',
             'is_core' => 'boolean',

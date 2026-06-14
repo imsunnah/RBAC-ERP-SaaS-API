@@ -18,7 +18,12 @@ class PermissionRequest extends FormRequest
         return [
             'module_id' => 'required|exists:modules,id',
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:permissions,slug,' . $permissionId,
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('permissions', 'slug')->ignore($permissionId),
+            ],
             'description' => 'nullable|string',
             'group' => 'nullable|string|max:255',
         ];

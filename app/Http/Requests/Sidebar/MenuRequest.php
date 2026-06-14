@@ -18,7 +18,12 @@ class MenuRequest extends FormRequest
         return [
             'module_id' => 'required|exists:modules,id',
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:menus,slug,' . $menuId,
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('menus', 'slug')->ignore($menuId),
+            ],
             'icon' => 'nullable|string|max:255',
             'route' => 'nullable|string|max:255',
             'url' => 'nullable|string|max:255',

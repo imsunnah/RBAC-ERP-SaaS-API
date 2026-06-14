@@ -18,7 +18,12 @@ class SubmenuRequest extends FormRequest
         return [
             'menu_id' => 'required|exists:menus,id',
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:submenus,slug,' . $submenuId,
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('submenus', 'slug')->ignore($submenuId),
+            ],
             'icon' => 'nullable|string|max:255',
             'route' => 'nullable|string|max:255',
             'url' => 'nullable|string|max:255',

@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\V1\SubmenuController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\HrmEmployeeController;
+use App\Http\Controllers\Api\V1\HrmAttendanceController;
+use App\Http\Controllers\Api\V1\AdmsPushController;
 use App\Http\Controllers\Api\V1\BulkAccessController;
 use Illuminate\Support\Facades\Route;
 
@@ -144,6 +146,17 @@ Route::prefix('v1')->group(function () {
 
             // HRM Employees
             Route::apiResource('hrm-employees', HrmEmployeeController::class);
+
+            // HRM Attendance
+            Route::prefix('attendance/hrm')->group(function () {
+                Route::get('/', [HrmAttendanceController::class, 'index']);
+            });
+
+            // ADMS Device Management (authenticated)
+            Route::prefix('adms')->group(function () {
+                Route::get('devices', [AdmsPushController::class, 'devices']);
+                Route::put('devices/{id}', [AdmsPushController::class, 'updateDevice']);
+            });
 
             /*
             |-------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Permission;
 
+use App\Models\Module;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PermissionRequest extends FormRequest
@@ -16,7 +17,7 @@ class PermissionRequest extends FormRequest
         $permissionId = $this->route('permission') ? $this->route('permission')->id : null;
 
         return [
-            'module_id' => 'required|exists:modules,id',
+            'module_id' => 'required|exists:modules,uuid',
             'name' => 'required|string|max:255',
             'slug' => [
                 'required',
@@ -27,5 +28,15 @@ class PermissionRequest extends FormRequest
             'description' => 'nullable|string',
             'group' => 'nullable|string|max:255',
         ];
+    }
+
+    /**
+     * After validation, resolve UUID to internal integer ID.
+     */
+    protected function passedValidation(): void
+    {
+        $this->merge([
+            'module_id' => Module::resolveId($this->module_id),
+        ]);
     }
 }

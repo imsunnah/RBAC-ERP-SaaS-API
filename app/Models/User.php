@@ -92,6 +92,21 @@ class User extends Authenticatable implements OAuthenticatable
         return $this->directPermissions()->wherePivot('organization_id', $organizationId)->get();
     }
 
+    /**
+     * Direct module assignments.
+     */
+    public function modules(): BelongsToMany
+    {
+        return $this->belongsToMany(Module::class, 'user_modules')
+            ->withPivot('organization_id')
+            ->withTimestamps();
+    }
+
+    public function modulesInOrg(string $organizationId): BelongsToMany
+    {
+        return $this->modules()->wherePivot('organization_id', $organizationId);
+    }
+
     public function loginAttempts(): HasMany
     {
         return $this->hasMany(UserLoginAttempt::class);

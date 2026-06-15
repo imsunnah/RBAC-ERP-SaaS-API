@@ -52,4 +52,11 @@ class Module extends Model
     {
         return $this->belongsToMany(Role::class, 'role_modules')->withTimestamps();
     }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_modules')
+            ->withPivot('organization_id')
+            ->withTimestamps();
+    }
 }

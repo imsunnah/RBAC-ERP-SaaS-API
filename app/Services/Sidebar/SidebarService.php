@@ -62,8 +62,17 @@ class SidebarService
             ->pluck('module_id')
             ->toArray();
 
-        // Intersection: org has module active AND role has access
-        $allowedModuleIds = array_intersect($activeModuleIds, $roleModuleIds);
+        // Module IDs directly assigned to the user
+        $userDirectModuleIds = DB::table('user_modules')
+            ->where('user_id', $user->id)
+            ->where('organization_id', $organization->id)
+            ->pluck('module_id')
+            ->toArray();
+
+        $allUserModuleIds = array_unique(array_merge($roleModuleIds, $userDirectModuleIds));
+
+        // Intersection: org has module active AND role/user has access
+        $allowedModuleIds = array_intersect($activeModuleIds, $allUserModuleIds);
 
         // Menu IDs the role has access to via role_menus pivot
         $allowedMenuIds = DB::table('role_menus')
@@ -72,12 +81,20 @@ class SidebarService
             ->unique()
             ->toArray();
 
+        // Plus all menu IDs belonging to directly assigned modules
+        $directMenuIds = \App\Models\Menu::whereIn('module_id', $userDirectModuleIds)->pluck('id')->toArray();
+        $allowedMenuIds = array_unique(array_merge($allowedMenuIds, $directMenuIds));
+
         // Submenu IDs the role has access to via role_submenus pivot
         $allowedSubmenuIds = DB::table('role_submenus')
             ->whereIn('role_id', $roleIds)
             ->pluck('submenu_id')
             ->unique()
             ->toArray();
+
+        // Plus all submenu IDs of allowed menus from directly assigned modules
+        $directSubmenuIds = \App\Models\Submenu::whereIn('menu_id', $directMenuIds)->pluck('id')->toArray();
+        $allowedSubmenuIds = array_unique(array_merge($allowedSubmenuIds, $directSubmenuIds));
 
         // Resolve all user permissions for submenu permission_id check
         $grantedPermissionSlugs = $this->rbacService->getUserPermissions($user, $organization->id);

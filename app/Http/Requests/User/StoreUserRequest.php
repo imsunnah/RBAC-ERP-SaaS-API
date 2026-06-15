@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\User;
 
+use App\Http\Requests\Traits\ResolvesUuidToId;
+use App\Models\Organization;
+use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreUserRequest extends FormRequest
 {
+    use ResolvesUuidToId;
     public function authorize(): bool
     {
         return true;
@@ -25,5 +29,21 @@ class StoreUserRequest extends FormRequest
             'organizations' => ['nullable', 'array'],
             'organizations.*' => ['uuid', 'exists:organizations,uuid'],
         ];
+    }
+
+    /**
+     * Define which fields should be resolved from UUID to ID.
+     */
+    protected function resolvedKeys(): array
+    {
+        return [
+            'roles' => [Role::class],
+            'organizations' => [Organization::class],
+        ];
+    }
+
+    protected function passedValidation(): void
+    {
+        $this->resolveUuids();
     }
 }

@@ -18,10 +18,13 @@ class Module extends Model
         'slug',
         'description',
         'icon',
+        'route',
+        'url',
         'version',
         'is_core',
         'sort_order',
         'is_active',
+        'url',
     ];
 
     protected $casts = [

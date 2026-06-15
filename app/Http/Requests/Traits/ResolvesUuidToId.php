@@ -4,6 +4,12 @@ namespace App\Http\Requests\Traits;
 
 use Illuminate\Support\Arr;
 
+/**
+ * Trait to resolve UUIDs to IDs in FormRequests.
+ * 
+ * @method void merge(array $input)
+ * @method \Illuminate\Validation\Validator getValidatorInstance()
+ */
 trait ResolvesUuidToId
 {
     /**
@@ -57,7 +63,7 @@ trait ResolvesUuidToId
             }
         }
 
-        if (!empty($resolved)) {
+        if (!empty($resolved) && method_exists($this, 'merge')) {
             $this->merge($resolved);
         }
     }

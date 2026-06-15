@@ -22,6 +22,7 @@ class Module extends Model
         'is_core',
         'sort_order',
         'is_active',
+        'url',
     ];
 
     protected $casts = [

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Module\ModuleResource;
 use App\Http\Requests\Module\ModuleRequest;
+use App\Http\Requests\Module\ModuleUpdateRequest;
 use App\Models\Module;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -84,7 +85,7 @@ class ModuleController extends Controller
     /**
      * PUT /api/v1/modules/{module}
      */
-    public function update(ModuleRequest $request, Module $module): JsonResponse
+    public function update(ModuleUpdateRequest $request, Module $module): JsonResponse
     {
         $module->update($request->validated());
 

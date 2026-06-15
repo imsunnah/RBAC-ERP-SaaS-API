@@ -27,6 +27,7 @@ class ModuleRequest extends FormRequest
             'icon' => 'nullable|string|max:255',
             'is_core' => 'boolean',
             'sort_order' => 'integer',
+            'url' => 'required|string|max:255',
         ];
     }
 }

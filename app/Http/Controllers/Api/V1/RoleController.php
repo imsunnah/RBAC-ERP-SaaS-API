@@ -23,8 +23,7 @@ class RoleController extends Controller
         private RoleRepository $roleRepository,
         private AuditService $auditService,
         private RBACService $rbacService,
-    ) {
-    }
+    ) {}
 
     /**
      * GET /api/v1/roles
@@ -53,14 +52,8 @@ class RoleController extends Controller
     {
         $orgId = app('current_organization')->id;
 
-        $payload = $request->validated();
-        if (!empty($payload['parent_role_id'])) {
-            $parent = Role::where('uuid', $payload['parent_role_id'])->first();
-            $payload['parent_role_id'] = $parent?->id;
-        }
-
         $role = $this->roleRepository->create(array_merge(
-            $payload,
+            $request->validated(),
             ['organization_id' => $orgId]
         ));
 
@@ -101,14 +94,8 @@ class RoleController extends Controller
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 
-        $payload = $request->validated();
-        if (!empty($payload['parent_role_id'])) {
-            $parent = Role::where('uuid', $payload['parent_role_id'])->first();
-            $payload['parent_role_id'] = $parent?->id;
-        }
-
         $original = $role->getAttributes();
-        $this->roleRepository->update($role, $payload);
+        $this->roleRepository->update($role, $request->validated());
         $this->auditService->logUpdated($role->fresh(), $original);
 
         // Flush permission caches for all users with this role
@@ -152,8 +139,7 @@ class RoleController extends Controller
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 
-        $modules = $request->validated('modules');
-        $moduleIds = \App\Models\Module::whereIn('uuid', $modules)->pluck('id');
+        $moduleIds = $request->validated('modules');
 
         // Sync modules natively
         $role->modules()->sync($moduleIds);
@@ -161,7 +147,7 @@ class RoleController extends Controller
         // Clear RBAC Cache across users mapped to this Role
         $role->users->each(fn($u) => $this->rbacService->flushCache($u->id, $orgId));
 
-        $this->auditService->logAction('update', $role, 'role_modules', $modules);
+        $this->auditService->logAction('update', $role, 'role_modules', $moduleIds);
 
         return response()->json([
             'success' => true,

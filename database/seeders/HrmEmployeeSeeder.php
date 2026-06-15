@@ -3,35 +3,41 @@
 namespace Database\Seeders;
 
 use App\Models\HrmEmployee;
-use App\Models\User;
-use App\Models\Company;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class HrmEmployeeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $company = Company::where('slug', 'ati-limited')->first();
-        $users = User::where('email', 'like', '%@atilimited.net')->get();
+        $total = 50000;
+        $chunkSize = 1000;
 
-        foreach ($users as $user) {
-            HrmEmployee::firstOrCreate(
-                ['office_email' => $user->email],
-                [
-                    'company_id' => $user->company_id ?? $company?->id,
-                    'organization_id' => $user->organization_id, // Link to user's primary org
-                    'full_name' => $user->name,
-                    'office_email' => $user->email,
-                    'personal_email' => $user->email,
-                    'is_active' => true,
-                    'user_employee_id' => substr((string) $user->id, 0, 16),
-                    'created_by' => $user->id,
-                ]
-            );
+        $this->command->info("Truncating hrm_employees table...");
+        DB::statement('TRUNCATE TABLE hrm_employees RESTART IDENTITY CASCADE;');
+
+        $this->command->info("Seeding $total employees...");
+
+        for ($i = 0; $i < $total; $i += $chunkSize) {
+            $data = [];
+            for ($j = 0; $j < $chunkSize; $j++) {
+                $count = $i + $j;
+                $data[] = [
+                    'uuid' => (string) Str::uuid(),
+                    'company_id' => 1,
+                    'organization_id' => 1,
+                    'user_employee_id' => 'EMP-' . str_pad($count + 1, 7, '0', STR_PAD_LEFT),
+                    'full_name' => "Employee " . ($count + 1),
+                    'is_active' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            DB::table('hrm_employees')->insert($data);
+            $this->command->comment("Inserted " . ($i + $chunkSize) . " records...");
         }
+
+        $this->command->info("Successfully seeded $total employees.");
     }
 }

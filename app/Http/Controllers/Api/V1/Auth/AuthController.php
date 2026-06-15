@@ -98,7 +98,7 @@ class AuthController extends Controller
             'data' => [
                 'token_type' => 'Bearer',
                 'access_token' => $token,
-                'user' => new UserResource($user->load(['organizations.company'])),
+                // 'user' => new UserResource($user->load(['organizations.company'])),
             ],
         ]);
     }
@@ -131,9 +131,6 @@ class AuthController extends Controller
             $org = app('current_organization');
             $data['permissions'] = $this->rbacService->getUserPermissions($user, $org->id);
 
-            // DB slug → Frontend module ID mapping
-            // Most slugs match directly (sales, inventory, finance, procurement, projects, meetings, mrp, assets, quality, it, admin, payroll)
-            // Special case: hrm DB module covers both 'hr' and 'payroll' frontend modules
             $slugToFrontendIds = [
                 'hrm'         => ['hr', 'payroll'],
                 'sales'       => ['sales'],

@@ -19,28 +19,28 @@ class UserResource extends JsonResource
                     // 'id' => $org->id,
                     'uuid' => $org->uuid,
                     'name' => $org->name,
-                    'slug' => $org->slug,
+                    'url' => $org->url,
                     'logo' => $org->logo ?? null,
                     'company' => $org->company ? [
                         'uuid' => $org->company->uuid,
                         'name' => $org->company->name,
-                        'slug' => $org->company->slug,
+                        'url' => $org->company->url,
                     ] : null,
                     'modules' => $org->modules->map(fn($module) => [
                         'uuid' => $module->uuid,
                         'name' => $module->name,
-                        'slug' => $module->slug,
+                        'url' => $module->url,
                         'menus' => $module->menus->map(fn($menu) => [
                             'uuid' => $menu->uuid,
                             'name' => $menu->name,
-                            'slug' => $menu->slug,
+                            'url' => $menu->url,
                             'submenus' => $menu->submenus->map(fn($submenu) => [
                                 'uuid' => $submenu->uuid,
                                 'name' => $submenu->name,
-                                'slug' => $submenu->slug,
-                            ])
-                        ])
-                    ])
+                                'url' => $submenu->url,
+                            ]),
+                        ]),
+                    ]),
                 ]);
             }),
         ];

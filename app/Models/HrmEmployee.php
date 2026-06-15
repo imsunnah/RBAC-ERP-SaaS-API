@@ -64,6 +64,7 @@ class HrmEmployee extends Model
         'business_card_image',
         'user_serial_no',
         'is_active',
+        'org_no',
         'created_by',
         'updated_by',
     ];

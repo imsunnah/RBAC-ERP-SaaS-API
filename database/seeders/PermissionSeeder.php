@@ -24,6 +24,8 @@ class PermissionSeeder extends Seeder
             ['name' => 'Assign Permission', 'slug' => 'admin.permission.assign', 'group' => 'admin.permission'],
             ['name' => 'View Modules', 'slug' => 'admin.module.view', 'group' => 'admin.module'],
             ['name' => 'Manage Modules', 'slug' => 'admin.module.manage', 'group' => 'admin.module'],
+            ['name' => 'View Menus', 'slug' => 'admin.menu.view', 'group' => 'admin.menu'],
+            ['name' => 'Manage Menus', 'slug' => 'admin.menu.manage', 'group' => 'admin.menu'],
         ],
         'hrm' => [
             ['name' => 'View Employees', 'slug' => 'hrm.employee.view', 'group' => 'hrm.employee'],

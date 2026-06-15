@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToCompany;
 use App\Models\Traits\BelongsToOrganization;
 use App\Models\Traits\HasUuidColumn;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HrmEmployee extends Model
 {
-    use HasFactory, HasUuidColumn, BelongsToOrganization;
+    use HasFactory, HasUuidColumn, BelongsToCompany, BelongsToOrganization;
 
     protected $fillable = [
         'uuid',
@@ -85,5 +86,10 @@ class HrmEmployee extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
     }
 }

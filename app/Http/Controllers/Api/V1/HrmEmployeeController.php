@@ -9,41 +9,58 @@ use App\Models\HrmEmployee;
 use App\Http\Resources\HrmEmployeeResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class HrmEmployeeController extends Controller
 {
-    /**
-     * Display a listing of the employees.
-     */
+    /** Display a listing of the employees. */
     public function index(Request $request): JsonResponse
     {
-        $employees = HrmEmployee::query()
-            ->when($request->search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('full_name', 'ilike', "%{$search}%")
-                        ->orWhere('user_employee_id', 'ilike', "%{$search}%")
-                        ->orWhere('office_email', 'ilike', "%{$search}%")
-                        ->orWhere('office_mobile_no', 'ilike', "%{$search}%");
-                });
-            })
-            ->when($request->department_id, fn($q, $id) => $q->where('department_id', $id))
-            ->when($request->designation_id, fn($q, $id) => $q->where('designation_id', $id))
-            ->when($request->has('is_active'), fn($q) => $q->where('is_active', $request->boolean('is_active')))
-            ->orderBy('user_employee_id', 'asc')
-            ->paginate($request->integer('per_page', 15));
+        $query = HrmEmployee::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'ilike', "%{$search}%")
+                    ->orWhere('user_employee_id', 'ilike', "%{$search}%")
+                    ->orWhere('office_email', 'ilike', "%{$search}%")
+                    ->orWhere('office_mobile_no', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('name')) {
+            $query->where('full_name', 'ilike', '%' . $request->name . '%');
+        }
+        if ($request->filled('email')) {
+            $query->where('office_email', 'ilike', '%' . $request->email . '%');
+        }
+        if ($request->filled('status')) {
+            $status = filter_var($request->status, FILTER_VALIDATE_BOOLEAN);
+            $query->where('is_active', $status);
+        }
+
+        $query->orderBy('user_employee_id', 'asc');
+
+        $limit = min((int) $request->input('limit', $request->input('per_page', 15)), 50000);
+
+        if ($limit > 1000) {
+            ini_set('memory_limit', '512M');
+            set_time_limit(120);
+        }
+
+        $employees = $query->paginate($limit);
 
         return response()->json([
             'success' => true,
-            'data' => HrmEmployeeResource::collection($employees)->response()->getData(true),
+            'data'    => HrmEmployeeResource::collection($employees)->response()->getData(true),
         ]);
     }
 
-    /**
-     * Store a newly created employee in storage.
-     */
+    /** Store a newly created employee. */
     public function store(StoreHrmEmployeeRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $validated = $this->handleImageUploads($request, $validated);
 
         $validated['created_by'] = auth()->id();
         $validated['updated_by'] = auth()->id();
@@ -53,27 +70,14 @@ class HrmEmployeeController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Employee created successfully.',
-            'data' => new HrmEmployeeResource($employee),
+            'data'    => new HrmEmployeeResource($employee),
         ], 201);
     }
-
-    /**
-     * Display the specified employee.
-     */
-    public function show(HrmEmployee $hrmEmployee): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'data' => new HrmEmployeeResource($hrmEmployee),
-        ]);
-    }
-
-    /**
-     * Update the specified employee in storage.
-     */
+    /** Update the specified employee. */
     public function update(UpdateHrmEmployeeRequest $request, HrmEmployee $hrmEmployee): JsonResponse
     {
         $validated = $request->validated();
+        $validated = $this->handleImageUploads($request, $validated, $hrmEmployee);
         $validated['updated_by'] = auth()->id();
 
         $hrmEmployee->update($validated);
@@ -81,20 +85,80 @@ class HrmEmployeeController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Employee updated successfully.',
-            'data' => new HrmEmployeeResource($hrmEmployee->fresh()),
+            'data'    => new HrmEmployeeResource($hrmEmployee->fresh()),
         ]);
     }
 
-    /**
-     * Remove the specified employee from storage.
-     */
+    /** Display the specified employee. */
+    public function show(HrmEmployee $hrmEmployee): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data'    => new HrmEmployeeResource($hrmEmployee),
+        ]);
+    }
+
+
+    /** Remove the specified employee. */
     public function destroy(HrmEmployee $hrmEmployee): JsonResponse
     {
+        // Optionally delete image files from storage
+        $imageFields = ['employee_photo', 'profile_picture', 'signature_image', 'nid_image', 'business_card_image'];
+        foreach ($imageFields as $field) {
+            if ($hrmEmployee->{$field}) {
+                Storage::disk('public')->delete($hrmEmployee->{$field});
+            }
+        }
+
         $hrmEmployee->delete();
 
         return response()->json([
             'success' => true,
             'message' => 'Employee deleted successfully.',
         ]);
+    }
+
+    /**
+     * Handle image uploads for all image fields.
+     *
+     * Rules:
+     * - If the request has a file for the field → store it, replace path in $validated.
+     * - If the request has a non-empty string for the field → it's the existing path, keep it.
+     * - If the field is absent from the request entirely → for UPDATE, unset from $validated
+     *   so Eloquent does NOT overwrite the existing DB value.
+     * - For CREATE with no file → set null.
+     */
+    private function handleImageUploads(Request $request, array $validated, ?HrmEmployee $employee = null): array
+    {
+        $imageFields = [
+            'employee_photo',
+            'profile_picture',
+            'signature_image',
+            'nid_image',
+            'business_card_image',
+        ];
+
+        foreach ($imageFields as $field) {
+            if ($request->hasFile($field) && $request->file($field)->isValid()) {
+                // Delete old file on update
+                if ($employee && $employee->$field) {
+                    Storage::delete($employee->$field);
+                }
+                $path = $request->file($field)->store("hrm/employees/{$field}", 'public');
+                $validated[$field] = $path;
+            } elseif (array_key_exists($field, $validated) && is_string($validated[$field])) {
+                // Strip the /storage/ prefix if the frontend echoed back the full URL
+                $val = $validated[$field];
+                if (str_starts_with($val, '/storage/')) {
+                    $validated[$field] = substr($val, strlen('/storage/'));
+                }
+                // else: keep whatever string path came back as-is
+            } else {
+                // Not submitted — don't overwrite existing DB value
+                unset($validated[$field]);
+            }
+        }
+
+        return $validated;
     }
 }

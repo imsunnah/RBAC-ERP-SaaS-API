@@ -15,6 +15,8 @@ class ModuleResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'icon' => $this->icon,
+            'route' => $this->route,
+            'url' => $this->url,
             'is_core' => $this->is_core,
             'sort_order' => $this->sort_order,
             'url' => $this->url,

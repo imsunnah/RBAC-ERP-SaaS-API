@@ -9,9 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 trait BelongsToOrganization
 {
     /**
-     * The "booted" method of the model.
+     * The "boot" method of the trait.
      */
-    protected static function booted(): void
+    public static function bootBelongsToOrganization(): void
     {
         // Add the global scope so every query automatically filters by organization_id
         static::addGlobalScope(new OrganizationScope);

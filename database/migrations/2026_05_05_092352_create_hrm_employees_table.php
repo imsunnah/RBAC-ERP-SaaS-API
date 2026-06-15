@@ -12,12 +12,12 @@ return new class extends Migration {
                 $table->id();
                 $table->uuid('uuid')->nullable()->unique();
                 $table->foreignId('company_id')->constrained('companies')->cascadeOnDelete();
-                
+
                 // Core Identification
                 $table->string('user_employee_id', 16)->nullable()->unique();
                 $table->string('biometric_id', 16)->nullable();
                 $table->string('national_id', 20)->nullable();
-                
+
                 // Personal Details
                 $table->string('full_name', 100);
                 $table->string('employee_name_local', 300)->nullable();
@@ -30,7 +30,7 @@ return new class extends Migration {
                 $table->decimal('weight_kg', 5, 2)->nullable();
                 $table->decimal('height_cm', 5, 2)->nullable();
                 $table->string('eye_color', 100)->nullable();
-                
+
                 // Contact & Address
                 $table->string('office_email', 100)->nullable();
                 $table->string('personal_email', 100)->nullable();
@@ -39,12 +39,14 @@ return new class extends Migration {
                 $table->string('personal_mobile_no', 15)->nullable();
                 $table->string('secondary_mobile_no', 15)->nullable();
                 $table->string('tertiary_mobile_no', 15)->nullable();
-                $table->string('emergency_contact', 6)->nullable();
+
+                $table->string('emergency_contact', 20)->nullable()->change();
+
                 $table->string('present_address', 300)->nullable();
                 $table->string('permanent_address', 300)->nullable();
                 $table->string('emergency_address', 300)->nullable();
                 $table->string('address_link', 300)->nullable();
-                
+
                 // Employment Information
                 $table->string('department_id', 14)->nullable();
                 $table->bigInteger('designation_id')->nullable();
@@ -56,27 +58,27 @@ return new class extends Migration {
                 $table->date('start_date')->nullable();
                 $table->integer('employment_duration')->nullable();
                 $table->bigInteger('hired_by')->nullable();
-                
+
                 // Termination Details
                 $table->date('termination_date')->nullable();
                 $table->string('terminated_by', 20)->nullable();
                 $table->string('termination_reason', 200)->nullable();
                 $table->string('termination_remarks', 200)->nullable();
-                
+
                 // Media/Images
                 $table->string('employee_photo', 200)->nullable();
                 $table->string('profile_picture', 200)->nullable();
                 $table->string('signature_image', 200)->nullable();
                 $table->string('nid_image', 200)->nullable();
                 $table->string('business_card_image', 200)->nullable();
-                
+
                 // System
                 $table->bigInteger('user_serial_no')->nullable();
                 $table->smallInteger('is_active')->default(1);
                 $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
                 $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
                 $table->timestamps();
-                
+
                 // Indexes for frequently queried fields
                 $table->index(['company_id', 'is_active']);
                 $table->index('user_employee_id');
@@ -138,9 +140,10 @@ return new class extends Migration {
             });
         }
     }
-
     public function down(): void
     {
-        Schema::dropIfExists('hrm_employees');
+        Schema::table('hrm_employees', function (Blueprint $table) {
+            $table->string('emergency_contact', 6)->nullable()->change();
+        });
     }
 };

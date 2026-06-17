@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\HrmEmployeeController;
 use App\Http\Controllers\Api\V1\HrmAttendanceController;
 use App\Http\Controllers\Api\V1\AdmsPushController;
 use App\Http\Controllers\Api\V1\BulkAccessController;
+use App\Http\Controllers\Api\V1\ExportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,7 +27,7 @@ use Illuminate\Support\Facades\Route;
 |   auth:api            → Laravel Passport token validation
 |   org.context         → Resolves X-ORG-ID header, sets current_organization
 |   billing             → Enforces active subscription plan
-|   permission:{slug}   → Checks         permission (applied per-route)
+|   permission:{slug}   → Checks permission (applied per-route)
 |
 */
 
@@ -61,13 +62,18 @@ Route::prefix('v1')->group(function () {
             // Sidebar
             Route::get('sidebar', [SidebarController::class, 'index']);
 
-            // Modules
+            // Modules — requires admin.module.* permissions
             Route::prefix('modules')->group(function () {
-                Route::get('/', [ModuleController::class, 'index']);
-                Route::post('/', [ModuleController::class, 'store']);
-                Route::get('/{module}', [ModuleController::class, 'show']);
-                Route::put('/{module}', [ModuleController::class, 'update']);
-                Route::delete('/{module}', [ModuleController::class, 'destroy']);
+                Route::get('/', [ModuleController::class, 'index'])
+                    ->middleware('permission:admin.module.view');
+                Route::post('/', [ModuleController::class, 'store'])
+                    ->middleware('permission:admin.module.create');
+                Route::get('/{module}', [ModuleController::class, 'show'])
+                    ->middleware('permission:admin.module.view');
+                Route::put('/{module}', [ModuleController::class, 'update'])
+                    ->middleware('permission:admin.module.update');
+                Route::delete('/{module}', [ModuleController::class, 'destroy'])
+                    ->middleware('permission:admin.module.delete');
             });
 
             // Roles — requires role management permissions
@@ -106,16 +112,20 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.user.update');
             });
 
-            // Permissions
+            // Permissions — requires permission management permissions
             Route::prefix('permissions')->group(function () {
                 Route::get('/grouped', [PermissionController::class, 'groupedByModule'])
                     ->middleware('permission:admin.permission.view');
                 Route::get('/', [PermissionController::class, 'index'])
                     ->middleware('permission:admin.permission.view');
-                Route::post('/', [PermissionController::class, 'store']);
-                Route::get('/{permission}', [PermissionController::class, 'show']);
-                Route::put('/{permission}', [PermissionController::class, 'update']);
-                Route::delete('/{permission}', [PermissionController::class, 'destroy']);
+                Route::post('/', [PermissionController::class, 'store'])
+                    ->middleware('permission:admin.permission.create');
+                Route::get('/{permission}', [PermissionController::class, 'show'])
+                    ->middleware('permission:admin.permission.view');
+                Route::put('/{permission}', [PermissionController::class, 'update'])
+                    ->middleware('permission:admin.permission.update');
+                Route::delete('/{permission}', [PermissionController::class, 'destroy'])
+                    ->middleware('permission:admin.permission.delete');
             });
 
             // Assign Permissions to Roles specifically
@@ -126,36 +136,70 @@ Route::prefix('v1')->group(function () {
             Route::post('permissions/bulk-assign', [BulkAccessController::class, 'bulkAssignPermissions'])
                 ->middleware('permission:admin.permission.assign');
 
-            // Menus
+            // Menus — requires admin.menu.* permissions
             Route::prefix('menus')->group(function () {
-                Route::get('/', [MenuController::class, 'index']);
-                Route::post('/', [MenuController::class, 'store']);
-                Route::get('/{menu}', [MenuController::class, 'show']);
-                Route::put('/{menu}', [MenuController::class, 'update']);
-                Route::delete('/{menu}', [MenuController::class, 'destroy']);
+                Route::get('/', [MenuController::class, 'index'])
+                    ->middleware('permission:admin.menu.view');
+                Route::post('/', [MenuController::class, 'store'])
+                    ->middleware('permission:admin.menu.create');
+                Route::get('/{menu}', [MenuController::class, 'show'])
+                    ->middleware('permission:admin.menu.view');
+                Route::put('/{menu}', [MenuController::class, 'update'])
+                    ->middleware('permission:admin.menu.update');
+                Route::delete('/{menu}', [MenuController::class, 'destroy'])
+                    ->middleware('permission:admin.menu.delete');
             });
 
-            // Submenus
+            // Submenus — requires admin.submenu.* permissions
             Route::prefix('submenus')->group(function () {
-                Route::get('/', [SubmenuController::class, 'index']);
-                Route::post('/', [SubmenuController::class, 'store']);
-                Route::get('/{submenu}', [SubmenuController::class, 'show']);
-                Route::put('/{submenu}', [SubmenuController::class, 'update']);
-                Route::delete('/{submenu}', [SubmenuController::class, 'destroy']);
+                Route::get('/', [SubmenuController::class, 'index'])
+                    ->middleware('permission:admin.submenu.view');
+                Route::post('/', [SubmenuController::class, 'store'])
+                    ->middleware('permission:admin.submenu.create');
+                Route::get('/{submenu}', [SubmenuController::class, 'show'])
+                    ->middleware('permission:admin.submenu.view');
+                Route::put('/{submenu}', [SubmenuController::class, 'update'])
+                    ->middleware('permission:admin.submenu.update');
+                Route::delete('/{submenu}', [SubmenuController::class, 'destroy'])
+                    ->middleware('permission:admin.submenu.delete');
             });
 
-            // HRM Employees
-            Route::apiResource('hrm-employees', HrmEmployeeController::class);
+            // HRM Employees — requires hrm.employee.* permissions
+            Route::prefix('hrm-employees')->group(function () {
+                Route::get('/', [HrmEmployeeController::class, 'index'])
+                    ->middleware('permission:hrm.employee.view');
+                Route::post('/', [HrmEmployeeController::class, 'store'])
+                    ->middleware('permission:hrm.employee.create');
+                Route::get('/{hrmEmployee}', [HrmEmployeeController::class, 'show'])
+                    ->middleware('permission:hrm.employee.view');
+                Route::put('/{hrmEmployee}', [HrmEmployeeController::class, 'update'])
+                    ->middleware('permission:hrm.employee.update');
+                Route::delete('/{hrmEmployee}', [HrmEmployeeController::class, 'destroy'])
+                    ->middleware('permission:hrm.employee.delete');
+            });
 
-            // HRM Attendance
+            // HRM Attendance — requires hrm.attendance.view permission
             Route::prefix('attendance/hrm')->group(function () {
-                Route::get('/', [HrmAttendanceController::class, 'index']);
+                Route::get('/', [HrmAttendanceController::class, 'index'])
+                    ->middleware('permission:hrm.attendance.view');
             });
 
-            // ADMS Device Management (authenticated)
+            // ADMS Device Management (authenticated) — requires hrm.device.* permissions
             Route::prefix('adms')->group(function () {
-                Route::get('devices', [AdmsPushController::class, 'devices']);
-                Route::put('devices/{id}', [AdmsPushController::class, 'updateDevice']);
+                Route::get('devices', [AdmsPushController::class, 'devices'])
+                    ->middleware('permission:hrm.device.view');
+                Route::put('devices/{id}', [AdmsPushController::class, 'updateDevice'])
+                    ->middleware('permission:hrm.device.update');
+            });
+
+            // Exports — queued CSV/XLSX exports
+            Route::prefix('exports')->group(function () {
+                Route::post('hrm-employees', [ExportController::class, 'exportEmployees'])
+                    ->middleware('permission:hrm.employee.export');
+                Route::post('hrm-attendance', [ExportController::class, 'exportAttendance'])
+                    ->middleware('permission:hrm.attendance.export');
+                Route::get('{filename}', [ExportController::class, 'download'])
+                    ->where('filename', '.*');
             });
 
             /*

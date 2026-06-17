@@ -16,6 +16,8 @@ class MenuController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Menu::class);
+
         $organization = app('current_organization');
         $activeModuleIds = $organization->activeModules()->pluck('modules.id');
 
@@ -35,6 +37,8 @@ class MenuController extends Controller
      */
     public function store(MenuRequest $request): JsonResponse
     {
+        $this->authorize('create', Menu::class);
+
         $menu = Menu::create($request->validated());
 
         return response()->json([
@@ -49,6 +53,8 @@ class MenuController extends Controller
      */
     public function show(Menu $menu): JsonResponse
     {
+        $this->authorize('view', $menu);
+
         return response()->json([
             'success' => true,
             'data' => new MenuResource($menu->load(['module', 'submenus'])),
@@ -60,6 +66,8 @@ class MenuController extends Controller
      */
     public function update(MenuRequest $request, Menu $menu): JsonResponse
     {
+        $this->authorize('update', $menu);
+
         $menu->update($request->validated());
 
         return response()->json([
@@ -74,6 +82,8 @@ class MenuController extends Controller
      */
     public function destroy(Menu $menu): JsonResponse
     {
+        $this->authorize('delete', $menu);
+
         $menu->delete();
 
         return response()->json([

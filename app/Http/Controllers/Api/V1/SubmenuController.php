@@ -16,11 +16,13 @@ class SubmenuController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Submenu::class);
+
         $organization = app('current_organization');
         $activeModuleIds = $organization->activeModules()->pluck('modules.id');
 
         $submenus = Submenu::with(['menu.module', 'permission'])
-            ->whereHas('menu', function($q) use ($activeModuleIds) {
+            ->whereHas('menu', function ($q) use ($activeModuleIds) {
                 $q->whereIn('module_id', $activeModuleIds);
             })
             ->orderBy('sort_order')
@@ -37,6 +39,8 @@ class SubmenuController extends Controller
      */
     public function store(SubmenuRequest $request): JsonResponse
     {
+        $this->authorize('create', Submenu::class);
+
         $submenu = Submenu::create($request->validated());
 
         return response()->json([
@@ -51,6 +55,8 @@ class SubmenuController extends Controller
      */
     public function show(Submenu $submenu): JsonResponse
     {
+        $this->authorize('view', $submenu);
+
         return response()->json([
             'success' => true,
             'data' => new SubmenuResource($submenu->load(['menu', 'permission'])),
@@ -62,6 +68,8 @@ class SubmenuController extends Controller
      */
     public function update(SubmenuRequest $request, Submenu $submenu): JsonResponse
     {
+        $this->authorize('update', $submenu);
+
         $submenu->update($request->validated());
 
         return response()->json([
@@ -76,6 +84,8 @@ class SubmenuController extends Controller
      */
     public function destroy(Submenu $submenu): JsonResponse
     {
+        $this->authorize('delete', $submenu);
+
         $submenu->delete();
 
         return response()->json([

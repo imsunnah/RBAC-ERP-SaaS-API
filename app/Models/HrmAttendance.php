@@ -30,27 +30,25 @@ class HrmAttendance extends Model
         'uuid',
         'company_id',
         'organization_id',
+        'device_user_id',
         'biometric_id',
         'employee_id',
         'date',
-        'check_in',
-        'check_out',
-        'status',
-        'shift_id',
-        'source',
-        'approval_status',
-        'working_hours',
-        'overtime_hours',
-        'remarks',
-        'org_no',
+        'punch_in',
+        'punch_out',
+        'punch_state',
+        'punch_type',
+        'device_ip',
+        'synced_at',
         'created_by',
         'updated_by',
     ];
 
     protected $casts = [
-        'date'           => 'date',
-        'working_hours'  => 'float',
-        'overtime_hours' => 'float',
+        'date'      => 'date',
+        'punch_in'  => 'datetime',
+        'punch_out' => 'datetime',
+        'synced_at' => 'datetime',
     ];
 
     // ── Relationships ─────────────────────────────────────────

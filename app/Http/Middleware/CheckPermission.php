@@ -10,9 +10,7 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class CheckPermission
 {
-    public function __construct(private RBACService $rbacService)
-    {
-    }
+    public function __construct(private RBACService $rbacService) {}
 
     /**
      * Usage in route: ->middleware('permission:sales.invoice.create')
@@ -29,7 +27,13 @@ class CheckPermission
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        if (!$this->rbacService->hasPermission($user, $organization->id, $permission)) {
+        if ($user->is_super_admin) {
+            return $next($request);
+        }
+
+        $hasPerm = $this->rbacService->hasPermission($user, $organization->id, $permission);
+
+        if (!$hasPerm) {
             return response()->json([
                 'success' => false,
                 'message' => "Forbidden. Missing permission: [{$permission}]",

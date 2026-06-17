@@ -85,6 +85,7 @@ class Role extends Model
      */
     public function resolvePermissions(): \Illuminate\Support\Collection
     {
+        // dd('Role::resolvePermissions called', $this->name);
         $perms = $this->permissions->keyBy('slug');
 
         if ($this->is_inheritable && $this->parentRole) {

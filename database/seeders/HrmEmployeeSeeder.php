@@ -11,7 +11,7 @@ class HrmEmployeeSeeder extends Seeder
 {
     public function run(): void
     {
-        $total = 50000;
+        $total = 100000;
         $chunkSize = 1000;
 
         $this->command->info("Truncating hrm_employees table...");

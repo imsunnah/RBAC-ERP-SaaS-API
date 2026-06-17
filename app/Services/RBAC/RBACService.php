@@ -49,23 +49,32 @@ class RBACService
     }
 
     /**
-     * Flush cached permissions for user in org.
+     * Flush cached permissions for user in org by incrementing its version.
      */
     public function flushCache(string $userId, string $orgId): void
     {
-        Cache::forget($this->cacheKey($userId, $orgId));
+        $this->bumpCacheVersion($userId, $orgId);
+    }
+
+    /**
+     * Increment the cache version for a specific user in an organization.
+     */
+    public function bumpCacheVersion(string $userId, string $orgId): void
+    {
+        Cache::increment($this->versionKey($userId, $orgId));
     }
 
     // ─── Internal ──────────────────────────────────────────────────────────────
 
     /**
-     * Resolve all permissions for a user — cached per user+org.
-     * Returns ['permission.slug' => bool (true=granted, false=denied)]
+     * Resolve all permissions for a user — cached per user+org+version.
      */
     private function resolvePermissions(User $user, string $orgId): array
     {
+        $version = Cache::get($this->versionKey($user->id, $orgId), 1);
+
         return Cache::remember(
-            $this->cacheKey($user->id, $orgId),
+            $this->cacheKey($user->id, $orgId, $version),
             self::CACHE_TTL,
             function () use ($user, $orgId) {
                 return $this->buildPermissionMap($user, $orgId);
@@ -78,7 +87,9 @@ class RBACService
         $map = [];
 
         // 1. Role permissions (including hierarchy)
-        $roles = $user->rolesInOrg($orgId)->load([
+        $roles = $user->rolesInOrg($orgId);
+
+        $roles->load([
             'permissions',
             'parentRole.permissions',
             'parentRole.parentRole.permissions', // 3 levels deep
@@ -132,6 +143,9 @@ class RBACService
             }])->where('is_active', true)->orderBy('sort_order')->get()->toArray();
         }
 
+        // Use cached full hierarchy if possible, but keep it simple for now
+        // Resolution order should match buildPermissionMap
+
         // 1. Resolve authorized IDs from roles and direct assignments
         $roles = $user->rolesInOrg($orgId)->load(['modules', 'menus', 'submenus']);
 
@@ -168,8 +182,13 @@ class RBACService
             ->toArray();
     }
 
-    private function cacheKey(string $userId, string $orgId): string
+    private function versionKey(string $userId, string $orgId): string
     {
-        return "erp:permissions:{$orgId}:{$userId}";
+        return "erp:perms:v:{$orgId}:{$userId}";
+    }
+
+    private function cacheKey(string $userId, string $orgId, int $version): string
+    {
+        return "erp:perms:{$orgId}:{$userId}:v{$version}";
     }
 }

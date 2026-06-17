@@ -19,8 +19,7 @@ class PermissionController extends Controller
     public function __construct(
         private AuditService $auditService,
         private RBACService $rbacService,
-    ) {
-    }
+    ) {}
 
     /**
      * GET /api/v1/permissions
@@ -28,6 +27,8 @@ class PermissionController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Permission::class);
+
         // For a multi-org structure, permissions are global (defined by modules).
         // Only fetch permissions for modules active in this organization.
         $activeModuleIds = app('current_organization')->activeModules()->pluck('modules.id');
@@ -48,6 +49,8 @@ class PermissionController extends Controller
      */
     public function groupedByModule(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Permission::class);
+
         $activeModuleIds = app('current_organization')->activeModules()->pluck('modules.id');
 
         $modules = \App\Models\Module::whereIn('id', $activeModuleIds)
@@ -87,6 +90,8 @@ class PermissionController extends Controller
      */
     public function store(PermissionRequest $request): JsonResponse
     {
+        $this->authorize('create', Permission::class);
+
         $permission = Permission::create($request->validated());
 
         return response()->json([
@@ -101,6 +106,8 @@ class PermissionController extends Controller
      */
     public function show(Permission $permission): JsonResponse
     {
+        $this->authorize('view', $permission);
+
         return response()->json([
             'success' => true,
             'data' => new PermissionResource($permission->load('module')),
@@ -112,6 +119,8 @@ class PermissionController extends Controller
      */
     public function update(PermissionRequest $request, Permission $permission): JsonResponse
     {
+        $this->authorize('update', $permission);
+
         $permission->update($request->validated());
 
         return response()->json([
@@ -126,6 +135,8 @@ class PermissionController extends Controller
      */
     public function destroy(Permission $permission): JsonResponse
     {
+        $this->authorize('delete', $permission);
+
         $permission->delete();
 
         return response()->json([
@@ -140,6 +151,8 @@ class PermissionController extends Controller
      */
     public function sync(SyncRolePermissionsRequest $request, Role $role): JsonResponse
     {
+        $this->authorize('assign', Permission::class);
+
         $orgId = app('current_organization')->id;
 
         if ((int) $role->organization_id !== (int) $orgId) {

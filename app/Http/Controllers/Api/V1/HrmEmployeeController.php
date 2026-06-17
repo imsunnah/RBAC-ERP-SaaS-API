@@ -16,23 +16,25 @@ class HrmEmployeeController extends Controller
     /** Display a listing of the employees. */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', HrmEmployee::class);
+
         $query = HrmEmployee::query();
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'ilike', "%{$search}%")
-                    ->orWhere('user_employee_id', 'ilike', "%{$search}%")
-                    ->orWhere('office_email', 'ilike', "%{$search}%")
-                    ->orWhere('office_mobile_no', 'ilike', "%{$search}%");
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('user_employee_id', 'like', "%{$search}%")
+                    ->orWhere('office_email', 'like', "%{$search}%")
+                    ->orWhere('office_mobile_no', 'like', "%{$search}%");
             });
         }
 
         if ($request->filled('name')) {
-            $query->where('full_name', 'ilike', '%' . $request->name . '%');
+            $query->where('full_name', 'like', '%' . $request->name . '%');
         }
         if ($request->filled('email')) {
-            $query->where('office_email', 'ilike', '%' . $request->email . '%');
+            $query->where('office_email', 'like', '%' . $request->email . '%');
         }
         if ($request->filled('status')) {
             $status = filter_var($request->status, FILTER_VALIDATE_BOOLEAN);
@@ -59,6 +61,8 @@ class HrmEmployeeController extends Controller
     /** Store a newly created employee. */
     public function store(StoreHrmEmployeeRequest $request): JsonResponse
     {
+        $this->authorize('create', HrmEmployee::class);
+
         $validated = $request->validated();
         $validated = $this->handleImageUploads($request, $validated);
 
@@ -76,6 +80,8 @@ class HrmEmployeeController extends Controller
     /** Update the specified employee. */
     public function update(UpdateHrmEmployeeRequest $request, HrmEmployee $hrmEmployee): JsonResponse
     {
+        $this->authorize('update', $hrmEmployee);
+
         $validated = $request->validated();
         $validated = $this->handleImageUploads($request, $validated, $hrmEmployee);
         $validated['updated_by'] = auth()->id();
@@ -92,6 +98,8 @@ class HrmEmployeeController extends Controller
     /** Display the specified employee. */
     public function show(HrmEmployee $hrmEmployee): JsonResponse
     {
+        $this->authorize('view', $hrmEmployee);
+
         return response()->json([
             'success' => true,
             'data'    => new HrmEmployeeResource($hrmEmployee),
@@ -102,6 +110,8 @@ class HrmEmployeeController extends Controller
     /** Remove the specified employee. */
     public function destroy(HrmEmployee $hrmEmployee): JsonResponse
     {
+        $this->authorize('delete', $hrmEmployee);
+
         // Optionally delete image files from storage
         $imageFields = ['employee_photo', 'profile_picture', 'signature_image', 'nid_image', 'business_card_image'];
         foreach ($imageFields as $field) {

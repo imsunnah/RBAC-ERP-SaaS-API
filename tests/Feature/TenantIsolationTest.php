@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\HrmEmployee;
+use App\Models\Role;
 use App\Models\Organization;
 use App\Models\User;
 use Tests\Traits\SetupOrganizationContext;
@@ -65,4 +66,23 @@ test('user without permissions receives 403 even if org is correct', function ()
     $this->actingAsOrgMember($orgA['user'], $orgA['org'])
         ->getJson("/api/v1/hrm-employees/{$employeeA->uuid}")
         ->assertStatus(403);
+});
+
+test('user from org A cannot see roles from org B', function () {
+    $orgA = $this->setupOrgUser('Admin', ['admin.role.view']);
+    $orgB = $this->setupOrgUser('Admin', ['admin.role.view']);
+
+    // Role B created in Org B
+    $roleB = Role::factory()->create(['organization_id' => $orgB['org']->id, 'name' => 'Org B Role']);
+
+    // Act as Org A user
+    $this->actingAsOrgMember($orgA['user'], $orgA['org'])
+        ->getJson('/api/v1/roles')
+        ->assertStatus(200)
+        ->assertJsonMissing(['name' => 'Org B Role']);
+
+    // Try to access Org B role directly
+    $this->actingAsOrgMember($orgA['user'], $orgA['org'])
+        ->getJson("/api/v1/roles/{$roleB->uuid}")
+        ->assertStatus(404);
 });

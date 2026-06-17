@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Models\Traits\HasUuidColumn;
+use App\Models\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkShift extends Model
 {
-    use HasUuidColumn;
+    use HasUuidColumn, BelongsToOrganization;
     protected $primaryKey = 'shift_id';
 
     protected $fillable = [
@@ -23,6 +24,8 @@ class WorkShift extends Model
         'grace_minutes',
         'is_default',
         'is_active',
+        'organization_id',
+        'company_id',
         'org_no',
     ];
 

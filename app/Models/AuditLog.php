@@ -4,12 +4,13 @@ namespace App\Models;
 
 use App\Models\Traits\HasUuidColumn;
 use App\Models\Traits\BelongsToCompany;
+use App\Models\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class AuditLog extends Model
 {
-    use HasUuidColumn, BelongsToCompany, HasFactory;
+    use HasUuidColumn, BelongsToCompany, BelongsToOrganization, HasFactory;
 
     public $timestamps = false;
 

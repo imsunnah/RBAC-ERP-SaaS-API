@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sidebar\MenuRequest;
+use App\Http\Requests\Sidebar\MenuUpdateRequest;
 use App\Http\Resources\Sidebar\MenuResource;
 use App\Models\Menu;
 use Illuminate\Http\JsonResponse;
@@ -58,7 +59,7 @@ class MenuController extends Controller
     /**
      * PUT /api/v1/menus/{menu}
      */
-    public function update(MenuRequest $request, Menu $menu): JsonResponse
+    public function update(MenuUpdateRequest $request, Menu $menu): JsonResponse
     {
         $menu->update($request->validated());
 

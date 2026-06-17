@@ -20,6 +20,8 @@ class ModuleController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Module::class);
+
         $user = $request->user();
         $organization = app('current_organization');
 
@@ -62,6 +64,8 @@ class ModuleController extends Controller
      */
     public function store(ModuleRequest $request): JsonResponse
     {
+        $this->authorize('create', Module::class);
+
         $module = Module::create($request->validated());
 
         return response()->json([
@@ -76,6 +80,8 @@ class ModuleController extends Controller
      */
     public function show(Module $module): JsonResponse
     {
+        $this->authorize('view', $module);
+
         return response()->json([
             'success' => true,
             'data' => new ModuleResource($module),
@@ -87,6 +93,8 @@ class ModuleController extends Controller
      */
     public function update(ModuleUpdateRequest $request, Module $module): JsonResponse
     {
+        $this->authorize('update', $module);
+
         $module->update($request->validated());
 
         return response()->json([
@@ -101,6 +109,8 @@ class ModuleController extends Controller
      */
     public function destroy(Module $module): JsonResponse
     {
+        $this->authorize('delete', $module);
+
         $module->delete();
 
         return response()->json([

@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use App\Models\Traits\HasUuidColumn;
+use App\Models\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class PayrollConfig extends Model
 {
-    use HasUuidColumn;
+    use HasUuidColumn, BelongsToOrganization;
     protected $fillable = [
         'key',
         'value',
         'type',
+        'organization_id',
+        'company_id',
         'org_no',
     ];
 
@@ -35,19 +38,5 @@ class PayrollConfig extends Model
     public function scopeByKey(Builder $query, string $key): Builder
     {
         return $query->where('key', $key);
-    }
-
-    public function scopeCurrentOrg(Builder $query): Builder
-    {
-        try {
-            $org = app('current_organization');
-            if ($org) {
-                return $query->where('org_no', $org->id);
-            }
-        } catch (\Exception) {
-            // Context not available
-        }
-
-        return $query;
     }
 }

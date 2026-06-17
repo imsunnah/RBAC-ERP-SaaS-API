@@ -23,17 +23,18 @@ class UserController extends Controller
         private UserRepository $userRepository,
         private AuditService $auditService,
         private RBACService $rbacService,
-    ) {
-    }
+    ) {}
 
     /**
      * GET /api/v1/users
      */
     public function index(IndexUserRequest $request): JsonResponse
     {
+        $this->authorize('viewAny', User::class);
+
         $orgId = app('current_organization')->id;
         $users = $this->userRepository->getByOrganization($orgId, perPage: $request->input('per_page', 20));
-        
+
         // Eager load roles scoped to current organization for UI
         $users->getCollection()->load(['roles' => fn($q) => $q->wherePivot('organization_id', $orgId)]);
 
@@ -54,6 +55,8 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request): JsonResponse
     {
+        $this->authorize('create', User::class);
+
         $orgId = app('current_organization')->id;
         $payload = $request->validated();
 
@@ -114,6 +117,8 @@ class UserController extends Controller
      */
     public function show(User $user): JsonResponse
     {
+        $this->authorize('view', $user);
+
         $orgId = app('current_organization')->id;
 
         // Eager load roles for this specific org
@@ -134,6 +139,8 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
+        $this->authorize('update', $user);
+
         $orgId = app('current_organization')->id;
 
         if (!$user->organizations()->where('organizations.id', $orgId)->exists()) {
@@ -184,6 +191,8 @@ class UserController extends Controller
      */
     public function destroy(User $user): JsonResponse
     {
+        $this->authorize('delete', $user);
+
         $orgId = app('current_organization')->id;
 
         if (!$user->organizations()->where('organizations.id', $orgId)->exists()) {
@@ -216,6 +225,8 @@ class UserController extends Controller
      */
     public function syncRoles(SyncUserRolesRequest $request, User $user): JsonResponse
     {
+        $this->authorize('update', $user);
+
         $orgId = app('current_organization')->id;
 
         if (!$user->organizations()->where('organizations.id', $orgId)->exists()) {

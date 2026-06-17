@@ -30,6 +30,8 @@ class RoleController extends Controller
      */
     public function index(IndexRoleRequest $request): JsonResponse
     {
+        $this->authorize('viewAny', Role::class);
+
         $orgId = app('current_organization')->id;
         $roles = $this->roleRepository->getByOrganization($orgId, perPage: 20);
 
@@ -50,6 +52,8 @@ class RoleController extends Controller
      */
     public function store(StoreRoleRequest $request): JsonResponse
     {
+        $this->authorize('create', Role::class);
+
         $orgId = app('current_organization')->id;
 
         $role = $this->roleRepository->create(array_merge(
@@ -71,6 +75,8 @@ class RoleController extends Controller
      */
     public function show(ShowRoleRequest $request, Role $role): JsonResponse
     {
+        $this->authorize('view', $role);
+
         $orgId = app('current_organization')->id;
 
         if ((int) $role->organization_id !== (int) $orgId) {
@@ -88,6 +94,8 @@ class RoleController extends Controller
      */
     public function update(UpdateRoleRequest $request, Role $role): JsonResponse
     {
+        $this->authorize('update', $role);
+
         $orgId = app('current_organization')->id;
 
         if ((int) $role->organization_id !== (int) $orgId) {
@@ -113,6 +121,8 @@ class RoleController extends Controller
      */
     public function destroy(DestroyRoleRequest $request, Role $role): JsonResponse
     {
+        $this->authorize('delete', $role);
+
         $orgId = app('current_organization')->id;
 
         if ((int) $role->organization_id !== (int) $orgId) {
@@ -133,6 +143,8 @@ class RoleController extends Controller
      */
     public function syncModules(SyncRoleModulesRequest $request, Role $role): JsonResponse
     {
+        $this->authorize('update', $role);
+
         $orgId = app('current_organization')->id;
 
         if ((int) $role->organization_id !== (int) $orgId) {
@@ -161,6 +173,8 @@ class RoleController extends Controller
      */
     public function syncMenus(SyncRoleMenusRequest $request, Role $role): JsonResponse
     {
+        $this->authorize('update', $role);
+
         $orgId = app('current_organization')->id;
 
         if ((int) $role->organization_id !== (int) $orgId) {

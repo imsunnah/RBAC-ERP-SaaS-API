@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Traits\HasUuidColumn;
+use App\Models\Traits\BelongsToOrganization;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 
 class AdmsDevice extends Model
 {
-    use HasUuidColumn;
+    use HasUuidColumn, BelongsToOrganization;
     protected $fillable = [
         'serial_number',
         'alias',
@@ -20,6 +21,8 @@ class AdmsDevice extends Model
         'last_record_at',
         'push_count',
         'total_records_sent',
+        'organization_id',
+        'company_id',
         'org_no',
     ];
 
@@ -91,6 +94,13 @@ class AdmsDevice extends Model
 
         if (!empty($info['org_no'])) {
             $device->org_no = $info['org_no'];
+
+            // Resolve organization_id and company_id from legacy org_no
+            $org = Organization::find($info['org_no']);
+            if ($org) {
+                $device->organization_id = $org->id;
+                $device->company_id = $org->company_id;
+            }
         }
 
         $device->save();

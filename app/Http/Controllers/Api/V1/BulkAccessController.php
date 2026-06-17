@@ -16,8 +16,7 @@ class BulkAccessController extends Controller
     public function __construct(
         private AuditService $auditService,
         private RBACService $rbacService,
-    ) {
-    }
+    ) {}
 
     /**
      * POST /api/v1/roles/{role}/users/bulk
@@ -25,6 +24,8 @@ class BulkAccessController extends Controller
      */
     public function bulkAssignRole(BulkAccessRequest $request, Role $role): JsonResponse
     {
+        $this->authorize('assign', Role::class);
+
         $orgId = app('current_organization')->id;
 
         if ((int) $role->organization_id !== (int) $orgId) {
@@ -62,12 +63,14 @@ class BulkAccessController extends Controller
      */
     public function bulkAssignPermissions(BulkAccessRequest $request): JsonResponse
     {
+        $this->authorize('assign', Permission::class);
+
         $orgId = app('current_organization')->id;
         $userIds = $request->validated('user_ids');
         $incomingPermissions = $request->validated('permissions');
-        
+
         $users = User::whereIn('uuid', $userIds)->get();
-        
+
         $uuids = array_column($incomingPermissions, 'id');
         $permissionMap = Permission::whereIn('uuid', $uuids)->get(['id', 'uuid'])->keyBy('uuid');
 

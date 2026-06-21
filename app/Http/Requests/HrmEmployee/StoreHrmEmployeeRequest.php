@@ -3,9 +3,17 @@
 namespace App\Http\Requests\HrmEmployee;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\Traits\ResolvesUuidToId;
+use App\Models\Department;
+use App\Models\Gender;
+use App\Models\Religion;
+use App\Models\MaritalStatus;
+
 
 class StoreHrmEmployeeRequest extends FormRequest
 {
+    use ResolvesUuidToId;
+
     public function authorize(): bool
     {
         return true;
@@ -23,11 +31,12 @@ class StoreHrmEmployeeRequest extends FormRequest
             'full_name'           => 'required|string|max:100',
             'employee_name_local' => 'nullable|string|max:300',
             'date_of_birth'       => 'nullable|date',
-            'gender_id'           => 'nullable|string|max:3',
+            'gender_id'           => 'nullable|uuid|exists:genders,uuid',
             'blood_group_id'      => 'nullable|string|max:3',
-            'religion_id'         => 'nullable|integer|min:1',
-            'marital_status_id'   => 'nullable|integer|min:1',
+            'religion_id'         => 'nullable|uuid|exists:religions,uuid',
+            'marital_status_id'   => 'nullable|uuid|exists:marital_statuses,uuid',
             'country_id'          => 'nullable|integer|min:1',
+
             'weight_kg'           => 'nullable|numeric|min:0|max:999.99',
             'height_cm'           => 'nullable|numeric|min:0|max:999.99',
             'eye_color'           => 'nullable|string|max:100',
@@ -50,8 +59,9 @@ class StoreHrmEmployeeRequest extends FormRequest
             'address_link'        => 'nullable|string|max:300',
 
             // ── Employment ────────────────────────────────────────────────────
-            'department_id'       => 'nullable|string|max:14',
+            'department_id'       => 'nullable|uuid|exists:departments,uuid',
             'designation_id'      => 'nullable|integer|min:1',
+
             'employee_type_id'    => 'nullable|integer|min:1',
             'employee_category_id' => 'nullable|integer|min:1',
             'employment_type_id'  => 'nullable|integer|min:1',
@@ -82,6 +92,20 @@ class StoreHrmEmployeeRequest extends FormRequest
     }
 
     /**
+     * Define which fields should be resolved from UUID to ID.
+     */
+    protected function resolvedKeys(): array
+    {
+        return [
+            'department_id'     => Department::class,
+            'gender_id'         => Gender::class,
+            'religion_id'       => Religion::class,
+            'marital_status_id' => MaritalStatus::class,
+        ];
+    }
+
+
+    /**
      * Prepare the data for validation.
      * Cast "0" strings from FormData to null so nullable|integer rules don't
      * reject them, and handle boolean coercion for is_active.
@@ -89,9 +113,8 @@ class StoreHrmEmployeeRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $intFields = [
-            'religion_id',
-            'marital_status_id',
             'country_id',
+
             'designation_id',
             'employee_type_id',
             'employee_category_id',

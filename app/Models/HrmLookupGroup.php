@@ -2,25 +2,32 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToCompany;
 use App\Models\Traits\BelongsToOrganization;
 use App\Models\Traits\HasUuidColumn;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Designation extends Model
+class HrmLookupGroup extends Model
 {
-    use HasFactory, HasUuidColumn, BelongsToOrganization;
+    use HasFactory, HasUuidColumn, BelongsToCompany, BelongsToOrganization;
 
     protected $fillable = [
         'uuid',
+        'company_id',
+        'organization_id',
         'name',
         'slug',
-        'organization_id',
-        'company_id',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function hrmLookups(): HasMany
+    {
+        return $this->hasMany(HrmLookup::class);
+    }
 }

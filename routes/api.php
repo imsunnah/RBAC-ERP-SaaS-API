@@ -15,8 +15,8 @@ use App\Http\Controllers\Api\V1\HrmAttendanceController;
 use App\Http\Controllers\Api\V1\AdmsPushController;
 use App\Http\Controllers\Api\V1\BulkAccessController;
 use App\Http\Controllers\Api\V1\ExportController;
-use App\Http\Controllers\Api\V1\DepartmentController;
-use App\Http\Controllers\Api\V1\DesignationController;
+use App\Http\Controllers\Api\V1\HrmLookupController;
+
 use App\Http\Controllers\Api\V1\GenderController;
 use App\Http\Controllers\Api\V1\ReligionController;
 use App\Http\Controllers\Api\V1\MaritalStatusController;
@@ -205,35 +205,7 @@ Route::prefix('v1')->group(function () {
                     ->where('filename', '.*');
             });
 
-            // ─── Metadata / Setup Routes ──────────────────────────────────────
-
-            // Departments — tenant-scoped
-            Route::prefix('departments')->group(function () {
-                Route::get('/', [DepartmentController::class, 'index'])
-                    ->middleware('permission:admin.department.view');
-                Route::post('/', [DepartmentController::class, 'store'])
-                    ->middleware('permission:admin.department.create');
-                Route::get('/{department}', [DepartmentController::class, 'show'])
-                    ->middleware('permission:admin.department.view');
-                Route::put('/{department}', [DepartmentController::class, 'update'])
-                    ->middleware('permission:admin.department.update');
-                Route::delete('/{department}', [DepartmentController::class, 'destroy'])
-                    ->middleware('permission:admin.department.delete');
-            });
-
-            // Designations — tenant-scoped
-            Route::prefix('designations')->group(function () {
-                Route::get('/', [DesignationController::class, 'index'])
-                    ->middleware('permission:admin.designation.view');
-                Route::post('/', [DesignationController::class, 'store'])
-                    ->middleware('permission:admin.designation.create');
-                Route::get('/{designation}', [DesignationController::class, 'show'])
-                    ->middleware('permission:admin.designation.view');
-                Route::put('/{designation}', [DesignationController::class, 'update'])
-                    ->middleware('permission:admin.designation.update');
-                Route::delete('/{designation}', [DesignationController::class, 'destroy'])
-                    ->middleware('permission:admin.designation.delete');
-            });
+            // ─── Metadata / Setup Routes ─────────────────────────────────────
 
             // Genders — global lookup
             Route::prefix('genders')->group(function () {
@@ -275,6 +247,26 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.marital-status.update');
                 Route::delete('/{maritalStatus}', [MaritalStatusController::class, 'destroy'])
                     ->middleware('permission:admin.marital-status.delete');
+            });
+            // HRM Lookups — unified metadata management
+            Route::prefix('hrm-lookup-groups')->group(function () {
+                Route::get('/', [HrmLookupController::class, 'indexGroups'])
+                    ->middleware('permission:admin.hrm-lookup.view');
+                Route::post('/', [HrmLookupController::class, 'storeGroup'])
+                    ->middleware('permission:admin.hrm-lookup.create');
+            });
+
+            Route::prefix('hrm-lookups')->group(function () {
+                Route::get('/', [HrmLookupController::class, 'index'])
+                    ->middleware('permission:admin.hrm-lookup.view');
+                Route::post('/', [HrmLookupController::class, 'store'])
+                    ->middleware('permission:admin.hrm-lookup.create');
+                Route::get('/{hrmLookup}', [HrmLookupController::class, 'show'])
+                    ->middleware('permission:admin.hrm-lookup.view');
+                Route::put('/{hrmLookup}', [HrmLookupController::class, 'update'])
+                    ->middleware('permission:admin.hrm-lookup.update');
+                Route::delete('/{hrmLookup}', [HrmLookupController::class, 'destroy'])
+                    ->middleware('permission:admin.hrm-lookup.delete');
             });
         });
     });

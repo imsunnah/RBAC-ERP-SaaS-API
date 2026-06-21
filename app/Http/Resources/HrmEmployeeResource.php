@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Resources\MetadataResource;
 
 class HrmEmployeeResource extends JsonResource
 {
@@ -46,8 +47,10 @@ class HrmEmployeeResource extends JsonResource
             'address_link'        => $this->address_link,
 
             // ── Employment ────────────────────────────────────────────────────
-            'department_id'        => $this->department_id,
-            'designation_id'       => $this->designation_id ? (int) $this->designation_id : null,
+            'department'           => new MetadataResource($this->whenLoaded('department')),
+            'designation'          => new MetadataResource($this->whenLoaded('designation')),
+            // 'department_id'        => $this->department_id,
+            // 'designation_id'       => $this->designation_id,
             'employee_type_id'     => $this->employee_type_id ? (int) $this->employee_type_id : null,
             'employee_category_id' => $this->employee_category_id ? (int) $this->employee_category_id : null,
             'employment_type_id'   => $this->employment_type_id ? (int) $this->employment_type_id : null,

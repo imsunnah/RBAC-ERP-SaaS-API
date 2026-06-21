@@ -12,12 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1. Add new columns and make punch_time nullable
         Schema::table('hrm_attendances', function (Blueprint $table) {
             $table->date('date')->after('employee_id')->nullable();
             $table->dateTime('punch_in')->after('date')->nullable();
             $table->dateTime('punch_out')->after('punch_in')->nullable();
-            $table->dateTime('punch_time')->nullable()->change();
+
+            if (DB::getDriverName() !== 'sqlite') {
+                $table->dateTime('punch_time')->nullable()->change();
+            }
         });
 
         // 2. Create a temporary table with aggregated data (only for PostgreSQL/Postgres)

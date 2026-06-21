@@ -5,7 +5,7 @@ namespace App\Http\Requests\HrmEmployee;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\HrmEmployee;
 use App\Http\Requests\Traits\ResolvesUuidToId;
-use App\Models\Department;
+use App\Models\HrmLookup;
 use App\Models\Gender;
 use App\Models\Religion;
 use App\Models\MaritalStatus;
@@ -74,8 +74,8 @@ class UpdateHrmEmployeeRequest extends FormRequest
             'address_link'        => 'nullable|string|max:300',
 
             // ── Employment ────────────────────────────────────────────────────
-            'department_id'       => 'nullable|uuid|exists:departments,uuid',
-            'designation_id'      => 'nullable|integer|min:1',
+            'department_id'       => 'nullable|uuid|exists:hrm_lookups,uuid',
+            'designation_id'      => 'nullable|uuid|exists:hrm_lookups,uuid',
 
             'employee_type_id'    => 'nullable|integer|min:1',
             'employee_category_id' => 'nullable|integer|min:1',
@@ -111,7 +111,8 @@ class UpdateHrmEmployeeRequest extends FormRequest
     protected function resolvedKeys(): array
     {
         return [
-            'department_id'     => Department::class,
+            'department_id'     => HrmLookup::class,
+            'designation_id'    => HrmLookup::class,
             'gender_id'         => Gender::class,
             'religion_id'       => Religion::class,
             'marital_status_id' => MaritalStatus::class,
@@ -129,7 +130,6 @@ class UpdateHrmEmployeeRequest extends FormRequest
         $intFields = [
             'country_id',
 
-            'designation_id',
             'employee_type_id',
             'employee_category_id',
             'employment_type_id',

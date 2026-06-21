@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Models\Traits\BelongsToCompany;
 use App\Models\Traits\BelongsToOrganization;
 use App\Models\Traits\HasUuidColumn;
+use App\Models\HrmLookup;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -91,6 +93,17 @@ class HrmEmployee extends Model
 
     public function department(): BelongsTo
     {
-        return $this->belongsTo(Department::class, 'department_id');
+        return $this->belongsTo(HrmLookup::class, 'department_id')
+            ->whereHas('hrmLookupGroup', function ($q) {
+                $q->where('slug', 'department');
+            });
+    }
+
+    public function designation(): BelongsTo
+    {
+        return $this->belongsTo(HrmLookup::class, 'designation_id')
+            ->whereHas('hrmLookupGroup', function ($q) {
+                $q->where('slug', 'designation');
+            });
     }
 }

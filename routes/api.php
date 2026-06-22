@@ -263,6 +263,8 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::prefix('hrm-lookups')->group(function () {
+                Route::get('/grouped', [HrmLookupController::class, 'getGroupedLookups'])
+                    ->middleware('permission:admin.hrm-lookup.view');
                 Route::get('/', [HrmLookupController::class, 'index'])
                     ->middleware('permission:admin.hrm-lookup.view');
                 Route::post('/', [HrmLookupController::class, 'store'])

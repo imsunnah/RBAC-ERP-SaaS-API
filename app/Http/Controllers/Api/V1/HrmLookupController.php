@@ -16,6 +16,33 @@ class HrmLookupController extends Controller
 {
     // --- Lookup Groups ---
 
+    public function getGroupedLookups(): JsonResponse
+    {
+        $groups = HrmLookupGroup::with(['hrmLookups' => function ($query) {
+            $query->where('is_active', true);
+        }])
+            ->where('is_active', true)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $groups->map(function ($group) {
+                return [
+                    'group_uuid' => $group->uuid,
+                    'group_name' => $group->name,
+                    'group_slug' => $group->slug,
+                    'values' => $group->hrmLookups->map(function ($lookup) {
+                        return [
+                            'uuid' => $lookup->uuid,
+                            'name' => $lookup->name,
+                            'slug' => $lookup->slug,
+                        ];
+                    }),
+                ];
+            }),
+        ]);
+    }
+
     public function indexGroups(Request $request): JsonResponse
     {
         $limit = $request->get('limit', 15);

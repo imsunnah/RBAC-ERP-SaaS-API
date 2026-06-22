@@ -254,6 +254,12 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.hrm-lookup.view');
                 Route::post('/', [HrmLookupController::class, 'storeGroup'])
                     ->middleware('permission:admin.hrm-lookup.create');
+                Route::get('/{hrmLookupGroup}', [HrmLookupController::class, 'showGroup'])
+                    ->middleware('permission:admin.hrm-lookup.view');
+                Route::put('/{hrmLookupGroup}', [HrmLookupController::class, 'updateGroup'])
+                    ->middleware('permission:admin.hrm-lookup.update');
+                Route::delete('/{hrmLookupGroup}', [HrmLookupController::class, 'destroyGroup'])
+                    ->middleware('permission:admin.hrm-lookup.delete');
             });
 
             Route::prefix('hrm-lookups')->group(function () {

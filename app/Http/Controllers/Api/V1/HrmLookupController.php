@@ -43,6 +43,40 @@ class HrmLookupController extends Controller
         ], 201);
     }
 
+    public function showGroup(HrmLookupGroup $hrmLookupGroup): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => new MetadataResource($hrmLookupGroup),
+        ]);
+    }
+
+    public function updateGroup(HrmLookupGroupRequest $request, HrmLookupGroup $hrmLookupGroup): JsonResponse
+    {
+        $data = $request->validated();
+        if (empty($data['slug'])) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+
+        $hrmLookupGroup->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lookup group updated successfully.',
+            'data' => new MetadataResource($hrmLookupGroup),
+        ]);
+    }
+
+    public function destroyGroup(HrmLookupGroup $hrmLookupGroup): JsonResponse
+    {
+        $hrmLookupGroup->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lookup group deleted successfully.',
+        ]);
+    }
+
     // --- Lookup Items ---
 
     public function index(Request $request): JsonResponse

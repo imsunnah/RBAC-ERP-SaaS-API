@@ -7,13 +7,13 @@ use App\Models\Traits\BelongsToOrganization;
 use App\Models\Traits\HasUuidColumn;
 use App\Models\HrmLookup;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class HrmEmployee extends Model
 {
-    use HasFactory, HasUuidColumn, BelongsToCompany, BelongsToOrganization;
+    use HasFactory, HasUuidColumn, BelongsToCompany, BelongsToOrganization, SoftDeletes;
 
     protected $fillable = [
         'uuid',

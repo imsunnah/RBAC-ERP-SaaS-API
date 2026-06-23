@@ -7,10 +7,11 @@ use App\Models\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class WorkShift extends Model
 {
-    use HasUuidColumn, BelongsToOrganization;
+    use HasUuidColumn, BelongsToOrganization, SoftDeletes;
     protected $primaryKey = 'shift_id';
 
     protected $fillable = [

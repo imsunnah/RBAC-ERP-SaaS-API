@@ -7,10 +7,11 @@ use App\Models\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DutyRoster extends Model
 {
-    use HasUuidColumn, BelongsToOrganization;
+    use HasUuidColumn, BelongsToOrganization, SoftDeletes;
     protected $fillable = [
         'employee_id',
         'shift_id',

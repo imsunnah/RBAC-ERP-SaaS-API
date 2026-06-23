@@ -7,10 +7,11 @@ use App\Models\Traits\HasUuidColumn;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class HrmAttendance extends Model
 {
-    use HasFactory, HasUuidColumn, BelongsToOrganization;
+    use HasFactory, HasUuidColumn, BelongsToOrganization, SoftDeletes;
 
     // ── Status Constants ──────────────────────────────────────
     const STATUS_PRESENT = 'PRESENT';

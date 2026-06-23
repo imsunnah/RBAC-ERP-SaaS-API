@@ -1,0 +1,57 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        $tables = [
+            'permissions',
+            'hrm_employees',
+            'hrm_lookups',
+            'hrm_lookup_groups',
+            'adms_devices',
+            'duty_rosters',
+            'hrm_attendances',
+            'payroll_configs',
+            'work_shifts',
+        ];
+
+        foreach ($tables as $tableName) {
+            if (Schema::hasTable($tableName)) {
+                Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+                    if (!Schema::hasColumn($tableName, 'deleted_at')) {
+                        $table->softDeletes();
+                    }
+                });
+            }
+        }
+    }
+
+    public function down(): void
+    {
+        $tables = [
+            'permissions',
+            'hrm_employees',
+            'hrm_lookups',
+            'hrm_lookup_groups',
+            'adms_devices',
+            'duty_rosters',
+            'hrm_attendances',
+            'payroll_configs',
+            'work_shifts',
+        ];
+
+        foreach ($tables as $tableName) {
+            if (Schema::hasTable($tableName)) {
+                Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+                    if (Schema::hasColumn($tableName, 'deleted_at')) {
+                        $table->dropSoftDeletes();
+                    }
+                });
+            }
+        }
+    }
+};

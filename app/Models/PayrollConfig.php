@@ -6,10 +6,11 @@ use App\Models\Traits\HasUuidColumn;
 use App\Models\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PayrollConfig extends Model
 {
-    use HasUuidColumn, BelongsToOrganization;
+    use HasUuidColumn, BelongsToOrganization, SoftDeletes;
     protected $fillable = [
         'key',
         'value',

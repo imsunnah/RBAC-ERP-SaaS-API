@@ -6,10 +6,11 @@ use App\Models\Traits\HasUuidColumn;
 use App\Models\Traits\BelongsToOrganization;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AdmsDevice extends Model
 {
-    use HasUuidColumn, BelongsToOrganization;
+    use HasUuidColumn, BelongsToOrganization, SoftDeletes;
     protected $fillable = [
         'serial_number',
         'alias',

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Role;
+use App\Models\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Role\DestroyRoleRequest;
 use App\Http\Requests\Role\IndexRoleRequest;
 use App\Http\Requests\Role\ShowRoleRequest;
 use App\Http\Requests\Role\StoreRoleRequest;
-use App\Http\Requests\Role\SyncRoleModulesRequest;
-use App\Http\Requests\Role\SyncRoleMenusRequest;
+use App\Http\Requests\Role\SyncRoleDataRequest;
 use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Http\Resources\SyncRoleResource;
@@ -17,6 +17,7 @@ use App\Repositories\RoleRepository;
 use App\Services\Audit\AuditService;
 use App\Services\RBAC\RBACService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class RoleController extends Controller
 {
@@ -140,9 +141,10 @@ class RoleController extends Controller
     }
 
     /**
-     * PUT /api/v1/roles/{id}/modules
+     * PUT /api/v1/syncRole/{role}
+     * Sync modules, menus, submenus, and permissions to a role in one request.
      */
-    public function syncModules(SyncRoleModulesRequest $request, Role $role): JsonResponse
+    public function syncAll(SyncRoleDataRequest $request, Role $role): JsonResponse
     {
         $this->authorize('update', $role);
 
@@ -152,61 +154,50 @@ class RoleController extends Controller
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 
-        $moduleIds = $request->validated('modules');
+        // Sync modules
+        $role->modules()->sync($request->validated('modules'));
 
-        // Sync modules natively
-        $role->modules()->sync($moduleIds);
+        // Sync menus & submenus
+        $role->menus()->sync($request->validated('menus'));
+        $role->submenus()->sync($request->validated('submenus'));
 
-        // Clear RBAC Cache across users mapped to this Role
-        $role->users->each(fn($u) => $this->rbacService->flushCache($u->id, $orgId));
+        // Sync permissions (UUID → ID resolution)
+        $incomingPermissions = $request->validated('permissions');
+        $uuids = array_column($incomingPermissions, 'id');
+        $permissionMap = Permission::whereIn('uuid', $uuids)->get(['id', 'uuid'])->keyBy('uuid');
 
-        $this->auditService->logAction('update', $role, 'role_modules', $moduleIds);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Role modules assigned successfully.',
-        ]);
-    }
-
-    /**
-     * PUT /api/v1/roles/{role}/menus
-     * Sync Sidebar Menus and Submenus to a role.
-     */
-    public function syncMenus(SyncRoleMenusRequest $request, Role $role): JsonResponse
-    {
-        $this->authorize('update', $role);
-
-        $orgId = app('current_organization')->id;
-
-        if ((int) $role->organization_id !== (int) $orgId) {
-            return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
+        $syncData = [];
+        foreach ($incomingPermissions as $perm) {
+            $permission = $permissionMap[$perm['id']] ?? null;
+            if ($permission) {
+                $syncData[$permission->id] = ['is_granted' => $perm['is_granted']];
+            }
         }
+        $role->permissions()->sync($syncData);
 
-        $menuIds = $request->validated('menus');
-        $submenuIds = $request->validated('submenus');
+        // Flush caches
+        $role->users->each(function ($u) use ($orgId) {
+            $this->rbacService->flushCache($u->id, $orgId);
+            Cache::forget("erp:sidebar:{$orgId}:{$u->id}");
+        });
 
-        $role->menus()->sync($menuIds);
-        $role->submenus()->sync($submenuIds);
-
-        // Invalidate sidebar cache for users assigned to this role
-        $role->users->each(fn($u) => \Illuminate\Support\Facades\Cache::forget("erp:sidebar:{$orgId}:{$u->id}"));
-
-        $this->auditService->logAction('update', $role, 'sidebar_menus', [
-            'menus' => $menuIds,
-            'submenus' => $submenuIds,
+        $this->auditService->logAction('update', $role, 'role_sync_all', [
+            'modules' => $request->validated('modules'),
+            'menus' => $request->validated('menus'),
+            'submenus' => $request->validated('submenus'),
+            'permissions' => $incomingPermissions,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Role sidebar menus updated successfully.'
+            'message' => 'Role synced successfully.',
         ]);
     }
 
     /**
-     * GET /api/v1/syncRole/data
      * Fetch every role with its menus, submenus, permissions, and modules.
      */
-    public function data(): JsonResponse
+    public function roleListData(): JsonResponse
     {
         $orgId = app('current_organization')->id;
 

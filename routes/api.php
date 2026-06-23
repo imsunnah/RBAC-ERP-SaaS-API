@@ -65,9 +65,6 @@ Route::prefix('v1')->group(function () {
             // Sidebar
             Route::get('sidebar', [SidebarController::class, 'index']);
 
-            // RBAC Sync/Lookup
-            Route::get('syncRole/data', [RoleController::class, 'data'])
-                ->middleware('permission:admin.role.view');
 
             // Modules — requires admin.module.* permissions
             Route::prefix('modules')->group(function () {
@@ -95,13 +92,16 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.role.update');
                 Route::delete('/{role}', [RoleController::class, 'destroy'])
                     ->middleware('permission:admin.role.delete');
-                Route::put('/{role}/modules', [RoleController::class, 'syncModules'])
-                    ->middleware('permission:admin.role.update');
-                Route::put('/{role}/menus', [RoleController::class, 'syncMenus'])
-                    ->middleware('permission:admin.role.update');
                 Route::post('/{role}/users/bulk', [BulkAccessController::class, 'bulkAssignRole'])
                     ->middleware('permission:admin.role.assign');
             });
+
+            // Unified Role Sync — sync modules, menus, submenus & permissions
+            Route::put('syncRole/{role}', [RoleController::class, 'syncAll'])
+                ->middleware('permission:admin.role.update');
+
+            Route::get('syncRole/list', [RoleController::class, 'roleListData'])
+                ->middleware('permission:admin.role.view');    
 
             // Users — requires user management permissions
             Route::prefix('users')->group(function () {

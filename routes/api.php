@@ -65,6 +65,10 @@ Route::prefix('v1')->group(function () {
             // Sidebar
             Route::get('sidebar', [SidebarController::class, 'index']);
 
+            // RBAC Sync/Lookup
+            Route::get('syncRole/data', [RoleController::class, 'data'])
+                ->middleware('permission:admin.role.view');
+
             // Modules — requires admin.module.* permissions
             Route::prefix('modules')->group(function () {
                 Route::get('/', [ModuleController::class, 'index'])

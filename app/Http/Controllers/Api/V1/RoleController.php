@@ -12,6 +12,7 @@ use App\Http\Requests\Role\SyncRoleModulesRequest;
 use App\Http\Requests\Role\SyncRoleMenusRequest;
 use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
+use App\Http\Resources\SyncRoleResource;
 use App\Repositories\RoleRepository;
 use App\Services\Audit\AuditService;
 use App\Services\RBAC\RBACService;
@@ -198,6 +199,24 @@ class RoleController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Role sidebar menus updated successfully.'
+        ]);
+    }
+
+    /**
+     * GET /api/v1/syncRole/data
+     * Fetch every role with its menus, submenus, permissions, and modules.
+     */
+    public function data(): JsonResponse
+    {
+        $orgId = app('current_organization')->id;
+
+        $roles = Role::where('organization_id', $orgId)
+            ->with(['menus', 'submenus', 'permissions', 'modules'])
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => SyncRoleResource::collection($roles),
         ]);
     }
 }

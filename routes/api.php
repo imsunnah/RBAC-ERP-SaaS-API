@@ -97,7 +97,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // Unified Role Sync — sync modules, menus, submenus & permissions
-            Route::put('syncRole/{role}', [RoleController::class, 'syncAll'])
+            Route::put('sync-role/{role}', [RoleController::class, 'syncAll'])
                 ->middleware('permission:admin.role.update');
 
             Route::get('syncRole/list', [RoleController::class, 'roleListData'])

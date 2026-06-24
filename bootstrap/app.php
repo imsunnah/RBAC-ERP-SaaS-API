@@ -29,9 +29,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => CheckPermission::class,
         ]);
 
-        // ── Globally force JSON Accept header for /api/* routes ───────────────
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
+        ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'iclock/*',
+            'cdata',
+            'getrequest',
+            'i/*'
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

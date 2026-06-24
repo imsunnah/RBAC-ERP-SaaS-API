@@ -224,7 +224,7 @@ class ShiftService
         // 3. Fallback to payroll_configs (use employee's org if provided)
         $configQuery = fn(string $key) => $orgNo
             ? PayrollConfig::byKey($key)->where('org_no', $orgNo)->first()
-            : PayrollConfig::byKey($key)->currentOrg()->first();
+            : PayrollConfig::byKey($key)->first();
 
         $startTime = $configQuery('office_start_time')?->typed_value ?? '09:00';
         $endTime = $configQuery('office_end_time')?->typed_value ?? '17:00';

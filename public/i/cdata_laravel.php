@@ -4,7 +4,7 @@
  * ZKTeco iClock push receiver — public entry point.
  *
  * Developer Info:
- *  Name   : Khan Rafaat Abtahe
+ *  Name   : AH ANik
  *  Email  : lanik615@gmail.com
  *  Mobile : +8801863795007
  *

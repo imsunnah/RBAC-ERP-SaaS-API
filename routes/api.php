@@ -17,9 +17,7 @@ use App\Http\Controllers\Api\V1\BulkAccessController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\HrmLookupController;
 
-use App\Http\Controllers\Api\V1\GenderController;
-use App\Http\Controllers\Api\V1\ReligionController;
-use App\Http\Controllers\Api\V1\MaritalStatusController;
+use App\Http\Controllers\Api\V1\GlobalLookupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -101,7 +99,7 @@ Route::prefix('v1')->group(function () {
                 ->middleware('permission:admin.role.update');
 
             Route::get('syncRole/list', [RoleController::class, 'roleListData'])
-                ->middleware('permission:admin.role.view');    
+                ->middleware('permission:admin.role.view');
 
             // Users — requires user management permissions
             Route::prefix('users')->group(function () {
@@ -209,48 +207,33 @@ Route::prefix('v1')->group(function () {
                     ->where('filename', '.*');
             });
 
-            // ─── Metadata / Setup Routes ─────────────────────────────────────
-
-            // Genders — global lookup
-            Route::prefix('genders')->group(function () {
-                Route::get('/', [GenderController::class, 'index'])
-                    ->middleware('permission:admin.gender.view');
-                Route::post('/', [GenderController::class, 'store'])
-                    ->middleware('permission:admin.gender.create');
-                Route::get('/{gender}', [GenderController::class, 'show'])
-                    ->middleware('permission:admin.gender.view');
-                Route::put('/{gender}', [GenderController::class, 'update'])
-                    ->middleware('permission:admin.gender.update');
-                Route::delete('/{gender}', [GenderController::class, 'destroy'])
-                    ->middleware('permission:admin.gender.delete');
+            // Global Lookups — unified metadata management
+            Route::prefix('global-lookup-groups')->group(function () {
+                Route::get('/', [GlobalLookupController::class, 'indexGroups'])
+                    ->middleware('permission:admin.global-lookup.view');
+                Route::post('/', [GlobalLookupController::class, 'storeGroup'])
+                    ->middleware('permission:admin.global-lookup.create');
+                Route::get('/{globalLookupGroup}', [GlobalLookupController::class, 'showGroup'])
+                    ->middleware('permission:admin.global-lookup.view');
+                Route::put('/{globalLookupGroup}', [GlobalLookupController::class, 'updateGroup'])
+                    ->middleware('permission:admin.global-lookup.update');
+                Route::delete('/{globalLookupGroup}', [GlobalLookupController::class, 'destroyGroup'])
+                    ->middleware('permission:admin.global-lookup.delete');
             });
 
-            // Religions — global lookup
-            Route::prefix('religions')->group(function () {
-                Route::get('/', [ReligionController::class, 'index'])
-                    ->middleware('permission:admin.religion.view');
-                Route::post('/', [ReligionController::class, 'store'])
-                    ->middleware('permission:admin.religion.create');
-                Route::get('/{religion}', [ReligionController::class, 'show'])
-                    ->middleware('permission:admin.religion.view');
-                Route::put('/{religion}', [ReligionController::class, 'update'])
-                    ->middleware('permission:admin.religion.update');
-                Route::delete('/{religion}', [ReligionController::class, 'destroy'])
-                    ->middleware('permission:admin.religion.delete');
-            });
-
-            // Marital Statuses — global lookup
-            Route::prefix('marital-statuses')->group(function () {
-                Route::get('/', [MaritalStatusController::class, 'index'])
-                    ->middleware('permission:admin.marital-status.view');
-                Route::post('/', [MaritalStatusController::class, 'store'])
-                    ->middleware('permission:admin.marital-status.create');
-                Route::get('/{maritalStatus}', [MaritalStatusController::class, 'show'])
-                    ->middleware('permission:admin.marital-status.view');
-                Route::put('/{maritalStatus}', [MaritalStatusController::class, 'update'])
-                    ->middleware('permission:admin.marital-status.update');
-                Route::delete('/{maritalStatus}', [MaritalStatusController::class, 'destroy'])
-                    ->middleware('permission:admin.marital-status.delete');
+            Route::prefix('global-lookups')->group(function () {
+                Route::get('/grouped', [GlobalLookupController::class, 'getGroupedLookups'])
+                    ->middleware('permission:admin.global-lookup.view');
+                Route::get('/', [GlobalLookupController::class, 'index'])
+                    ->middleware('permission:admin.global-lookup.view');
+                Route::post('/', [GlobalLookupController::class, 'store'])
+                    ->middleware('permission:admin.global-lookup.create');
+                Route::get('/{globalLookup}', [GlobalLookupController::class, 'show'])
+                    ->middleware('permission:admin.global-lookup.view');
+                Route::put('/{globalLookup}', [GlobalLookupController::class, 'update'])
+                    ->middleware('permission:admin.global-lookup.update');
+                Route::delete('/{globalLookup}', [GlobalLookupController::class, 'destroy'])
+                    ->middleware('permission:admin.global-lookup.delete');
             });
             // HRM Lookups — unified metadata management
             Route::prefix('hrm-lookup-groups')->group(function () {

@@ -106,4 +106,19 @@ class HrmEmployee extends Model
                 $q->where('slug', 'designation');
             });
     }
+
+    public function gender(): BelongsTo
+    {
+        return $this->belongsTo(GlobalLookup::class, 'gender_id', 'uuid');
+    }
+
+    public function religion(): BelongsTo
+    {
+        return $this->belongsTo(GlobalLookup::class, 'religion_id', 'uuid');
+    }
+
+    public function maritalStatus(): BelongsTo
+    {
+        return $this->belongsTo(GlobalLookup::class, 'marital_status_id', 'uuid');
+    }
 }

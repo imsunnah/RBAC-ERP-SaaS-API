@@ -4,6 +4,12 @@ namespace App\Http\Requests\HrmEmployee;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\HrmEmployee;
+use App\Http\Requests\Traits\ResolvesUuidToId;
+use App\Models\HrmLookup;
+use App\Models\Gender;
+use App\Models\Religion;
+use App\Models\MaritalStatus;
+
 use Illuminate\Validation\Rule;
 
 class UpdateHrmEmployeeRequest extends FormRequest

@@ -18,7 +18,15 @@ class HrmEmployeeController extends Controller
     {
         $this->authorize('viewAny', HrmEmployee::class);
 
-        $query = HrmEmployee::query();
+        $query = HrmEmployee::with([
+            'department',
+            'designation',
+            'employeeType',
+            'gender',
+            'bloodGroup',
+            'religion',
+            'maritalStatus'
+        ]);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -71,6 +79,16 @@ class HrmEmployeeController extends Controller
 
         $employee = HrmEmployee::create($validated);
 
+        $employee->load([
+            'department',
+            'designation',
+            'employeeType',
+            'gender',
+            'bloodGroup',
+            'religion',
+            'maritalStatus'
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Employee created successfully.',
@@ -88,10 +106,20 @@ class HrmEmployeeController extends Controller
 
         $hrmEmployee->update($validated);
 
+        $freshEmployee = $hrmEmployee->fresh([
+            'department',
+            'designation',
+            'employeeType',
+            'gender',
+            'bloodGroup',
+            'religion',
+            'maritalStatus'
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Employee updated successfully.',
-            'data'    => new HrmEmployeeResource($hrmEmployee->fresh()),
+            'data'    => new HrmEmployeeResource($freshEmployee),
         ]);
     }
 
@@ -99,6 +127,16 @@ class HrmEmployeeController extends Controller
     public function show(HrmEmployee $hrmEmployee): JsonResponse
     {
         $this->authorize('view', $hrmEmployee);
+
+        $hrmEmployee->load([
+            'department',
+            'designation',
+            'employeeType',
+            'gender',
+            'bloodGroup',
+            'religion',
+            'maritalStatus'
+        ]);
 
         return response()->json([
             'success' => true,

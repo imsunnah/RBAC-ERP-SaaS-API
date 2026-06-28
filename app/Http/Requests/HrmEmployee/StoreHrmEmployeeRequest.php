@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use App\Http\Requests\Traits\ResolvesUuidToId;
 use App\Models\HrmLookup;
 use App\Models\Gender;
+use App\Models\GlobalLookup;
 use App\Models\Religion;
 use App\Models\MaritalStatus;
 
@@ -31,10 +32,10 @@ class StoreHrmEmployeeRequest extends FormRequest
             'full_name'           => 'required|string|max:100',
             'employee_name_local' => 'nullable|string|max:300',
             'date_of_birth'       => 'nullable|date',
-            'gender_id'           => 'nullable|uuid|exists:genders,uuid',
-            'blood_group_id'      => 'nullable|string|max:3',
-            'religion_id'         => 'nullable|uuid|exists:religions,uuid',
-            'marital_status_id'   => 'nullable|uuid|exists:marital_statuses,uuid',
+            'gender_id'           => 'nullable|uuid|exists:global_lookups,uuid',
+            'blood_group_id'      => 'nullable|uuid|exists:global_lookups,uuid',
+            'religion_id'         => 'nullable|uuid|exists:global_lookups,uuid',
+            'marital_status_id'   => 'nullable|uuid|exists:global_lookups,uuid',
             'country_id'          => 'nullable|integer|min:1',
 
             'weight_kg'           => 'nullable|numeric|min:0|max:999.99',
@@ -62,7 +63,7 @@ class StoreHrmEmployeeRequest extends FormRequest
             'department_id'       => 'nullable|uuid|exists:hrm_lookups,uuid',
             'designation_id'      => 'nullable|uuid|exists:hrm_lookups,uuid',
 
-            'employee_type_id'    => 'nullable|integer|min:1',
+            'employee_type_id'    => 'nullable|uuid|exists:global_lookups,uuid',
             'employee_category_id' => 'nullable|integer|min:1',
             'employment_type_id'  => 'nullable|integer|min:1',
             'work_shift_id'       => 'nullable|integer|min:1',
@@ -99,9 +100,11 @@ class StoreHrmEmployeeRequest extends FormRequest
         return [
             'department_id'     => HrmLookup::class,
             'designation_id'    => HrmLookup::class,
-            'gender_id'         => Gender::class,
-            'religion_id'       => Religion::class,
-            'marital_status_id' => MaritalStatus::class,
+            'employee_type_id'  => GlobalLookup::class,
+            'gender_id'         => GlobalLookup::class,
+            'religion_id'       => GlobalLookup::class,
+            'marital_status_id' => GlobalLookup::class,
+            'blood_group_id' => GlobalLookup::class,
         ];
     }
 
@@ -116,7 +119,6 @@ class StoreHrmEmployeeRequest extends FormRequest
         $intFields = [
             'country_id',
 
-            'employee_type_id',
             'employee_category_id',
             'employment_type_id',
             'work_shift_id',

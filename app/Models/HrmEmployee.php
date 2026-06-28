@@ -109,16 +109,26 @@ class HrmEmployee extends Model
 
     public function gender(): BelongsTo
     {
-        return $this->belongsTo(GlobalLookup::class, 'gender_id', 'uuid');
+        return $this->belongsTo(GlobalLookup::class, 'gender_id');
+    }
+
+    public function bloodGroup(): BelongsTo
+    {
+        return $this->belongsTo(GlobalLookup::class, 'blood_group_id');
     }
 
     public function religion(): BelongsTo
     {
-        return $this->belongsTo(GlobalLookup::class, 'religion_id', 'uuid');
+        return $this->belongsTo(GlobalLookup::class, 'religion_id');
     }
 
     public function maritalStatus(): BelongsTo
     {
-        return $this->belongsTo(GlobalLookup::class, 'marital_status_id', 'uuid');
+        return $this->belongsTo(GlobalLookup::class, 'marital_status_id');
+    }
+
+    public function employeeType(): BelongsTo
+    {
+        return $this->belongsTo(GlobalLookup::class, 'employee_type_id');
     }
 }

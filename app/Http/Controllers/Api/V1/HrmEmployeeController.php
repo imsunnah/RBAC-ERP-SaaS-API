@@ -113,12 +113,15 @@ class HrmEmployeeController extends Controller
         $this->authorize('delete', $hrmEmployee);
 
         // Optionally delete image files from storage
-        $imageFields = ['employee_photo', 'profile_picture', 'signature_image', 'nid_image', 'business_card_image'];
+        $imageFields = ['employe
+        e_photo', 'profile_picture', 'signature_image', 'nid_image', 'business_card_image'];
         foreach ($imageFields as $field) {
             if ($hrmEmployee->{$field}) {
                 Storage::disk('public')->delete($hrmEmployee->{$field});
             }
         }
+
+
 
         $hrmEmployee->delete();
 

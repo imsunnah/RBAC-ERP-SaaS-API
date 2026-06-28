@@ -4,12 +4,7 @@ namespace App\Http\Requests\HrmEmployee;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\HrmEmployee;
-use App\Http\Requests\Traits\ResolvesUuidToId;
-use App\Models\HrmLookup;
-use App\Models\Gender;
-use App\Models\Religion;
-use App\Models\MaritalStatus;
-
+use Illuminate\Validation\Rule;
 
 class UpdateHrmEmployeeRequest extends FormRequest
 {
@@ -22,24 +17,35 @@ class UpdateHrmEmployeeRequest extends FormRequest
 
     public function rules(): array
     {
-        // Laravel's implicit model binding binds HrmEmployee as 'hrmEmployee' (camelCase).
-        // $this->route('hrmEmployee') gives us the already-resolved model instance.
-        $employee = $this->route('hrmEmployee');
+        // 1. Try camelCase (Laravel's standard default binding)
+        // 2. Try snake_case (Commonly used in API resource routes)
+        // 3. Fallback to extracting from the request payload if available
+        $employee = $this->route('hrmEmployee')
+            ?? $this->route('hrm_employee')
+            ?? $this->route('employee');
 
-        // Resolve to the integer primary key for the unique-except rule
+        // Extract the primary key ID safely
         if ($employee instanceof HrmEmployee) {
             $employeeId = $employee->id;
-        } elseif (is_string($employee) || is_numeric($employee)) {
-            // Fallback: look up by UUID or ID
+        } elseif (is_numeric($employee)) {
+            $employeeId = $employee;
+        } elseif (is_string($employee) && !empty($employee)) {
+            // Fallback: lookup using UUID or key identifier if it's passed as a string slug
             $employeeId = HrmEmployee::where('uuid', $employee)->value('id')
-                ?? HrmEmployee::find($employee)?->id;
+                ?? HrmEmployee::where('id', $employee)->value('id');
         } else {
             $employeeId = null;
         }
 
         return [
             // ── Identification ────────────────────────────────────────────────
-            'user_employee_id'    => 'nullable|string|max:16|unique:hrm_employees,user_employee_id,' . $employeeId,
+            'user_employee_id'    => [
+                'nullable',
+                'string',
+                'max:16',
+                // This safely ignores the current employee row during the unique check
+                Rule::unique('hrm_employees', 'user_employee_id')->ignore($employeeId),
+            ],
             'biometric_id'        => 'nullable|string|max:16',
             'national_id'         => 'nullable|string|max:20',
 

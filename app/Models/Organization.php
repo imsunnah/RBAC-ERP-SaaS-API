@@ -60,7 +60,7 @@ class Organization extends Model
     {
         return $this->belongsToMany(Module::class, 'organization_modules')
             ->withPivot(['is_active', 'activated_at', 'expires_at'])
-            ->withTimestamps();
+            ->withTimestamps()->orderBy('sort_order', 'asc');
     }
 
     public function activeModules(): BelongsToMany

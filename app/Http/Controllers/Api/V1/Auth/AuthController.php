@@ -122,7 +122,9 @@ class AuthController extends Controller
      */
     public function me(MeRequest $request): JsonResponse
     {
-        $user = $request->user()->load(['organizations.company', 'organizations.modules', 'organizations.modules.menus', 'organizations.modules.menus.submenus']);
+        $user = $request->user()->load(['organizations.company', 'organizations.modules', 'organizations.modules.menus' => function($query) {
+            $query->orderBy('sort_order', 'asc');
+        }, 'organizations.modules.menus.submenus']);
 
         $data = (new UserResource($user))->toArray($request);
 

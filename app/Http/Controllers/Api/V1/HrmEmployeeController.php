@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\HrmEmployee\StoreHrmEmployeeRequest;
 use App\Http\Requests\HrmEmployee\UpdateHrmEmployeeRequest;
 use App\Models\HrmEmployee;
+use App\Models\GlobalLookup;
 use App\Http\Resources\HrmEmployeeResource;
+use App\Http\Resources\HrmEmployeeIndexResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
 
 class HrmEmployeeController extends Controller
 {
@@ -25,7 +29,15 @@ class HrmEmployeeController extends Controller
             'gender',
             'bloodGroup',
             'religion',
-            'maritalStatus'
+            'maritalStatus',
+            'reportingManager',
+            'education',
+            'experience',
+            'family',
+            'family.gender',
+            'family.maritalStatus',
+            'family.bloodGroup',
+            'workShift',
         ]);
 
         if ($request->filled('search')) {
@@ -62,7 +74,7 @@ class HrmEmployeeController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => HrmEmployeeResource::collection($employees)->response()->getData(true),
+            'data'    => HrmEmployeeIndexResource::collection($employees)->response()->getData(true),
         ]);
     }
 
@@ -77,7 +89,39 @@ class HrmEmployeeController extends Controller
         $validated['created_by'] = auth()->id();
         $validated['updated_by'] = auth()->id();
 
-        $employee = HrmEmployee::create($validated);
+        $employee = DB::transaction(function () use ($validated) {
+            $employeeData = Arr::except($validated, ['education', 'experience', 'family']);
+            $emp = HrmEmployee::create($employeeData);
+
+            if (!empty($validated['education'])) {
+                foreach ($validated['education'] as $edu) {
+                    $emp->education()->create($edu);
+                }
+            }
+
+            if (!empty($validated['experience'])) {
+                foreach ($validated['experience'] as $exp) {
+                    $emp->experience()->create($exp);
+                }
+            }
+
+            if (!empty($validated['family'])) {
+                foreach ($validated['family'] as $fam) {
+                    if (!empty($fam['gender_id'])) {
+                        $fam['gender_id'] = GlobalLookup::resolveId($fam['gender_id']);
+                    }
+                    if (!empty($fam['marital_status_id'])) {
+                        $fam['marital_status_id'] = GlobalLookup::resolveId($fam['marital_status_id']);
+                    }
+                    if (!empty($fam['blood_group_id'])) {
+                        $fam['blood_group_id'] = GlobalLookup::resolveId($fam['blood_group_id']);
+                    }
+                    $emp->family()->create($fam);
+                }
+            }
+
+            return $emp;
+        });
 
         $employee->load([
             'department',
@@ -86,7 +130,15 @@ class HrmEmployeeController extends Controller
             'gender',
             'bloodGroup',
             'religion',
-            'maritalStatus'
+            'maritalStatus',
+            'reportingManager',
+            'education',
+            'experience',
+            'family',
+            'family.gender',
+            'family.maritalStatus',
+            'family.bloodGroup',
+            'workShift',
         ]);
 
         return response()->json([
@@ -95,6 +147,7 @@ class HrmEmployeeController extends Controller
             'data'    => new HrmEmployeeResource($employee),
         ], 201);
     }
+
     /** Update the specified employee. */
     public function update(UpdateHrmEmployeeRequest $request, HrmEmployee $hrmEmployee): JsonResponse
     {
@@ -104,7 +157,40 @@ class HrmEmployeeController extends Controller
         $validated = $this->handleImageUploads($request, $validated, $hrmEmployee);
         $validated['updated_by'] = auth()->id();
 
-        $hrmEmployee->update($validated);
+        DB::transaction(function () use ($hrmEmployee, $validated) {
+            $employeeData = Arr::except($validated, ['education', 'experience', 'family']);
+            $hrmEmployee->update($employeeData);
+
+            if (isset($validated['education'])) {
+                $hrmEmployee->education()->delete();
+                foreach ($validated['education'] as $edu) {
+                    $hrmEmployee->education()->create($edu);
+                }
+            }
+
+            if (isset($validated['experience'])) {
+                $hrmEmployee->experience()->delete();
+                foreach ($validated['experience'] as $exp) {
+                    $hrmEmployee->experience()->create($exp);
+                }
+            }
+
+            if (isset($validated['family'])) {
+                $hrmEmployee->family()->delete();
+                foreach ($validated['family'] as $fam) {
+                    if (!empty($fam['gender_id'])) {
+                        $fam['gender_id'] = GlobalLookup::resolveId($fam['gender_id']);
+                    }
+                    if (!empty($fam['marital_status_id'])) {
+                        $fam['marital_status_id'] = GlobalLookup::resolveId($fam['marital_status_id']);
+                    }
+                    if (!empty($fam['blood_group_id'])) {
+                        $fam['blood_group_id'] = GlobalLookup::resolveId($fam['blood_group_id']);
+                    }
+                    $hrmEmployee->family()->create($fam);
+                }
+            }
+        });
 
         $freshEmployee = $hrmEmployee->fresh([
             'department',
@@ -113,7 +199,15 @@ class HrmEmployeeController extends Controller
             'gender',
             'bloodGroup',
             'religion',
-            'maritalStatus'
+            'maritalStatus',
+            'reportingManager',
+            'education',
+            'experience',
+            'family',
+            'family.gender',
+            'family.maritalStatus',
+            'family.bloodGroup',
+            'workShift',
         ]);
 
         return response()->json([
@@ -135,7 +229,15 @@ class HrmEmployeeController extends Controller
             'gender',
             'bloodGroup',
             'religion',
-            'maritalStatus'
+            'maritalStatus',
+            'reportingManager',
+            'education',
+            'experience',
+            'family',
+            'family.gender',
+            'family.maritalStatus',
+            'family.bloodGroup',
+            'workShift',
         ]);
 
         return response()->json([

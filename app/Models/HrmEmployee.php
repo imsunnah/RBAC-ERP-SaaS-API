@@ -64,18 +64,25 @@ class HrmEmployee extends Model
         'signature_image',
         'nid_image',
         'business_card_image',
+        'passport_no',
+        'passport_issue',
+        'passport_expiry',
+        'nationality',
+        'reporting_manager_id',
+        'work_location',
         'user_serial_no',
         'is_active',
         'org_no',
         'created_by',
         'updated_by',
     ];
-
     protected $casts = [
         'date_of_birth' => 'date',
         'hire_date' => 'date',
         'start_date' => 'date',
         'termination_date' => 'date',
+        'passport_issue' => 'date',
+        'passport_expiry' => 'date',
         'weight_kg' => 'float',
         'height_cm' => 'float',
         'is_active' => 'boolean',
@@ -95,7 +102,7 @@ class HrmEmployee extends Model
     {
         return $this->belongsTo(HrmLookup::class, 'department_id')
             ->whereHas('hrmLookupGroup', function ($q) {
-                $q->where('slug', 'department');
+                $q->where('slug', 'hrm-department');
             });
     }
 
@@ -103,7 +110,7 @@ class HrmEmployee extends Model
     {
         return $this->belongsTo(HrmLookup::class, 'designation_id')
             ->whereHas('hrmLookupGroup', function ($q) {
-                $q->where('slug', 'designation');
+                $q->where('slug', 'hrm-designation');
             });
     }
 
@@ -130,5 +137,30 @@ class HrmEmployee extends Model
     public function employeeType(): BelongsTo
     {
         return $this->belongsTo(GlobalLookup::class, 'employee_type_id');
+    }
+
+    public function education()
+    {
+        return $this->hasMany(HrmEmployeeEducation::class, 'hrm_employee_id');
+    }
+
+    public function experience()
+    {
+        return $this->hasMany(HrmEmployeeExperience::class, 'hrm_employee_id');
+    }
+
+    public function family()
+    {
+        return $this->hasMany(HrmEmployeeFamily::class, 'hrm_employee_id');
+    }
+
+    public function reportingManager(): BelongsTo
+    {
+        return $this->belongsTo(HrmEmployee::class, 'reporting_manager_id');
+    }
+
+    public function workShift(): BelongsTo
+    {
+        return $this->belongsTo(WorkShift::class, 'work_shift_id', 'shift_id');
     }
 }

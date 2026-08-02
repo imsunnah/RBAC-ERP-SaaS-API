@@ -71,12 +71,43 @@ class StoreHrmEmployeeRequest extends FormRequest
             'start_date'          => 'nullable|date',
             'employment_duration' => 'nullable|integer|min:0',
             'hired_by'            => 'nullable|integer|min:1',
+            'reporting_manager_id'=> 'nullable|uuid|exists:hrm_employees,uuid',
+            'work_location'       => 'nullable|string|max:255',
 
             // ── Termination ───────────────────────────────────────────────────
             'termination_date'    => 'nullable|date',
             'terminated_by'       => 'nullable|string|max:20',
             'termination_reason'  => 'nullable|string|max:200',
             'termination_remarks' => 'nullable|string|max:200',
+
+            // ── Passport & Nationality ───────────────────────────────────────
+            'passport_no'         => 'nullable|string|max:100',
+            'passport_issue'      => 'nullable|date',
+            'passport_expiry'     => 'nullable|date',
+            'nationality'         => 'nullable|string|max:100',
+
+            // ── Nested Relationships ──────────────────────────────────────────
+            'education'                     => 'nullable|array',
+            'education.*.degree_name'       => 'required|string|max:255',
+            'education.*.institution'       => 'required|string|max:255',
+            'education.*.passing_year'      => 'nullable|integer|min:1900|max:2100',
+            'education.*.duration'          => 'nullable|string|max:100',
+
+            'experience'                    => 'nullable|array',
+            'experience.*.company_name'     => 'required|string|max:255',
+            'experience.*.designation'      => 'required|string|max:255',
+            'experience.*.start_date'       => 'nullable|date',
+            'experience.*.end_date'         => 'nullable|date',
+            'experience.*.description'      => 'nullable|string',
+
+            'family'                        => 'nullable|array',
+            'family.*.full_name'            => 'required|string|max:255',
+            'family.*.date_of_birth'        => 'nullable|date',
+            'family.*.gender_id'            => 'nullable|uuid|exists:global_lookups,uuid',
+            'family.*.marital_status_id'    => 'nullable|uuid|exists:global_lookups,uuid',
+            'family.*.national_id'          => 'nullable|string|max:20',
+            'family.*.blood_group_id'       => 'nullable|uuid|exists:global_lookups,uuid',
+            'family.*.nationality'          => 'nullable|string|max:100',
 
             // ── Images ────────────────────────────────────────────────────────
             // Accept either a file upload OR a string path (existing path sent back)
@@ -98,13 +129,14 @@ class StoreHrmEmployeeRequest extends FormRequest
     protected function resolvedKeys(): array
     {
         return [
-            'department_id'     => HrmLookup::class,
-            'designation_id'    => HrmLookup::class,
-            'employee_type_id'  => GlobalLookup::class,
-            'gender_id'         => GlobalLookup::class,
-            'religion_id'       => GlobalLookup::class,
-            'marital_status_id' => GlobalLookup::class,
-            'blood_group_id' => GlobalLookup::class,
+            'department_id'        => HrmLookup::class,
+            'designation_id'       => HrmLookup::class,
+            'employee_type_id'     => GlobalLookup::class,
+            'gender_id'            => GlobalLookup::class,
+            'religion_id'          => GlobalLookup::class,
+            'marital_status_id'    => GlobalLookup::class,
+            'blood_group_id'       => GlobalLookup::class,
+            // 'reporting_manager_id' => HrmEmployee::class,
         ];
     }
 

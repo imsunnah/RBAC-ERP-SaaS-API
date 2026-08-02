@@ -23,6 +23,7 @@ class WorkShift extends Model
         'break_duration_minutes',
         'expected_hours',
         'grace_minutes',
+        'weekend',
         'is_default',
         'is_active',
         'organization_id',

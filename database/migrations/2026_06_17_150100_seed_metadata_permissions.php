@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -58,49 +59,57 @@ return new class extends Migration {
         }
 
         // ── Seed default lookup data ───────────────────────────────────
+        // Guard with hasTable checks — these legacy tables may not exist
+        // in fresh databases (they were dropped by a later migration).
 
         // Genders
-        $genders = ['Male', 'Female', 'Other'];
-        foreach ($genders as $name) {
-            if (!DB::table('genders')->where('slug', Str::slug($name))->exists()) {
-                DB::table('genders')->insert([
-                    'uuid'       => Str::uuid()->toString(),
-                    'name'       => $name,
-                    'slug'       => Str::slug($name),
-                    'is_active'  => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        if (Schema::hasTable('genders')) {
+            $genders = ['Male', 'Female', 'Other'];
+            foreach ($genders as $name) {
+                if (!DB::table('genders')->where('slug', Str::slug($name))->exists()) {
+                    DB::table('genders')->insert([
+                        'uuid'       => Str::uuid()->toString(),
+                        'name'       => $name,
+                        'slug'       => Str::slug($name),
+                        'is_active'  => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
         }
 
         // Religions
-        $religions = ['Islam', 'Hinduism', 'Christianity', 'Buddhism', 'Other'];
-        foreach ($religions as $name) {
-            if (!DB::table('religions')->where('slug', Str::slug($name))->exists()) {
-                DB::table('religions')->insert([
-                    'uuid'       => Str::uuid()->toString(),
-                    'name'       => $name,
-                    'slug'       => Str::slug($name),
-                    'is_active'  => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        if (Schema::hasTable('religions')) {
+            $religions = ['Islam', 'Hinduism', 'Christianity', 'Buddhism', 'Other'];
+            foreach ($religions as $name) {
+                if (!DB::table('religions')->where('slug', Str::slug($name))->exists()) {
+                    DB::table('religions')->insert([
+                        'uuid'       => Str::uuid()->toString(),
+                        'name'       => $name,
+                        'slug'       => Str::slug($name),
+                        'is_active'  => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
         }
 
         // Marital Statuses
-        $statuses = ['Single', 'Married', 'Divorced', 'Widowed'];
-        foreach ($statuses as $name) {
-            if (!DB::table('marital_statuses')->where('slug', Str::slug($name))->exists()) {
-                DB::table('marital_statuses')->insert([
-                    'uuid'       => Str::uuid()->toString(),
-                    'name'       => $name,
-                    'slug'       => Str::slug($name),
-                    'is_active'  => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        if (Schema::hasTable('marital_statuses')) {
+            $statuses = ['Single', 'Married', 'Divorced', 'Widowed'];
+            foreach ($statuses as $name) {
+                if (!DB::table('marital_statuses')->where('slug', Str::slug($name))->exists()) {
+                    DB::table('marital_statuses')->insert([
+                        'uuid'       => Str::uuid()->toString(),
+                        'name'       => $name,
+                        'slug'       => Str::slug($name),
+                        'is_active'  => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
         }
     }
@@ -130,10 +139,18 @@ return new class extends Migration {
             'admin.marital-status.delete',
         ];
 
-        DB::table('permissions')->whereIn('slug', $slugs)->delete();
-        DB::table('genders')->truncate();
-        DB::table('religions')->truncate();
-        DB::table('marital_statuses')->truncate();
+        if (Schema::hasTable('permissions')) {
+            DB::table('permissions')->whereIn('slug', $slugs)->delete();
+        }
+        if (Schema::hasTable('genders')) {
+            DB::table('genders')->truncate();
+        }
+        if (Schema::hasTable('religions')) {
+            DB::table('religions')->truncate();
+        }
+        if (Schema::hasTable('marital_statuses')) {
+            DB::table('marital_statuses')->truncate();
+        }
     }
 
     private function resolveModule(string $name, string $slug): int

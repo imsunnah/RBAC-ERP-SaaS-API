@@ -16,6 +16,10 @@ class HrmEmployeeResource extends JsonResource
             'user_employee_id'    => $this->user_employee_id,
             'biometric_id'        => $this->biometric_id,
             'national_id'         => $this->national_id,
+            'passport_no'         => $this->passport_no,
+            'passport_issue'      => $this->passport_issue ? $this->passport_issue->format('Y-m-d') : null,
+            'passport_expiry'     => $this->passport_expiry ? $this->passport_expiry->format('Y-m-d') : null,
+            'nationality'         => $this->nationality,
 
             // ── Personal ──────────────────────────────────────────────────────
             'full_name'           => $this->full_name,
@@ -54,16 +58,53 @@ class HrmEmployeeResource extends JsonResource
             'employee_category_id' => $this->employee_category_id ? (int) $this->employee_category_id : null,
             'employment_type_id'   => $this->employment_type_id ? (int) $this->employment_type_id : null,
             'work_shift_id'        => $this->work_shift_id ? (int) $this->work_shift_id : null,
+            'work_location'        => $this->work_location,
             'hire_date'            => $this->hire_date ? $this->hire_date->format('Y-m-d') : null,
             'start_date'           => $this->start_date ? $this->start_date->format('Y-m-d') : null,
             'employment_duration'  => $this->employment_duration ? (int) $this->employment_duration : null,
             'hired_by'             => $this->hired_by ? (int) $this->hired_by : null,
+            'reporting_manager'    => new HrmEmployeeResource($this->whenLoaded('reportingManager')),
 
             // ── Termination ───────────────────────────────────────────────────
             'termination_date'    => $this->termination_date ? $this->termination_date->format('Y-m-d') : null,
             'terminated_by'       => $this->terminated_by,
             'termination_reason'  => $this->termination_reason,
             'termination_remarks' => $this->termination_remarks,
+
+            // ── Nested Relationships ──────────────────────────────────────────
+            'education'           => $this->relationLoaded('education') ? $this->education->map(function ($edu) {
+                return [
+                    'uuid'         => $edu->uuid,
+                    'degree_name'  => $edu->degree_name,
+                    'institution'  => $edu->institution,
+                    'passing_year' => $edu->passing_year,
+                    'duration'     => $edu->duration,
+                ];
+            }) : null,
+
+            'experience'          => $this->relationLoaded('experience') ? $this->experience->map(function ($exp) {
+                return [
+                    'uuid'         => $exp->uuid,
+                    'company_name' => $exp->company_name,
+                    'designation'  => $exp->designation,
+                    'start_date'   => $exp->start_date ? $exp->start_date->format('Y-m-d') : null,
+                    'end_date'     => $exp->end_date ? $exp->end_date->format('Y-m-d') : null,
+                    'description'  => $exp->description,
+                ];
+            }) : null,
+
+            'family'              => $this->relationLoaded('family') ? $this->family->map(function ($fam) {
+                return [
+                    'uuid'           => $fam->uuid,
+                    'full_name'      => $fam->full_name,
+                    'date_of_birth'  => $fam->date_of_birth ? $fam->date_of_birth->format('Y-m-d') : null,
+                    'gender'         => new MetadataResource($fam->gender),
+                    'marital_status' => new MetadataResource($fam->maritalStatus),
+                    'national_id'    => $fam->national_id,
+                    'blood_group'    => new MetadataResource($fam->bloodGroup),
+                    'nationality'    => $fam->nationality,
+                ];
+            }) : null,
 
             // ── Images / Files ────────────────────────────────────────────────
             'employee_photo'      => $this->employee_photo ? Storage::url($this->employee_photo) : null,

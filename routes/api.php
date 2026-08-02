@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\HrmLookupController;
 
 use App\Http\Controllers\Api\V1\GlobalLookupController;
+use App\Http\Controllers\Api\V1\WorkShiftController;
+use App\Http\Controllers\Api\V1\HrmHolidayController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -262,6 +264,36 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.hrm-lookup.update');
                 Route::delete('/{hrmLookup}', [HrmLookupController::class, 'destroy'])
                     ->middleware('permission:admin.hrm-lookup.delete');
+            });
+
+            // Work Shifts
+            Route::prefix('work-shifts')->group(function () {
+                Route::get('/', [WorkShiftController::class, 'index'])
+                    ->middleware('permission:hrm.shift.view');
+                Route::post('/', [WorkShiftController::class, 'store'])
+                    ->middleware('permission:hrm.shift.create');
+                Route::get('/{workShift}', [WorkShiftController::class, 'show'])
+                    ->middleware('permission:hrm.shift.view');
+                Route::put('/{workShift}', [WorkShiftController::class, 'update'])
+                    ->middleware('permission:hrm.shift.update');
+                Route::delete('/{workShift}', [WorkShiftController::class, 'destroy'])
+                    ->middleware('permission:hrm.shift.delete');
+            });
+
+            // Holidays
+            Route::prefix('hrm-holidays')->group(function () {
+                Route::get('/', [HrmHolidayController::class, 'index'])
+                    ->middleware('permission:hrm.holiday.view');
+                Route::post('/by-date', [HrmHolidayController::class, 'updateByDate'])
+                    ->middleware('permission:hrm.holiday.update');
+                Route::post('/', [HrmHolidayController::class, 'store'])
+                    ->middleware('permission:hrm.holiday.create');
+                Route::get('/{hrmHoliday}', [HrmHolidayController::class, 'show'])
+                    ->middleware('permission:hrm.holiday.view');
+                Route::put('/{hrmHoliday}', [HrmHolidayController::class, 'update'])
+                    ->middleware('permission:hrm.holiday.update');
+                Route::delete('/{hrmHoliday}', [HrmHolidayController::class, 'destroy'])
+                    ->middleware('permission:hrm.holiday.delete');
             });
         });
     });

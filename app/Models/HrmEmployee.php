@@ -154,6 +154,11 @@ class HrmEmployee extends Model
         return $this->hasMany(HrmEmployeeFamily::class, 'hrm_employee_id');
     }
 
+    public function emergencyContacts()
+    {
+        return $this->hasMany(HrmEmployeeEmergencyContact::class, 'hrm_employee_id');
+    }
+
     public function reportingManager(): BelongsTo
     {
         return $this->belongsTo(HrmEmployee::class, 'reporting_manager_id');

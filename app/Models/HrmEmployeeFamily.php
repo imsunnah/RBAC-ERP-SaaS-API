@@ -23,6 +23,7 @@ class HrmEmployeeFamily extends Model
         'national_id',
         'blood_group_id',
         'nationality',
+        'relationship_id',
     ];
 
     protected $casts = [
@@ -47,5 +48,10 @@ class HrmEmployeeFamily extends Model
     public function bloodGroup(): BelongsTo
     {
         return $this->belongsTo(GlobalLookup::class, 'blood_group_id');
+    }
+
+    public function relationship(): BelongsTo
+    {
+        return $this->belongsTo(GlobalLookup::class, 'relationship_id');
     }
 }

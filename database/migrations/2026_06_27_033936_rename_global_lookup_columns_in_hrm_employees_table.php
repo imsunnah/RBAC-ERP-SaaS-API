@@ -13,13 +13,27 @@ return new class extends Migration
     {
         Schema::table('hrm_employees', function (Blueprint $table) {
             if (Schema::hasColumn('hrm_employees', 'gender_uuid')) {
-                $table->renameColumn('gender_uuid', 'gender_id');
+                if (Schema::hasColumn('hrm_employees', 'gender_id')) {
+                    $table->dropColumn('gender_uuid');
+                } else {
+                    $table->renameColumn('gender_uuid', 'gender_id');
+                }
             }
+
             if (Schema::hasColumn('hrm_employees', 'religion_uuid')) {
-                $table->renameColumn('religion_uuid', 'religion_id');
+                if (Schema::hasColumn('hrm_employees', 'religion_id')) {
+                    $table->dropColumn('religion_uuid');
+                } else {
+                    $table->renameColumn('religion_uuid', 'religion_id');
+                }
             }
+
             if (Schema::hasColumn('hrm_employees', 'marital_status_uuid')) {
-                $table->renameColumn('marital_status_uuid', 'marital_status_id');
+                if (Schema::hasColumn('hrm_employees', 'marital_status_id')) {
+                    $table->dropColumn('marital_status_uuid');
+                } else {
+                    $table->renameColumn('marital_status_uuid', 'marital_status_id');
+                }
             }
         });
     }
@@ -29,10 +43,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('hrm_employees', function (Blueprint $table) {
-            $table->renameColumn('gender_id', 'gender_uuid');
-            $table->renameColumn('religion_id', 'religion_uuid');
-            $table->renameColumn('marital_status_id', 'marital_status_uuid');
-        });
+        // No-op
     }
 };

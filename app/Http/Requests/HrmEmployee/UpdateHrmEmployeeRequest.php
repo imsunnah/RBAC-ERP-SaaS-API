@@ -183,27 +183,49 @@ class UpdateHrmEmployeeRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $intFields = [
+        $nullableUuidFields = [
             'country_id',
-
+            'department_id',
+            'designation_id',
+            'employee_type_id',
             'employee_category_id',
             'employment_type_id',
             'work_shift_id',
-            'employment_duration',
             'hired_by',
-            'user_serial_no',
+            'reporting_manager_id',
+            'terminated_by',
+            'gender_id',
+            'religion_id',
+            'marital_status_id',
+            'blood_group_id',
         ];
 
         $merges = [];
 
-        foreach ($intFields as $field) {
+        foreach ($nullableUuidFields as $field) {
             if ($this->has($field)) {
                 $val = $this->input($field);
-                if ($val === '' || $val === '0' || $val === 0) {
+                if (is_null($val) || $val === '' || $val === 'null' || $val === 'undefined' || $val === '0' || $val === 0) {
                     $merges[$field] = null;
-                } else {
-                    $merges[$field] = (int) $val;
                 }
+            }
+        }
+
+        if ($this->has('employment_duration')) {
+            $val = $this->input('employment_duration');
+            if (is_null($val) || $val === '' || $val === 'null' || $val === 'undefined') {
+                $merges['employment_duration'] = null;
+            } elseif (is_numeric($val)) {
+                $merges['employment_duration'] = (int) $val;
+            }
+        }
+
+        if ($this->has('user_serial_no')) {
+            $val = $this->input('user_serial_no');
+            if (is_null($val) || $val === '' || $val === 'null' || $val === 'undefined') {
+                $merges['user_serial_no'] = null;
+            } elseif (is_numeric($val)) {
+                $merges['user_serial_no'] = (int) $val;
             }
         }
 

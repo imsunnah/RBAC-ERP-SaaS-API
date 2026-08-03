@@ -107,6 +107,17 @@ class HrmEmployeeResource extends JsonResource
                 ];
             }) : null,
 
+            'emergency_contacts'  => $this->relationLoaded('emergencyContacts') ? $this->emergencyContacts->map(function ($emg) {
+                return [
+                    'uuid'                     => $emg->uuid,
+                    'contact_name'             => $emg->contact_name,
+                    'relationship'             => new MetadataResource($emg->relationship),
+                    'contact_number'           => $emg->contact_number,
+                    'alternate_contact_number' => $emg->alternate_contact_number,
+                    'address'                  => $emg->address,
+                ];
+            }) : null,
+
             // ── Images / Files ────────────────────────────────────────────────
             'employee_photo'      => $this->employee_photo ? Storage::url($this->employee_photo) : null,
             'profile_picture'     => $this->profile_picture ? Storage::url($this->profile_picture) : null,

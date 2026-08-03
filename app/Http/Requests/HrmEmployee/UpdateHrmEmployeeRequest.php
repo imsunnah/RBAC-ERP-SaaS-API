@@ -138,6 +138,13 @@ class UpdateHrmEmployeeRequest extends FormRequest
             'family.*.blood_group_id'       => 'nullable|uuid|exists:global_lookups,uuid',
             'family.*.nationality'          => 'nullable|string|max:100',
 
+            'emergency_contacts'                            => 'nullable|array',
+            'emergency_contacts.*.contact_name'             => 'nullable|string|max:100',
+            'emergency_contacts.*.relationship_id'          => 'nullable|uuid|exists:global_lookups,uuid',
+            'emergency_contacts.*.contact_number'           => 'nullable|string|max:20',
+            'emergency_contacts.*.alternate_contact_number' => 'nullable|string|max:20',
+            'emergency_contacts.*.address'                  => 'nullable|string|max:300',
+
             // ── Images ────────────────────────────────────────────────────────
             'employee_photo'      => 'nullable',
             'profile_picture'     => 'nullable',

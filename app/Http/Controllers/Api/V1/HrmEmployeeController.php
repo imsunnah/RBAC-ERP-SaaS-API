@@ -40,6 +40,8 @@ class HrmEmployeeController extends Controller
             'family.maritalStatus',
             'family.bloodGroup',
             'workShift',
+            'emergencyContacts',
+            'emergencyContacts.relationship',
         ]);
 
         if ($request->filled('search')) {
@@ -92,7 +94,7 @@ class HrmEmployeeController extends Controller
         $validated['updated_by'] = Auth::user()->id;
 
         $employee = DB::transaction(function () use ($validated) {
-            $employeeData = Arr::except($validated, ['education', 'experience', 'family']);
+            $employeeData = Arr::except($validated, ['education', 'experience', 'family', 'emergency_contacts', 'emergency_contact']);
             $emp = HrmEmployee::create($employeeData);
 
             if (!empty($validated['education'])) {
@@ -125,6 +127,21 @@ class HrmEmployeeController extends Controller
                 }
             }
 
+            if (!empty($validated['emergency_contacts'])) {
+                foreach ($validated['emergency_contacts'] as $emg) {
+                    if (!empty($emg['relationship_id'])) {
+                        $emg['relationship_id'] = GlobalLookup::resolveId($emg['relationship_id']);
+                    }
+                    $emp->emergencyContacts()->create($emg);
+                }
+            } elseif (!empty($validated['emergency_contact']) && is_array($validated['emergency_contact'])) {
+                $emg = $validated['emergency_contact'];
+                if (!empty($emg['relationship_id'])) {
+                    $emg['relationship_id'] = GlobalLookup::resolveId($emg['relationship_id']);
+                }
+                $emp->emergencyContacts()->create($emg);
+            }
+
             return $emp;
         });
 
@@ -145,6 +162,8 @@ class HrmEmployeeController extends Controller
             'family.maritalStatus',
             'family.bloodGroup',
             'workShift',
+            'emergencyContacts',
+            'emergencyContacts.relationship',
         ]);
 
         return response()->json([
@@ -164,7 +183,7 @@ class HrmEmployeeController extends Controller
         $validated['updated_by'] = Auth::user()->id;
 
         DB::transaction(function () use ($hrmEmployee, $validated) {
-            $employeeData = Arr::except($validated, ['education', 'experience', 'family']);
+            $employeeData = Arr::except($validated, ['education', 'experience', 'family', 'emergency_contacts', 'emergency_contact']);
             $hrmEmployee->update($employeeData);
 
             if (isset($validated['education'])) {
@@ -199,6 +218,23 @@ class HrmEmployeeController extends Controller
                     $hrmEmployee->family()->create($fam);
                 }
             }
+
+            if (isset($validated['emergency_contacts'])) {
+                $hrmEmployee->emergencyContacts()->delete();
+                foreach ($validated['emergency_contacts'] as $emg) {
+                    if (!empty($emg['relationship_id'])) {
+                        $emg['relationship_id'] = GlobalLookup::resolveId($emg['relationship_id']);
+                    }
+                    $hrmEmployee->emergencyContacts()->create($emg);
+                }
+            } elseif (isset($validated['emergency_contact']) && is_array($validated['emergency_contact'])) {
+                $hrmEmployee->emergencyContacts()->delete();
+                $emg = $validated['emergency_contact'];
+                if (!empty($emg['relationship_id'])) {
+                    $emg['relationship_id'] = GlobalLookup::resolveId($emg['relationship_id']);
+                }
+                $hrmEmployee->emergencyContacts()->create($emg);
+            }
         });
 
         $freshEmployee = $hrmEmployee->fresh([
@@ -218,6 +254,8 @@ class HrmEmployeeController extends Controller
             'family.maritalStatus',
             'family.bloodGroup',
             'workShift',
+            'emergencyContacts',
+            'emergencyContacts.relationship',
         ]);
 
         return response()->json([
@@ -249,6 +287,8 @@ class HrmEmployeeController extends Controller
             'family.maritalStatus',
             'family.bloodGroup',
             'workShift',
+            'emergencyContacts',
+            'emergencyContacts.relationship',
         ]);
 
         return response()->json([

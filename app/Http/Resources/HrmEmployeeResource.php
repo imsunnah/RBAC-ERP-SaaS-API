@@ -99,6 +99,7 @@ class HrmEmployeeResource extends JsonResource
                     'full_name'      => $fam->full_name,
                     'date_of_birth'  => $fam->date_of_birth ? $fam->date_of_birth->format('Y-m-d') : null,
                     'gender'         => new MetadataResource($fam->gender),
+                    'relationship'   => new MetadataResource($fam->relationship),
                     'marital_status' => new MetadataResource($fam->maritalStatus),
                     'national_id'    => $fam->national_id,
                     'blood_group'    => new MetadataResource($fam->bloodGroup),

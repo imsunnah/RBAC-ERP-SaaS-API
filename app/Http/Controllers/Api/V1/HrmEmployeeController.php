@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
 
 class HrmEmployeeController extends Controller
 {
@@ -35,6 +36,7 @@ class HrmEmployeeController extends Controller
             'experience',
             'family',
             'family.gender',
+            'family.relationship',
             'family.maritalStatus',
             'family.bloodGroup',
             'workShift',
@@ -86,8 +88,8 @@ class HrmEmployeeController extends Controller
         $validated = $request->validated();
         $validated = $this->handleImageUploads($request, $validated);
 
-        $validated['created_by'] = auth()->id();
-        $validated['updated_by'] = auth()->id();
+        $validated['created_by'] = Auth::user()->id;
+        $validated['updated_by'] = Auth::user()->id;
 
         $employee = DB::transaction(function () use ($validated) {
             $employeeData = Arr::except($validated, ['education', 'experience', 'family']);
@@ -116,6 +118,9 @@ class HrmEmployeeController extends Controller
                     if (!empty($fam['blood_group_id'])) {
                         $fam['blood_group_id'] = GlobalLookup::resolveId($fam['blood_group_id']);
                     }
+                    if (!empty($fam['relationship_id'])) {
+                        $fam['relationship_id'] = GlobalLookup::resolveId($fam['relationship_id']);
+                    }
                     $emp->family()->create($fam);
                 }
             }
@@ -136,6 +141,7 @@ class HrmEmployeeController extends Controller
             'experience',
             'family',
             'family.gender',
+            'family.relationship',
             'family.maritalStatus',
             'family.bloodGroup',
             'workShift',
@@ -155,7 +161,7 @@ class HrmEmployeeController extends Controller
 
         $validated = $request->validated();
         $validated = $this->handleImageUploads($request, $validated, $hrmEmployee);
-        $validated['updated_by'] = auth()->id();
+        $validated['updated_by'] = Auth::user()->id;
 
         DB::transaction(function () use ($hrmEmployee, $validated) {
             $employeeData = Arr::except($validated, ['education', 'experience', 'family']);
@@ -187,6 +193,9 @@ class HrmEmployeeController extends Controller
                     if (!empty($fam['blood_group_id'])) {
                         $fam['blood_group_id'] = GlobalLookup::resolveId($fam['blood_group_id']);
                     }
+                    if (!empty($fam['relationship_id'])) {
+                        $fam['relationship_id'] = GlobalLookup::resolveId($fam['relationship_id']);
+                    }
                     $hrmEmployee->family()->create($fam);
                 }
             }
@@ -205,6 +214,7 @@ class HrmEmployeeController extends Controller
             'experience',
             'family',
             'family.gender',
+            'family.relationship',
             'family.maritalStatus',
             'family.bloodGroup',
             'workShift',
@@ -235,6 +245,7 @@ class HrmEmployeeController extends Controller
             'experience',
             'family',
             'family.gender',
+            'family.relationship',
             'family.maritalStatus',
             'family.bloodGroup',
             'workShift',

@@ -10,6 +10,7 @@ use App\Models\Gender;
 use App\Models\GlobalLookup;
 use App\Models\Religion;
 use App\Models\MaritalStatus;
+use App\Models\WorkShift;
 
 use Illuminate\Validation\Rule;
 
@@ -64,7 +65,7 @@ class UpdateHrmEmployeeRequest extends FormRequest
             'blood_group_id'      => 'nullable|uuid|exists:global_lookups,uuid',
             'religion_id'         => 'nullable|uuid|exists:global_lookups,uuid',
             'marital_status_id'   => 'nullable|uuid|exists:global_lookups,uuid',
-            'country_id'          => 'nullable|integer|min:1',
+            'country_id'          => 'nullable|uuid|exists:global_lookups,uuid',
 
             'weight_kg'           => 'nullable|numeric|min:0|max:999.99',
             'height_cm'           => 'nullable|numeric|min:0|max:999.99',
@@ -78,7 +79,7 @@ class UpdateHrmEmployeeRequest extends FormRequest
             'personal_mobile_no'  => 'nullable|string|max:15',
             'secondary_mobile_no' => 'nullable|string|max:15',
             'tertiary_mobile_no'  => 'nullable|string|max:15',
-            'emergency_contact'   => 'nullable|string|max:6',
+            'emergency_contact'   => 'nullable|string|max:15',
 
             // ── Address ───────────────────────────────────────────────────────
             'present_address'     => 'nullable|string|max:300',
@@ -90,20 +91,20 @@ class UpdateHrmEmployeeRequest extends FormRequest
             'department_id'       => 'nullable|uuid|exists:hrm_lookups,uuid',
             'designation_id'      => 'nullable|uuid|exists:hrm_lookups,uuid',
 
-            'employee_type_id'    => 'nullable|uuid|exists:global_lookups,uuid',
-            'employee_category_id' => 'nullable|integer|min:1',
-            'employment_type_id'  => 'nullable|integer|min:1',
-            'work_shift_id'       => 'nullable|integer|min:1',
+            'employee_type_id'    => 'nullable|uuid|exists:hrm_lookups,uuid',
+            'employee_category_id' => 'nullable|uuid|exists:hrm_lookups,uuid',
+            'employment_type_id'  => 'nullable|uuid|exists:hrm_lookups,uuid',
+            'work_shift_id'       => 'nullable|uuid|exists:work_shifts,uuid',
             'hire_date'           => 'nullable|date',
             'start_date'          => 'nullable|date',
             'employment_duration' => 'nullable|integer|min:0',
-            'hired_by'            => 'nullable|integer|min:1',
+            'hired_by'            => 'nullable|uuid|exists:hrm_employees,uuid',
             'reporting_manager_id'=> 'nullable|uuid|exists:hrm_employees,uuid',
             'work_location'       => 'nullable|string|max:255',
 
             // ── Termination ───────────────────────────────────────────────────
             'termination_date'    => 'nullable|date',
-            'terminated_by'       => 'nullable|string|max:20',
+            'terminated_by'       => 'nullable|uuid|exists:hrm_employees,uuid',
             'termination_reason'  => 'nullable|string|max:200',
             'termination_remarks' => 'nullable|string|max:200',
 
@@ -131,6 +132,7 @@ class UpdateHrmEmployeeRequest extends FormRequest
             'family.*.full_name'            => 'required|string|max:255',
             'family.*.date_of_birth'        => 'nullable|date',
             'family.*.gender_id'            => 'nullable|uuid|exists:global_lookups,uuid',
+            'family.*.relationship_id'      => 'nullable|uuid|exists:global_lookups,uuid',
             'family.*.marital_status_id'    => 'nullable|uuid|exists:global_lookups,uuid',
             'family.*.national_id'          => 'nullable|string|max:20',
             'family.*.blood_group_id'       => 'nullable|uuid|exists:global_lookups,uuid',
@@ -157,12 +159,19 @@ class UpdateHrmEmployeeRequest extends FormRequest
         return [
             'department_id'        => HrmLookup::class,
             'designation_id'       => HrmLookup::class,
-            'employee_type_id'     => GlobalLookup::class,
+            'employee_type_id'     => HrmLookup::class,
             'gender_id'            => GlobalLookup::class,
             'religion_id'          => GlobalLookup::class,
             'marital_status_id'    => GlobalLookup::class,
             'blood_group_id'       => GlobalLookup::class,
+            'relationship_id'      => GlobalLookup::class,
+            'employee_category_id' => HrmLookup::class,
+            'employment_type_id'   => HrmLookup::class,
+            'work_shift_id'        => WorkShift::class,
+            'country_id'           => GlobalLookup::class,
             'reporting_manager_id' => HrmEmployee::class,
+            'terminated_by'        => HrmEmployee::class,
+            'hired_by'             => HrmEmployee::class,
         ];
     }
 

@@ -89,12 +89,14 @@ class StoreHrmEmployeeRequest extends FormRequest
 
             // ── Nested Relationships ──────────────────────────────────────────
             'education'                     => 'nullable|array',
+            'education.*.uuid'              => 'nullable|uuid',
             'education.*.degree_name'       => 'required|string|max:255',
             'education.*.institution'       => 'required|string|max:255',
             'education.*.passing_year'      => 'nullable|integer|min:1900|max:2100',
             'education.*.duration'          => 'nullable|string|max:100',
 
             'experience'                    => 'nullable|array',
+            'experience.*.uuid'             => 'nullable|uuid',
             'experience.*.company_name'     => 'required|string|max:255',
             'experience.*.designation'      => 'required|string|max:255',
             'experience.*.start_date'       => 'nullable|date',
@@ -102,6 +104,7 @@ class StoreHrmEmployeeRequest extends FormRequest
             'experience.*.description'      => 'nullable|string',
 
             'family'                        => 'nullable|array',
+            'family.*.uuid'                 => 'nullable|uuid',
             'family.*.full_name'            => 'required|string|max:255',
             'family.*.date_of_birth'        => 'nullable|date',
             'family.*.gender_id'            => 'nullable|uuid|exists:global_lookups,uuid',
@@ -112,11 +115,17 @@ class StoreHrmEmployeeRequest extends FormRequest
             'family.*.nationality'          => 'nullable|string|max:100',
 
             'emergency_contacts'                            => 'nullable|array',
+            'emergency_contacts.*.uuid'                     => 'nullable|uuid',
             'emergency_contacts.*.contact_name'             => 'nullable|string|max:100',
             'emergency_contacts.*.relationship_id'          => 'nullable|uuid|exists:global_lookups,uuid',
             'emergency_contacts.*.contact_number'           => 'nullable|string|max:20',
             'emergency_contacts.*.alternate_contact_number' => 'nullable|string|max:20',
             'emergency_contacts.*.address'                  => 'nullable|string|max:300',
+
+            'documents'                     => 'nullable|array',
+            'documents.*.uuid'              => 'nullable|uuid',
+            'documents.*.title'             => 'required|string|max:255',
+            'documents.*.doc'               => 'nullable|file|max:10240', // 10 MB max
 
             // ── Images ────────────────────────────────────────────────────────
             // Accept either a file upload OR a string path (existing path sent back)
@@ -213,6 +222,18 @@ class StoreHrmEmployeeRequest extends FormRequest
         if ($this->has('is_active')) {
             $val = $this->input('is_active');
             $merges['is_active'] = filter_var($val, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        foreach (['family', 'education', 'experience', 'emergency_contacts'] as $arrayField) {
+            if ($this->has($arrayField)) {
+                $val = $this->input($arrayField);
+                if (is_string($val)) {
+                    $decoded = json_decode($val, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $merges[$arrayField] = $decoded;
+                    }
+                }
+            }
         }
 
         if (!empty($merges)) {

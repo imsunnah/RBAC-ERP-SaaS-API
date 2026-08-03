@@ -98,11 +98,11 @@ class HrmEmployeeResource extends JsonResource
                     'uuid'           => $fam->uuid,
                     'full_name'      => $fam->full_name,
                     'date_of_birth'  => $fam->date_of_birth ? $fam->date_of_birth->format('Y-m-d') : null,
-                    'gender'         => new MetadataResource($fam->gender),
-                    'relationship'   => new MetadataResource($fam->relationship),
-                    'marital_status' => new MetadataResource($fam->maritalStatus),
+                    'gender'         => $fam->gender ? new MetadataResource($fam->gender) : null,
+                    'relationship'   => $fam->relationship ? new MetadataResource($fam->relationship) : null,
+                    'marital_status' => $fam->maritalStatus ? new MetadataResource($fam->maritalStatus) : null,
                     'national_id'    => $fam->national_id,
-                    'blood_group'    => new MetadataResource($fam->bloodGroup),
+                    'blood_group'    => $fam->bloodGroup ? new MetadataResource($fam->bloodGroup) : null,
                     'nationality'    => $fam->nationality,
                 ];
             }) : null,
@@ -111,10 +111,18 @@ class HrmEmployeeResource extends JsonResource
                 return [
                     'uuid'                     => $emg->uuid,
                     'contact_name'             => $emg->contact_name,
-                    'relationship'             => new MetadataResource($emg->relationship),
+                    'relationship'             => $emg->relationship ? new MetadataResource($emg->relationship) : null,
                     'contact_number'           => $emg->contact_number,
                     'alternate_contact_number' => $emg->alternate_contact_number,
                     'address'                  => $emg->address,
+                ];
+            }) : null,
+
+            'documents'           => $this->relationLoaded('documents') ? $this->documents->map(function ($doc) {
+                return [
+                    'uuid'  => $doc->uuid,
+                    'title' => $doc->title,
+                    'doc'   => $doc->doc ? Storage::url($doc->doc) : null,
                 ];
             }) : null,
 

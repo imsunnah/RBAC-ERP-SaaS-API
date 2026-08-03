@@ -18,31 +18,59 @@ use Illuminate\Support\Facades\Auth;
 
 class HrmEmployeeController extends Controller
 {
+    /** Eager-load relations shared across index / store / update / show. */
+    private const EMPLOYEE_RELATIONS = [
+        'department',
+        'designation',
+        'employeeType',
+        'gender',
+        'bloodGroup',
+        'religion',
+        'maritalStatus',
+        'reportingManager',
+        'education',
+        'experience',
+        'family',
+        'family.gender',
+        'family.relationship',
+        'family.maritalStatus',
+        'family.bloodGroup',
+        'workShift',
+        'emergencyContacts',
+        'emergencyContacts.relationship',
+        'documents',
+    ];
+
+    /** Fields that contain GlobalLookup UUIDs in the family array. */
+    private const FAMILY_LOOKUP_FIELDS = [
+        'gender_id',
+        'marital_status_id',
+        'blood_group_id',
+        'relationship_id',
+    ];
+
+    /** Fields that contain GlobalLookup UUIDs in the emergency_contacts array. */
+    private const EMERGENCY_LOOKUP_FIELDS = [
+        'relationship_id',
+    ];
+
+    /** Image fields used for uploads. */
+    private const IMAGE_FIELDS = [
+        'employee_photo',
+        'profile_picture',
+        'signature_image',
+        'nid_image',
+        'business_card_image',
+    ];
+
+    // ─── CRUD Methods ────────────────────────────────────────────────
+
     /** Display a listing of the employees. */
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', HrmEmployee::class);
 
-        $query = HrmEmployee::with([
-            'department',
-            'designation',
-            'employeeType',
-            'gender',
-            'bloodGroup',
-            'religion',
-            'maritalStatus',
-            'reportingManager',
-            'education',
-            'experience',
-            'family',
-            'family.gender',
-            'family.relationship',
-            'family.maritalStatus',
-            'family.bloodGroup',
-            'workShift',
-            'emergencyContacts',
-            'emergencyContacts.relationship',
-        ]);
+        $query = HrmEmployee::with(self::EMPLOYEE_RELATIONS);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -94,7 +122,7 @@ class HrmEmployeeController extends Controller
         $validated['updated_by'] = Auth::user()->id;
 
         $employee = DB::transaction(function () use ($validated) {
-            $employeeData = Arr::except($validated, ['education', 'experience', 'family', 'emergency_contacts', 'emergency_contact']);
+            $employeeData = Arr::except($validated, ['education', 'experience', 'family', 'emergency_contacts', 'emergency_contact', 'documents']);
             $emp = HrmEmployee::create($employeeData);
 
             if (!empty($validated['education'])) {
@@ -111,60 +139,26 @@ class HrmEmployeeController extends Controller
 
             if (!empty($validated['family'])) {
                 foreach ($validated['family'] as $fam) {
-                    if (!empty($fam['gender_id'])) {
-                        $fam['gender_id'] = GlobalLookup::resolveId($fam['gender_id']);
-                    }
-                    if (!empty($fam['marital_status_id'])) {
-                        $fam['marital_status_id'] = GlobalLookup::resolveId($fam['marital_status_id']);
-                    }
-                    if (!empty($fam['blood_group_id'])) {
-                        $fam['blood_group_id'] = GlobalLookup::resolveId($fam['blood_group_id']);
-                    }
-                    if (!empty($fam['relationship_id'])) {
-                        $fam['relationship_id'] = GlobalLookup::resolveId($fam['relationship_id']);
-                    }
+                    $fam = $this->resolveLookupFields($fam, self::FAMILY_LOOKUP_FIELDS);
                     $emp->family()->create($fam);
                 }
             }
 
             if (!empty($validated['emergency_contacts'])) {
                 foreach ($validated['emergency_contacts'] as $emg) {
-                    if (!empty($emg['relationship_id'])) {
-                        $emg['relationship_id'] = GlobalLookup::resolveId($emg['relationship_id']);
-                    }
+                    $emg = $this->resolveLookupFields($emg, self::EMERGENCY_LOOKUP_FIELDS);
                     $emp->emergencyContacts()->create($emg);
                 }
-            } elseif (!empty($validated['emergency_contact']) && is_array($validated['emergency_contact'])) {
-                $emg = $validated['emergency_contact'];
-                if (!empty($emg['relationship_id'])) {
-                    $emg['relationship_id'] = GlobalLookup::resolveId($emg['relationship_id']);
-                }
-                $emp->emergencyContacts()->create($emg);
+            }
+
+            if (!empty($validated['documents'])) {
+                $this->storeDocuments($emp, $validated['documents']);
             }
 
             return $emp;
         });
 
-        $employee->load([
-            'department',
-            'designation',
-            'employeeType',
-            'gender',
-            'bloodGroup',
-            'religion',
-            'maritalStatus',
-            'reportingManager',
-            'education',
-            'experience',
-            'family',
-            'family.gender',
-            'family.relationship',
-            'family.maritalStatus',
-            'family.bloodGroup',
-            'workShift',
-            'emergencyContacts',
-            'emergencyContacts.relationship',
-        ]);
+        $employee->load(self::EMPLOYEE_RELATIONS);
 
         return response()->json([
             'success' => true,
@@ -183,80 +177,31 @@ class HrmEmployeeController extends Controller
         $validated['updated_by'] = Auth::user()->id;
 
         DB::transaction(function () use ($hrmEmployee, $validated) {
-            $employeeData = Arr::except($validated, ['education', 'experience', 'family', 'emergency_contacts', 'emergency_contact']);
+            $employeeData = Arr::except($validated, ['education', 'experience', 'family', 'emergency_contacts', 'emergency_contact', 'documents']);
             $hrmEmployee->update($employeeData);
 
             if (isset($validated['education'])) {
-                $hrmEmployee->education()->delete();
-                foreach ($validated['education'] as $edu) {
-                    $hrmEmployee->education()->create($edu);
-                }
+                $this->syncRelation($hrmEmployee, 'education', $validated['education']);
             }
 
             if (isset($validated['experience'])) {
-                $hrmEmployee->experience()->delete();
-                foreach ($validated['experience'] as $exp) {
-                    $hrmEmployee->experience()->create($exp);
-                }
+                $this->syncRelation($hrmEmployee, 'experience', $validated['experience']);
             }
 
             if (isset($validated['family'])) {
-                $hrmEmployee->family()->delete();
-                foreach ($validated['family'] as $fam) {
-                    if (!empty($fam['gender_id'])) {
-                        $fam['gender_id'] = GlobalLookup::resolveId($fam['gender_id']);
-                    }
-                    if (!empty($fam['marital_status_id'])) {
-                        $fam['marital_status_id'] = GlobalLookup::resolveId($fam['marital_status_id']);
-                    }
-                    if (!empty($fam['blood_group_id'])) {
-                        $fam['blood_group_id'] = GlobalLookup::resolveId($fam['blood_group_id']);
-                    }
-                    if (!empty($fam['relationship_id'])) {
-                        $fam['relationship_id'] = GlobalLookup::resolveId($fam['relationship_id']);
-                    }
-                    $hrmEmployee->family()->create($fam);
-                }
+                $this->syncRelation($hrmEmployee, 'family', $validated['family'], self::FAMILY_LOOKUP_FIELDS);
             }
 
             if (isset($validated['emergency_contacts'])) {
-                $hrmEmployee->emergencyContacts()->delete();
-                foreach ($validated['emergency_contacts'] as $emg) {
-                    if (!empty($emg['relationship_id'])) {
-                        $emg['relationship_id'] = GlobalLookup::resolveId($emg['relationship_id']);
-                    }
-                    $hrmEmployee->emergencyContacts()->create($emg);
-                }
-            } elseif (isset($validated['emergency_contact']) && is_array($validated['emergency_contact'])) {
-                $hrmEmployee->emergencyContacts()->delete();
-                $emg = $validated['emergency_contact'];
-                if (!empty($emg['relationship_id'])) {
-                    $emg['relationship_id'] = GlobalLookup::resolveId($emg['relationship_id']);
-                }
-                $hrmEmployee->emergencyContacts()->create($emg);
+                $this->syncRelation($hrmEmployee, 'emergencyContacts', $validated['emergency_contacts'], self::EMERGENCY_LOOKUP_FIELDS);
+            }
+
+            if (isset($validated['documents'])) {
+                $this->syncDocuments($hrmEmployee, $validated['documents']);
             }
         });
 
-        $freshEmployee = $hrmEmployee->fresh([
-            'department',
-            'designation',
-            'employeeType',
-            'gender',
-            'bloodGroup',
-            'religion',
-            'maritalStatus',
-            'reportingManager',
-            'education',
-            'experience',
-            'family',
-            'family.gender',
-            'family.relationship',
-            'family.maritalStatus',
-            'family.bloodGroup',
-            'workShift',
-            'emergencyContacts',
-            'emergencyContacts.relationship',
-        ]);
+        $freshEmployee = $hrmEmployee->fresh(self::EMPLOYEE_RELATIONS);
 
         return response()->json([
             'success' => true,
@@ -270,26 +215,7 @@ class HrmEmployeeController extends Controller
     {
         $this->authorize('view', $hrmEmployee);
 
-        $hrmEmployee->load([
-            'department',
-            'designation',
-            'employeeType',
-            'gender',
-            'bloodGroup',
-            'religion',
-            'maritalStatus',
-            'reportingManager',
-            'education',
-            'experience',
-            'family',
-            'family.gender',
-            'family.relationship',
-            'family.maritalStatus',
-            'family.bloodGroup',
-            'workShift',
-            'emergencyContacts',
-            'emergencyContacts.relationship',
-        ]);
+        $hrmEmployee->load(self::EMPLOYEE_RELATIONS);
 
         return response()->json([
             'success' => true,
@@ -297,22 +223,17 @@ class HrmEmployeeController extends Controller
         ]);
     }
 
-
     /** Remove the specified employee. */
     public function destroy(HrmEmployee $hrmEmployee): JsonResponse
     {
         $this->authorize('delete', $hrmEmployee);
 
-        // Optionally delete image files from storage
-        $imageFields = ['employe
-        e_photo', 'profile_picture', 'signature_image', 'nid_image', 'business_card_image'];
-        foreach ($imageFields as $field) {
+        // Delete image files from storage
+        foreach (self::IMAGE_FIELDS as $field) {
             if ($hrmEmployee->{$field}) {
                 Storage::disk('public')->delete($hrmEmployee->{$field});
             }
         }
-
-
 
         $hrmEmployee->delete();
 
@@ -320,6 +241,66 @@ class HrmEmployeeController extends Controller
             'success' => true,
             'message' => 'Employee deleted successfully.',
         ]);
+    }
+
+    // ─── Private Helpers ─────────────────────────────────────────────
+
+    /**
+     * Sync a hasMany relation using update-or-create logic.
+     *
+     * - Items with a matching `uuid` → update in place.
+     * - Items without a `uuid` (or unrecognised uuid) → create as new.
+     * - Existing DB records not present in the submitted array → deleted.
+     *
+     * @param  HrmEmployee  $employee
+     * @param  string       $relation       Relation method name (e.g. 'education', 'family')
+     * @param  mixed        $items          Array or JSON-string of items
+     * @param  array        $lookupFields   GlobalLookup UUID fields to resolve (optional)
+     */
+    private function syncRelation(HrmEmployee $employee, string $relation, mixed $items, array $lookupFields = []): void
+    {
+        $data = is_string($items) ? json_decode($items, true) : $items;
+
+        if (!is_array($data)) {
+            return;
+        }
+
+        $keptUuids = [];
+
+        foreach ($data as $item) {
+            $uuid     = $item['uuid'] ?? null;
+            $itemData = Arr::except($item, ['uuid', 'id']);
+            $itemData = $this->resolveLookupFields($itemData, $lookupFields);
+
+            if ($uuid) {
+                $record = $employee->{$relation}()->where('uuid', $uuid)->first();
+                if ($record) {
+                    $record->update($itemData);
+                    $keptUuids[] = $record->uuid;
+                    continue;
+                }
+            }
+
+            $newRecord = $employee->{$relation}()->create($itemData);
+            $keptUuids[] = $newRecord->uuid;
+        }
+
+        // Remove records that were not in the submitted payload
+        $employee->{$relation}()->whereNotIn('uuid', $keptUuids)->delete();
+    }
+
+    /**
+     * Resolve GlobalLookup UUID strings to integer IDs for the given fields.
+     */
+    private function resolveLookupFields(array $data, array $fields): array
+    {
+        foreach ($fields as $field) {
+            if (!empty($data[$field])) {
+                $data[$field] = GlobalLookup::resolveId($data[$field]);
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -334,15 +315,7 @@ class HrmEmployeeController extends Controller
      */
     private function handleImageUploads(Request $request, array $validated, ?HrmEmployee $employee = null): array
     {
-        $imageFields = [
-            'employee_photo',
-            'profile_picture',
-            'signature_image',
-            'nid_image',
-            'business_card_image',
-        ];
-
-        foreach ($imageFields as $field) {
+        foreach (self::IMAGE_FIELDS as $field) {
             if ($request->hasFile($field) && $request->file($field)->isValid()) {
                 // Delete old file on update
                 if ($employee && $employee->$field) {
@@ -364,5 +337,90 @@ class HrmEmployeeController extends Controller
         }
 
         return $validated;
+    }
+
+    /**
+     * Store document files during employee creation.
+     *
+     * Each item has a 'title' (string) and 'doc' (UploadedFile).
+     */
+    private function storeDocuments(HrmEmployee $employee, array $documents): void
+    {
+        foreach ($documents as $doc) {
+            $filePath = null;
+            if (isset($doc['doc']) && $doc['doc'] instanceof \Illuminate\Http\UploadedFile && $doc['doc']->isValid()) {
+                $filePath = $doc['doc']->store('hrm/employees/documents', 'public');
+            } elseif (isset($doc['doc']) && is_string($doc['doc'])) {
+                $filePath = $doc['doc'];
+            }
+
+            $employee->documents()->create([
+                'title' => $doc['title'] ?? 'Untitled',
+                'doc'   => $filePath,
+            ]);
+        }
+    }
+
+    /**
+     * Sync documents during employee update.
+     *
+     * - Items with a matching uuid → update title and optionally replace the file.
+     * - Items without a uuid → create new.
+     * - Existing records not in the payload → delete (and remove files from disk).
+     */
+    private function syncDocuments(HrmEmployee $employee, array $documents): void
+    {
+        $keptUuids = [];
+
+        foreach ($documents as $doc) {
+            $uuid  = $doc['uuid'] ?? null;
+            $title = $doc['title'] ?? 'Untitled';
+
+            // Handle file: could be UploadedFile, existing path string, or null
+            $filePath = null;
+            $hasNewFile = isset($doc['doc']) && $doc['doc'] instanceof \Illuminate\Http\UploadedFile && $doc['doc']->isValid();
+
+            if ($uuid) {
+                $record = $employee->documents()->where('uuid', $uuid)->first();
+                if ($record) {
+                    $updateData = ['title' => $title];
+
+                    if ($hasNewFile) {
+                        // Delete old file and store new one
+                        if ($record->doc) {
+                            Storage::disk('public')->delete($record->doc);
+                        }
+                        $updateData['doc'] = $doc['doc']->store('hrm/employees/documents', 'public');
+                    }
+                    // If no new file sent, keep existing doc path unchanged
+
+                    $record->update($updateData);
+                    $keptUuids[] = $record->uuid;
+                    continue;
+                }
+            }
+
+            // New record
+            if ($hasNewFile) {
+                $filePath = $doc['doc']->store('hrm/employees/documents', 'public');
+            } elseif (isset($doc['doc']) && is_string($doc['doc'])) {
+                $filePath = $doc['doc'];
+            }
+
+            $newRecord = $employee->documents()->create([
+                'title' => $title,
+                'doc'   => $filePath,
+            ]);
+            $keptUuids[] = $newRecord->uuid;
+        }
+
+        // Delete orphaned documents and their files
+        $orphans = $employee->documents()->whereNotIn('uuid', $keptUuids)->get();
+        foreach ($orphans as $orphan) {
+            if ($orphan->doc) {
+                Storage::disk('public')->delete($orphan->doc);
+            }
+            $orphan->delete();
+        }
     }
 }

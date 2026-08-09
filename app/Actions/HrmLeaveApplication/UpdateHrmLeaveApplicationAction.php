@@ -3,8 +3,8 @@
 namespace App\Actions\HrmLeaveApplication;
 
 use App\Actions\HrmLeaveApplication\Concerns\HandlesLeaveDocuments;
-use App\Models\GlobalLookup;
 use App\Models\HrmLeaveApplication;
+use App\Models\HrmLookup;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +26,7 @@ class UpdateHrmLeaveApplicationAction
             $updateData = [];
 
             if (isset($validated['leave_type_id'])) {
-                $updateData['leave_type_id'] = GlobalLookup::where('uuid', $validated['leave_type_id'])->value('id');
+                $updateData['leave_type_id'] = HrmLookup::where('uuid', $validated['leave_type_id'])->value('id');
             }
             if (isset($validated['from_date'])) {
                 $updateData['from_date'] = $validated['from_date'];

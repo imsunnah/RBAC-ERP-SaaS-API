@@ -3,9 +3,9 @@
 namespace App\Actions\HrmLeaveApplication;
 
 use App\Actions\HrmLeaveApplication\Concerns\HandlesLeaveDocuments;
-use App\Models\GlobalLookup;
 use App\Models\HrmEmployee;
 use App\Models\HrmLeaveApplication;
+use App\Models\HrmLookup;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,7 +30,7 @@ class CreateHrmLeaveApplicationAction
 
             $leave = HrmLeaveApplication::create([
                 'hrm_employee_id' => HrmEmployee::where('uuid', $data['hrm_employee_id'])->value('id'),
-                'leave_type_id'   => GlobalLookup::where('uuid', $data['leave_type_id'])->value('id'),
+                'leave_type_id'   => HrmLookup::where('uuid', $data['leave_type_id'])->value('id'),
                 'from_date'       => $data['from_date'],
                 'to_date'         => $data['to_date'],
                 'total_days'      => $totalDays,

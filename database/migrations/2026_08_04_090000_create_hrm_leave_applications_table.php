@@ -15,7 +15,7 @@ return new class extends Migration
                 $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
                 $table->foreignId('organization_id')->nullable()->constrained('organizations')->nullOnDelete();
                 $table->foreignId('hrm_employee_id')->constrained('hrm_employees')->cascadeOnDelete();
-                $table->foreignId('leave_type_id')->nullable()->constrained('global_lookups')->nullOnDelete();
+                $table->foreignId('leave_type_id')->nullable()->constrained('hrm_lookups')->nullOnDelete();
                 $table->date('from_date');
                 $table->date('to_date');
                 $table->integer('total_days')->default(0);

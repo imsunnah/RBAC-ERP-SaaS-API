@@ -15,7 +15,7 @@ class StoreHrmLeaveApplicationRequest extends FormRequest
     {
         return [
             'hrm_employee_id' => 'required|uuid|exists:hrm_employees,uuid',
-            'leave_type_id'   => 'required|uuid|exists:global_lookups,uuid',
+            'leave_type_id'   => 'required|uuid|exists:hrm_lookups,uuid',
             'from_date'       => 'required|date',
             'to_date'         => 'required|date|after_or_equal:from_date',
             'documents'           => 'nullable|array',

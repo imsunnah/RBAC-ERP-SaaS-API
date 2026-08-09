@@ -10,9 +10,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\HrmLeaveApplication\StoreHrmLeaveApplicationRequest;
 use App\Http\Requests\HrmLeaveApplication\UpdateHrmLeaveApplicationRequest;
 use App\Http\Resources\HrmLeaveApplicationResource;
-use App\Models\GlobalLookup;
 use App\Models\HrmEmployee;
 use App\Models\HrmLeaveApplication;
+use App\Models\HrmLookup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -45,7 +45,7 @@ class HrmLeaveApplicationController extends Controller
         }
 
         if ($request->filled('leave_type_id')) {
-            $typeId = GlobalLookup::where('uuid', $request->leave_type_id)->value('id');
+            $typeId = HrmLookup::where('uuid', $request->leave_type_id)->value('id');
             if ($typeId) {
                 $query->where('leave_type_id', $typeId);
             }

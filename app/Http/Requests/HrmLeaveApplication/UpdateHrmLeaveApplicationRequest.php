@@ -14,7 +14,7 @@ class UpdateHrmLeaveApplicationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'leave_type_id'     => 'sometimes|required|uuid|exists:global_lookups,uuid',
+            'leave_type_id'     => 'sometimes|required|uuid|exists:hrm_lookups,uuid',
             'from_date'         => 'sometimes|required|date',
             'to_date'           => 'sometimes|required|date|after_or_equal:from_date',
             'reason'            => 'nullable|string|max:2000',

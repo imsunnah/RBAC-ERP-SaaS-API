@@ -50,7 +50,7 @@ class HrmLeaveApplication extends Model
 
     public function leaveType(): BelongsTo
     {
-        return $this->belongsTo(GlobalLookup::class, 'leave_type_id');
+        return $this->belongsTo(HrmLookup::class, 'leave_type_id');
     }
 
     public function approvedByUser(): BelongsTo

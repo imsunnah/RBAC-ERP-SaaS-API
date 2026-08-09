@@ -36,6 +36,7 @@ class WorkShift extends Model
         'break_duration_minutes' => 'integer',
         'expected_hours'        => 'float',
         'grace_minutes'         => 'integer',
+        'weekend'               => 'array',
         'is_default'            => 'boolean',
         'is_active'             => 'boolean',
     ];

@@ -151,7 +151,7 @@ class UpdateHrmEmployeeRequest extends FormRequest
 
             'documents'                     => 'nullable|array',
             'documents.*.uuid'              => 'nullable|uuid',
-            'documents.*.title'             => 'required|string|max:255',
+            'documents.*.title'             => 'nullable|string|max:255',
             'documents.*.doc'               => 'nullable', // file or existing path string
 
             // ── Images ────────────────────────────────────────────────────────

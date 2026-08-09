@@ -20,6 +20,8 @@ use App\Http\Controllers\Api\V1\HrmLookupController;
 use App\Http\Controllers\Api\V1\GlobalLookupController;
 use App\Http\Controllers\Api\V1\WorkShiftController;
 use App\Http\Controllers\Api\V1\HrmHolidayController;
+use App\Http\Controllers\Api\V1\HrmLeaveApplicationController;
+use App\Http\Controllers\Api\V1\HrmWeeklyMealController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -171,8 +173,11 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.submenu.delete');
             });
 
+            
             // HRM Employees — requires hrm.employee.* permissions
             Route::prefix('hrm-employees')->group(function () {
+                Route::get('/dashboard', [HrmEmployeeController::class, 'dashboard'])
+                    ->middleware('permission:hrm.employee.view');
                 Route::get('/', [HrmEmployeeController::class, 'index'])
                     ->middleware('permission:hrm.employee.view');
                 Route::post('/', [HrmEmployeeController::class, 'store'])
@@ -284,6 +289,8 @@ Route::prefix('v1')->group(function () {
             Route::prefix('hrm-holidays')->group(function () {
                 Route::get('/', [HrmHolidayController::class, 'index'])
                     ->middleware('permission:hrm.holiday.view');
+                Route::get('/calendar', [HrmHolidayController::class, 'calendar'])
+                    ->middleware('permission:hrm.holiday.view');
                 Route::post('/by-date', [HrmHolidayController::class, 'updateByDate'])
                     ->middleware('permission:hrm.holiday.update');
                 Route::post('/', [HrmHolidayController::class, 'store'])
@@ -294,6 +301,36 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.holiday.update');
                 Route::delete('/{hrmHoliday}', [HrmHolidayController::class, 'destroy'])
                     ->middleware('permission:hrm.holiday.delete');
+            });
+
+            // Leave Applications
+            Route::prefix('leave-applications')->group(function () {
+                Route::get('/', [HrmLeaveApplicationController::class, 'index'])
+                    ->middleware('permission:hrm.leave.view');
+                Route::post('/', [HrmLeaveApplicationController::class, 'store'])
+                    ->middleware('permission:hrm.leave.create');
+                Route::get('/{hrmLeaveApplication}', [HrmLeaveApplicationController::class, 'show'])
+                    ->middleware('permission:hrm.leave.view');
+                Route::post('/{hrmLeaveApplication}', [HrmLeaveApplicationController::class, 'update'])
+                    ->middleware('permission:hrm.leave.update');
+                Route::delete('/{hrmLeaveApplication}', [HrmLeaveApplicationController::class, 'destroy'])
+                    ->middleware('permission:hrm.leave.delete');
+                Route::patch('/{hrmLeaveApplication}/status', [HrmLeaveApplicationController::class, 'updateStatus'])
+                    ->middleware('permission:hrm.leave.approve');
+            });
+
+            // Weekly Meals Setup
+            Route::prefix('hrm-weekly-meals')->group(function () {
+                Route::get('/', [HrmWeeklyMealController::class, 'index'])
+                    ->middleware('permission:hrm.meal.view');
+                Route::post('/', [HrmWeeklyMealController::class, 'store'])
+                    ->middleware('permission:hrm.meal.create');
+                Route::get('/{hrmWeeklyMeal}', [HrmWeeklyMealController::class, 'show'])
+                    ->middleware('permission:hrm.meal.view');
+                Route::put('/{hrmWeeklyMeal}', [HrmWeeklyMealController::class, 'update'])
+                    ->middleware('permission:hrm.meal.update');
+                Route::delete('/{hrmWeeklyMeal}', [HrmWeeklyMealController::class, 'destroy'])
+                    ->middleware('permission:hrm.meal.delete');
             });
         });
     });

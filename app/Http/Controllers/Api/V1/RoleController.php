@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Models\Role;
-use App\Models\Permission;
+use App\Actions\Role\SyncRoleAllPermissionsAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Role\DestroyRoleRequest;
 use App\Http\Requests\Role\IndexRoleRequest;
@@ -13,11 +12,11 @@ use App\Http\Requests\Role\SyncRoleDataRequest;
 use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Http\Resources\SyncRoleResource;
+use App\Models\Role;
 use App\Repositories\RoleRepository;
 use App\Services\Audit\AuditService;
 use App\Services\RBAC\RBACService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
 
 class RoleController extends Controller
 {
@@ -27,9 +26,7 @@ class RoleController extends Controller
         private RBACService $rbacService,
     ) {}
 
-    /**
-     * GET /api/v1/roles
-     */
+    /** GET /api/v1/roles */
     public function index(IndexRoleRequest $request): JsonResponse
     {
         $this->authorize('viewAny', Role::class);
@@ -39,19 +36,17 @@ class RoleController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => RoleResource::collection($roles->items()),
-            'meta' => [
-                'total' => $roles->total(),
-                'per_page' => $roles->perPage(),
+            'data'    => RoleResource::collection($roles->items()),
+            'meta'    => [
+                'total'        => $roles->total(),
+                'per_page'     => $roles->perPage(),
                 'current_page' => $roles->currentPage(),
-                'last_page' => $roles->lastPage(),
+                'last_page'    => $roles->lastPage(),
             ],
         ]);
     }
 
-    /**
-     * POST /api/v1/roles
-     */
+    /** POST /api/v1/roles */
     public function store(StoreRoleRequest $request): JsonResponse
     {
         $this->authorize('create', Role::class);
@@ -68,13 +63,11 @@ class RoleController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Role created successfully.',
-            'data' => new RoleResource($role),
+            'data'    => new RoleResource($role),
         ], 201);
     }
 
-    /**
-     * GET /api/v1/roles/{id}
-     */
+    /** GET /api/v1/roles/{id} */
     public function show(ShowRoleRequest $request, Role $role): JsonResponse
     {
         $this->authorize('view', $role);
@@ -87,13 +80,11 @@ class RoleController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new RoleResource($role->load(['permissions', 'modules', 'menus', 'submenus'])),
+            'data'    => new RoleResource($role->load(['permissions', 'modules', 'menus', 'submenus'])),
         ]);
     }
 
-    /**
-     * PUT /api/v1/roles/{id}
-     */
+    /** PUT /api/v1/roles/{id} */
     public function update(UpdateRoleRequest $request, Role $role): JsonResponse
     {
         $this->authorize('update', $role);
@@ -108,19 +99,16 @@ class RoleController extends Controller
         $this->roleRepository->update($role, $request->validated());
         $this->auditService->logUpdated($role->fresh(), $original);
 
-        // Flush permission caches for all users with this role
-        $role->users->each(fn($u) => $this->rbacService->flushCache($u->id, $orgId));
+        $role->users->each(fn ($u) => $this->rbacService->flushCache($u->id, $orgId));
 
         return response()->json([
             'success' => true,
             'message' => 'Role updated successfully.',
-            'data' => new RoleResource($role->fresh()),
+            'data'    => new RoleResource($role->fresh()),
         ]);
     }
 
-    /**
-     * DELETE /api/v1/roles/{id}
-     */
+    /** DELETE /api/v1/roles/{id} */
     public function destroy(DestroyRoleRequest $request, Role $role): JsonResponse
     {
         $this->authorize('delete', $role);
@@ -144,7 +132,7 @@ class RoleController extends Controller
      * PUT /api/v1/syncRole/{role}
      * Sync modules, menus, submenus, and permissions to a role in one request.
      */
-    public function syncAll(SyncRoleDataRequest $request, Role $role): JsonResponse
+    public function syncAll(SyncRoleDataRequest $request, Role $role, SyncRoleAllPermissionsAction $action): JsonResponse
     {
         $this->authorize('update', $role);
 
@@ -154,39 +142,7 @@ class RoleController extends Controller
             return response()->json(['success' => false, 'message' => 'Role not found.'], 404);
         }
 
-        // Sync modules
-        $role->modules()->sync($request->validated('modules'));
-
-        // Sync menus & submenus
-        $role->menus()->sync($request->validated('menus'));
-        $role->submenus()->sync($request->validated('submenus'));
-
-        // Sync permissions (UUID → ID resolution)
-        $incomingPermissions = $request->validated('permissions');
-        $uuids = array_column($incomingPermissions, 'id');
-        $permissionMap = Permission::whereIn('uuid', $uuids)->get(['id', 'uuid'])->keyBy('uuid');
-
-        $syncData = [];
-        foreach ($incomingPermissions as $perm) {
-            $permission = $permissionMap[$perm['id']] ?? null;
-            if ($permission) {
-                $syncData[$permission->id] = ['is_granted' => $perm['is_granted']];
-            }
-        }
-        $role->permissions()->sync($syncData);
-
-        // Flush caches
-        $role->users->each(function ($u) use ($orgId) {
-            $this->rbacService->flushCache($u->id, $orgId);
-            Cache::forget("erp:sidebar:{$orgId}:{$u->id}");
-        });
-
-        $this->auditService->logAction('update', $role, 'role_sync_all', [
-            'modules' => $request->validated('modules'),
-            'menus' => $request->validated('menus'),
-            'submenus' => $request->validated('submenus'),
-            'permissions' => $incomingPermissions,
-        ]);
+        $action->execute($role, $request->validated(), $orgId);
 
         return response()->json([
             'success' => true,
@@ -194,9 +150,7 @@ class RoleController extends Controller
         ]);
     }
 
-    /**
-     * Fetch every role with its menus, submenus, permissions, and modules.
-     */
+    /** Fetch every role with its menus, submenus, permissions, and modules. */
     public function roleListData(): JsonResponse
     {
         $orgId = app('current_organization')->id;
@@ -207,7 +161,7 @@ class RoleController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => SyncRoleResource::collection($roles),
+            'data'    => SyncRoleResource::collection($roles),
         ]);
     }
 }

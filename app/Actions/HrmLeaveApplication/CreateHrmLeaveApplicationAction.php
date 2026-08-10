@@ -42,9 +42,7 @@ class CreateHrmLeaveApplicationAction
                 'updated_by'      => $userId,
             ]);
 
-            if ($request) {
-                $this->saveUploadedDocuments($request, $leave);
-            }
+            $this->saveUploadedDocuments($request, $leave, $data);
 
             return $leave->load([
                 'employee',

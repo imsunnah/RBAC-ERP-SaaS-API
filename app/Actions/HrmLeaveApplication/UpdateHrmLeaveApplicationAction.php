@@ -65,9 +65,7 @@ class UpdateHrmLeaveApplicationAction
             }
 
             // Add new uploaded documents
-            if ($request) {
-                $this->saveUploadedDocuments($request, $leave);
-            }
+            $this->saveUploadedDocuments($request, $leave, $validated);
 
             return $leave->load([
                 'employee',

@@ -18,9 +18,9 @@ class StoreHrmLeaveApplicationRequest extends FormRequest
             'leave_type_id'   => 'required|uuid|exists:hrm_lookups,uuid',
             'from_date'       => 'required|date',
             'to_date'         => 'required|date|after_or_equal:from_date',
-            'documents'           => 'nullable|array',
-            'documents.*'         => 'nullable',
-            'essential_documents'   => 'nullable|array',
+            'documents'             => 'nullable',
+            'documents.*'           => 'nullable',
+            'essential_documents'   => 'nullable',
             'essential_documents.*' => 'nullable',
         ];
     }

@@ -20,9 +20,9 @@ class UpdateHrmLeaveApplicationRequest extends FormRequest
             'reason'            => 'nullable|string|max:2000',
             'status'            => 'nullable|string|in:pending,approved,rejected,cancelled',
             'rejection_reason'  => 'nullable|string|max:2000',
-            'documents'           => 'nullable|array',
-            'documents.*'         => 'nullable',
-            'essential_documents'   => 'nullable|array',
+            'documents'             => 'nullable',
+            'documents.*'           => 'nullable',
+            'essential_documents'   => 'nullable',
             'essential_documents.*' => 'nullable',
             'remove_documents'  => 'nullable|array',   // UUIDs of documents to remove
             'remove_documents.*' => 'uuid',

@@ -15,18 +15,31 @@ class HrmAttendanceResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'uuid' => $this->uuid,
-            'device_user_id' => $this->device_user_id,
-            'biometric_id' => $this->biometric_id,
-            'employee'       => $this->whenLoaded('employee'),
+            'uuid'           => $this->uuid,
+            'biometric_id'   => $this->biometric_id,
+            'employee'       => $this->whenLoaded('employee', function () {
+                return [
+                    'full_name'        => $this->employee->full_name,
+                    'user_employee_id' => $this->employee->user_employee_id,
+                    'profile_picture'  => $this->employee->profile_picture,
+                    'designation'      => $this->employee->designation?->name,
+                    'department'       => $this->employee->department?->name,
+                ];
+            }),
+            'shift'          => $this->whenLoaded('shift', function () {
+                return [
+                    'name'         => $this->shift->name,
+                    'start_time'   => $this->shift->start_time,
+                    'end_time'     => $this->shift->end_time,
+                    'working_days' => $this->shift->working_days,
+                ];
+            }),
             'date'           => $this->date ? $this->date->format('Y-m-d') : null,
-            'punch_in'       => $this->punch_in ? $this->punch_in->format('Y-m-d H:i:s') : null,
-            'punch_out'      => $this->punch_out ? $this->punch_out->format('Y-m-d H:i:s') : null,
-            'punch_state'    => $this->punch_state,
-            'punch_type' => $this->punch_type,
-            'device_ip' => $this->device_ip,
-            'synced_at' => $this->synced_at ? $this->synced_at->format('Y-m-d H:i:s') : null,
-            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
+            'check_in'       => $this->check_in ? $this->check_in->format('h:i A') : '-',
+            'check_out'      => $this->check_out ? $this->check_out->format('h:i A') : '-',
+            'working_hours'  => $this->working_hours,
+            'status'         => $this->status,
+            'created_at'     => $this->created_at->format('Y-m-d H:i:s'),
         ];
     }
 }

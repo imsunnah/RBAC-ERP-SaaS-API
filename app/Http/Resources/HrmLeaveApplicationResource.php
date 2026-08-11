@@ -53,15 +53,6 @@ class HrmLeaveApplicationResource extends JsonResource
                     'file_path' => $doc->file_path,
                 ]);
             }),
-            'essential_documents' => $this->whenLoaded('documents', function () {
-                return $this->documents->map(fn ($doc) => [
-                    'uuid'      => $doc->uuid,
-                    'title'     => $doc->title ?? $doc->file_name,
-                    'file_name' => $doc->file_name,
-                    'file_url'  => $doc->file_path ? Storage::url($doc->file_path) : null,
-                    'file_path' => $doc->file_path,
-                ]);
-            }),
 
             // ── Audit ────────────────────────────────────────────────────
             'created_at'       => $this->created_at?->format('Y-m-d H:i:s'),

@@ -46,28 +46,32 @@ class CreateHrmWeeklyMealAction
 
         $day = strtolower($data['day']);
 
-        // Update existing meal record for the day if present, or create new
-        $match = [
-            'day' => $day,
-        ];
+        // Query existing meal record case-insensitively to avoid Postgres comparison issues
+        $query = HrmWeeklyMeal::whereRaw('LOWER(day) = ?', [$day]);
         if ($currentOrg) {
-            $match['organization_id'] = $currentOrg->id;
+            $query->where('organization_id', $currentOrg->id);
         }
+        $meal = $query->first();
 
-        $meal = HrmWeeklyMeal::updateOrCreate(
-            $match,
-            [
-                'company_id'        => $currentOrg?->company_id,
-                'lunch_item'        => $data['lunch_item'],
-                'alternative_lunch' => $data['alternative_lunch'] ?? null,
-                'expected_person'   => $data['expected_person'] ?? 0,
-                'chef_id'           => $chefId,
-                'chef_name'         => $data['chef_name'] ?? null,
-                'is_active'         => $data['is_active'] ?? true,
-                'created_by'        => $userId,
-                'updated_by'        => $userId,
-            ]
-        );
+        $attributes = [
+            'company_id'        => $currentOrg?->company_id,
+            'organization_id'   => $currentOrg?->id,
+            'day'               => $day,
+            'lunch_item'        => $data['lunch_item'],
+            'alternative_lunch' => $data['alternative_lunch'] ?? null,
+            'expected_person'   => $data['expected_person'] ?? 0,
+            'chef_id'           => $chefId,
+            'chef_name'         => $data['chef_name'] ?? null,
+            'is_active'         => $data['is_active'] ?? true,
+            'updated_by'        => $userId,
+        ];
+
+        if ($meal) {
+            $meal->update($attributes);
+        } else {
+            $attributes['created_by'] = $userId;
+            $meal = HrmWeeklyMeal::create($attributes);
+        }
 
         return $meal->load('chef');
     }

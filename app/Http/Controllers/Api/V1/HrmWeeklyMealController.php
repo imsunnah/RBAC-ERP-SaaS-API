@@ -82,19 +82,19 @@ class HrmWeeklyMealController extends Controller
     }
 
     /** Update a weekly meal entry. */
-    public function update(
-        UpdateHrmWeeklyMealRequest $request,
-        HrmWeeklyMeal $hrmWeeklyMeal,
-        UpdateHrmWeeklyMealAction $action
-    ): JsonResponse {
-        $meal = $action->execute($hrmWeeklyMeal, $request->validated());
+    // public function update(
+    //     UpdateHrmWeeklyMealRequest $request,
+    //     HrmWeeklyMeal $hrmWeeklyMeal,
+    //     UpdateHrmWeeklyMealAction $action
+    // ): JsonResponse {
+    //     $meal = $action->execute($hrmWeeklyMeal, $request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Weekly meal setup updated successfully.',
-            'data'    => new HrmWeeklyMealResource($meal),
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Weekly meal setup updated successfully.',
+    //         'data'    => new HrmWeeklyMealResource($meal),
+    //     ]);
+    // }
 
     /** Delete a weekly meal entry. */
     public function destroy(

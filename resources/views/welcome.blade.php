@@ -42,6 +42,7 @@
     
     // Server metrics
     $memoryUsage = round(memory_get_usage(true) / 1024 / 1024, 2);
+    $clientIp = request()->ip();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -1179,6 +1180,10 @@
                         <span class="status-label">Redis Cache</span>
                         <span class="status-value text-success">ACTIVE</span>
                     </div>
+                    <div class="status-row">
+                        <span class="status-label">Client IP</span>
+                        <span class="status-value">{{ $clientIp }}</span>
+                    </div>
                 </div>
             </nav>
 
@@ -1456,6 +1461,16 @@
                 <div class="modal-section">
                     <h4>Request Origin Headers</h4>
                     <pre><code id="modalHeadersVal"></code></pre>
+                </div>
+
+                <div class="modal-section">
+                    <h4>Authenticated User Details</h4>
+                    <pre><code id="modalUserVal" style="color: var(--accent-emerald);"></code></pre>
+                </div>
+
+                <div class="modal-section">
+                    <h4>Caller Geo-Location Data</h4>
+                    <pre><code id="modalLocationVal" style="color: var(--accent-indigo);"></code></pre>
                 </div>
 
                 <div class="modal-section">
@@ -1755,6 +1770,8 @@
         const modalMemoryVal = document.getElementById('modalMemoryVal');
         const modalQueriesVal = document.getElementById('modalQueriesVal');
         const modalHeadersVal = document.getElementById('modalHeadersVal');
+        const modalUserVal = document.getElementById('modalUserVal');
+        const modalLocationVal = document.getElementById('modalLocationVal');
         const modalSqlVal = document.getElementById('modalSqlVal');
         const modalPayloadVal = document.getElementById('modalPayloadVal');
         const modalCloseBtn = document.getElementById('modalCloseBtn');
@@ -1795,9 +1812,12 @@
                 statusClass = status === '500' ? 'status-5xx' : 'status-4xx';
             }
 
+            const clientIp = "10.0.12." + Math.floor(Math.random() * 254 + 1);
+
             li.innerHTML = `
                 <div class="feed-item-left">
                     <span class="feed-time">[${time}]</span>
+                    <span class="feed-ip" style="color: var(--accent-indigo); font-size: 0.75rem; margin-right: 8px;">${clientIp}</span>
                     <span class="feed-route"><span class="http-badge ${getMethodBadgeClass(method)}" style="font-size: 0.6rem; padding: 0.1rem 0.3rem; margin-right: 5px;">${method}</span>${route}</span>
                 </div>
                 <div class="feed-item-right">
@@ -1812,33 +1832,69 @@
                 "User-Agent": "ATI-Gateway-Client/v2.5 (Windows NT 10.0)",
                 "Accept": "application/json",
                 "Authorization": "Bearer ati_token_" + Math.random().toString(36).substring(2, 10) + "...",
-                "X-Forwarded-For": "10.0.12." + Math.floor(Math.random() * 254 + 1),
+                "X-Forwarded-For": clientIp,
                 "Cache-Control": "no-cache"
             };
 
             let sqlTraceMock = "SELECT * FROM `users` WHERE `id` = 1 LIMIT 1;\nSELECT * FROM `sessions` WHERE `id` = 'session_id' LIMIT 1;";
-            let payloadMock = { success: true, status: status, route: route };
-
-            if (route.includes('meal')) {
-                sqlTraceMock = "SELECT * FROM `hrm_weekly_meals` WHERE `day_of_week` = 'Monday' AND `active` = 1 LIMIT 1;\nSELECT * FROM `hrm_weekly_meals_details` WHERE `meal_id` = 10;";
-                payloadMock = {
-                    success: status === '200',
-                    day: "Monday",
-                    menu: "Steamed Rice with Mutton Curry & Daal",
-                    price: 95.00
-                };
-            } else if (route.includes('attendance')) {
-                sqlTraceMock = "SELECT * FROM `employees` WHERE `employee_id` = 102 LIMIT 1;\nINSERT INTO `hrm_attendances` (`employee_id`, `punch_time`, `punch_type`) VALUES (102, NOW(), 'Check-In');";
-                payloadMock = {
-                    success: status === '200',
-                    punch: "registered",
-                    device: "ZKTeco_ADMS_1",
-                    log_time: new Date().toISOString()
+            let payloadMock = {};
+            
+            if (status === '200') {
+                payloadMock = { success: true, status: status, route: route };
+                if (route.includes('meal')) {
+                    sqlTraceMock = "SELECT * FROM `hrm_weekly_meals` WHERE `day_of_week` = 'Monday' AND `active` = 1 LIMIT 1;\nSELECT * FROM `hrm_weekly_meals_details` WHERE `meal_id` = 10;";
+                    payloadMock = {
+                        success: true,
+                        day: "Monday",
+                        menu: "Steamed Rice with Mutton Curry & Daal",
+                        price: 95.00
+                    };
+                } else if (route.includes('attendance')) {
+                    sqlTraceMock = "SELECT * FROM `employees` WHERE `employee_id` = 102 LIMIT 1;\nINSERT INTO `hrm_attendances` (`employee_id`, `punch_time`, `punch_type`) VALUES (102, NOW(), 'Check-In');";
+                    payloadMock = {
+                        success: true,
+                        punch: "registered",
+                        device: "ZKTeco_ADMS_1",
+                        log_time: new Date().toISOString()
+                    };
+                }
+            } else {
+                payloadMock = { 
+                    success: false, 
+                    error: status === '403' ? 'UNAUTHORIZED_ACCESS' : 'INTERNAL_SERVER_ERROR',
+                    message: status === '403' ? 'Invalid or expired authentication token.' : 'An unexpected exception occurred during request processing.',
+                    route: route
                 };
             }
 
+            const firstNames = ["Ahmed", "Rafiq", "Sayed", "Jamal", "Tariq", "Fatima", "Ayesha"];
+            const lastNames = ["Hasan", "Islam", "Rahman", "Uddin", "Chowdhury", "Begum", "Akter"];
+            const roles = ["System Admin", "HR Manager", "Accountant", "Employee", "Sales Executive"];
+            const mockUser = {
+                "User ID": "EMP-" + Math.floor(Math.random() * 9000 + 1000),
+                "Name": firstNames[Math.floor(Math.random() * firstNames.length)] + " " + lastNames[Math.floor(Math.random() * lastNames.length)],
+                "Role": roles[Math.floor(Math.random() * roles.length)],
+                "Email": "user" + Math.floor(Math.random() * 999) + "@rbac-erp.internal",
+                "Last Active": new Date().toISOString()
+            };
+
             const memoryAlloc = (Math.random() * 1.5 + 1.2).toFixed(2) + " MB";
             const queryCount = Math.floor(Math.random() * 4) + 2;
+
+            // Generate mock location data
+            const cities = ["Dhaka", "Chittagong", "Sylhet", "New York", "London", "Tokyo", "Berlin", "Dubai", "Singapore"];
+            const countries = ["Bangladesh", "Bangladesh", "Bangladesh", "USA", "UK", "Japan", "Germany", "UAE", "Singapore"];
+            const isps = ["Link3 Technologies", "Amber IT", "Carnival Internet", "Comcast", "BT Group", "NTT", "Deutsche Telekom", "Etisalat", "Singtel"];
+            const randIdx = Math.floor(Math.random() * cities.length);
+            const locationMock = {
+                "IP Address": clientIp,
+                "City": cities[randIdx],
+                "Country": countries[randIdx],
+                "ISP / Provider": isps[randIdx],
+                "Latitude": (Math.random() * 180 - 90).toFixed(4),
+                "Longitude": (Math.random() * 360 - 180).toFixed(4),
+                "Timezone": "UTC" + (Math.random() > 0.5 ? "+" : "-") + Math.floor(Math.random() * 12) + ":00"
+            };
 
             // Bind click to open detailed modal
             li.addEventListener('click', () => {
@@ -1854,6 +1910,8 @@
                 modalQueriesVal.textContent = `${queryCount} Queries`;
 
                 modalHeadersVal.textContent = JSON.stringify(headersMock, null, 2);
+                modalUserVal.textContent = JSON.stringify(mockUser, null, 2);
+                modalLocationVal.textContent = JSON.stringify(locationMock, null, 2);
                 modalSqlVal.textContent = sqlTraceMock;
                 modalPayloadVal.textContent = JSON.stringify(payloadMock, null, 2);
 

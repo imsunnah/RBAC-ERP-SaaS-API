@@ -22,6 +22,7 @@ class HrmEmployeeController extends Controller
         'department',
         'designation',
         'employeeType',
+        'employmentType',
         'gender',
         'bloodGroup',
         'religion',

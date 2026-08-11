@@ -102,7 +102,7 @@ class HrmEmployee extends Model
     {
         return $this->belongsTo(HrmLookup::class, 'department_id')
             ->whereHas('hrmLookupGroup', function ($q) {
-                $q->where('slug', 'hrm-department');
+                $q->where('slug', 'department');
             });
     }
 
@@ -110,7 +110,7 @@ class HrmEmployee extends Model
     {
         return $this->belongsTo(HrmLookup::class, 'designation_id')
             ->whereHas('hrmLookupGroup', function ($q) {
-                $q->where('slug', 'hrm-designation');
+                $q->where('slug', 'designation');
             });
     }
 
@@ -136,7 +136,18 @@ class HrmEmployee extends Model
 
     public function employeeType(): BelongsTo
     {
-        return $this->belongsTo(GlobalLookup::class, 'employee_type_id');
+        return $this->belongsTo(HrmLookup::class, 'employee_type_id')
+            ->whereHas('hrmLookupGroup', function ($q) {
+                $q->where('slug', 'employee-type');
+            });
+    }
+
+    public function employmentType(): BelongsTo
+    {
+        return $this->belongsTo(HrmLookup::class, 'employment_type_id')
+            ->whereHas('hrmLookupGroup', function ($q) {
+                $q->where('slug', 'employment-type');
+            });
     }
 
     public function education()

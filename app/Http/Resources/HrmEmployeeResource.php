@@ -56,7 +56,7 @@ class HrmEmployeeResource extends JsonResource
             'designation'          => new MetadataResource($this->whenLoaded('designation')),
             'employee_type'        => new MetadataResource($this->whenLoaded('employeeType')),
             'employee_category_id' => $this->employee_category_id ? (int) $this->employee_category_id : null,
-            'employment_type_id'   => $this->employment_type_id ? (int) $this->employment_type_id : null,
+            'employment_type'      => new MetadataResource($this->whenLoaded('employmentType')),
             'work_shift_id'        => $this->work_shift_id ? (int) $this->work_shift_id : null,
             'work_location'        => $this->work_location,
             'hire_date'            => $this->hire_date ? $this->hire_date->format('Y-m-d') : null,

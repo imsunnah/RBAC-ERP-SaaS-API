@@ -22,6 +22,8 @@ use App\Http\Controllers\Api\V1\WorkShiftController;
 use App\Http\Controllers\Api\V1\HrmHolidayController;
 use App\Http\Controllers\Api\V1\HrmLeaveApplicationController;
 use App\Http\Controllers\Api\V1\HrmWeeklyMealController;
+use App\Http\Controllers\Api\V1\HrmLeaveBalanceController;
+use App\Http\Controllers\Api\V1\HrmEmployeeMealSelectionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -319,6 +321,14 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.leave.approve');
             });
 
+            // Leave Balances
+            Route::prefix('leave-balances')->group(function () {
+                Route::get('/', [HrmLeaveBalanceController::class, 'index'])
+                    ->middleware('permission:hrm.leave.view');
+                Route::post('/', [HrmLeaveBalanceController::class, 'store'])
+                    ->middleware('permission:hrm.leave.create');
+            });
+
             // Weekly Meals Setup
             Route::prefix('hrm-weekly-meals')->group(function () {
                 Route::get('/', [HrmWeeklyMealController::class, 'index'])
@@ -331,6 +341,16 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.meal.update');
                 Route::delete('/{hrmWeeklyMeal}', [HrmWeeklyMealController::class, 'destroy'])
                     ->middleware('permission:hrm.meal.delete');
+            });
+
+            // Employee Meal Selections
+            Route::prefix('hrm-employee-meal-selections')->group(function () {
+                Route::get('/today/meal-lists', [HrmEmployeeMealSelectionController::class, 'todayMealList'])
+                    ->middleware('permission:hrm.meal.view');
+                Route::get('/', [HrmEmployeeMealSelectionController::class, 'index'])
+                    ->middleware('permission:hrm.meal.view');
+                Route::post('/', [HrmEmployeeMealSelectionController::class, 'store'])
+                    ->middleware('permission:hrm.meal.create');
             });
         });
     });

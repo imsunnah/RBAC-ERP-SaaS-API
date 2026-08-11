@@ -5,6 +5,7 @@ namespace App\Actions\HrmEmployee;
 use App\Models\HrmAttendance;
 use App\Models\HrmEmployee;
 use App\Models\GlobalLookup;
+use App\Models\HrmLookup;
 use App\Models\HrmLeaveApplication;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -81,8 +82,9 @@ class GetEmployeeDashboardAction
             ->groupBy('employee_type_id')
             ->get();
 
-        $typeIds = $typeCounts->pluck('employee_type_id')->filter()->toArray();
-        $typeNames = GlobalLookup::whereIn('id', $typeIds)->pluck('name', 'id');
+        $typeIds      = $typeCounts->pluck('employee_type_id')->filter()->toArray();
+        $typeNames    = GlobalLookup::whereIn('id', $typeIds)->pluck('name', 'id');
+        $hrmTypeNames = HrmLookup::whereIn('id', $typeIds)->pluck('name', 'id');
 
         $colors       = ['#007bff', '#17a2b8', '#28a745', '#ffc107', '#6c757d', '#e83e8c'];
         $distribution = [];
@@ -90,40 +92,55 @@ class GetEmployeeDashboardAction
 
         foreach ($typeCounts as $row) {
             $typeName = $row->employee_type_id
-                ? ($typeNames[$row->employee_type_id] ?? 'Unassigned')
+                ? ($typeNames[$row->employee_type_id] ?? $hrmTypeNames[$row->employee_type_id] ?? 'Unassigned')
                 : 'Unassigned';
             $pct = $totalActiveCount > 0 ? round(($row->count / $totalActiveCount) * 100, 2) : 0;
 
             $distribution[] = [
-                'type'       => $typeName,
-                'count'      => $row->count,
-                'percentage' => $pct,
-                'color'      => $colors[$index % count($colors)],
+                'type'                       => $typeName,
+                'count'                      => $row->count,
+                'percentage'                 => $pct,
+                'percentage_of_total'        => $pct,
+                'percentage_of_total_string' => $pct . '%',
+                'color'                      => $colors[$index % count($colors)],
             ];
             $index++;
         }
 
+        // Percentage of total active employees calculations for KPIs
+        $presentPctOfTotal = $totalActiveCount > 0 ? round(($presentToday / $totalActiveCount) * 100, 2) : 0;
+        $onLeavePctOfTotal = $totalActiveCount > 0 ? round(($onLeaveToday / $totalActiveCount) * 100, 2) : 0;
+        $newPctOfTotal     = $totalActiveCount > 0 ? round(($newEmployeesThisMonth / $totalActiveCount) * 100, 2) : 0;
+
         return [
-            'kpis' => [
+            'employee_summary' => [
                 'total_employees' => [
-                    'count'             => $totalEmployees,
-                    'growth_percentage' => ($totalGrowthPct >= 0 ? '+' : '') . $totalGrowthPct . '%',
-                    'period_label'      => 'Last 30 Days',
+                    'count'                      => $totalEmployees,
+                    'growth_percentage'          => ($totalGrowthPct >= 0 ? '+' : '') . $totalGrowthPct . '%',
+                    'period_label'               => 'Last 30 Days',
+                    'percentage_of_total'        => 100.0,
+                    'percentage_of_total_string' => '100%',
                 ],
                 'new_employees' => [
-                    'count'             => $newEmployeesThisMonth,
-                    'growth_percentage' => ($newGrowthPct >= 0 ? '+' : '') . $newGrowthPct . '%',
-                    'period_label'      => 'From Last Month',
+                    'count'                      => $newEmployeesThisMonth,
+                    'growth_percentage'          => ($newGrowthPct >= 0 ? '+' : '') . $newGrowthPct . '%',
+                    'period_label'               => 'From Last Month',
+                    'percentage_of_total'        => $newPctOfTotal,
+                    'percentage_of_total_string' => $newPctOfTotal . '%',
                 ],
                 'present_today' => [
-                    'count'             => $presentToday,
-                    'growth_percentage' => ($presentGrowthPct >= 0 ? '+' : '') . $presentGrowthPct . '%',
-                    'period_label'      => 'From Previous Day',
+                    'count'                      => $presentToday,
+                    'growth_percentage'          => ($presentGrowthPct >= 0 ? '+' : '') . $presentGrowthPct . '%',
+                    'period_label'               => 'From Previous Day',
+                    'percentage_of_total'        => $presentPctOfTotal,
+                    'percentage_of_total_string' => $presentPctOfTotal . '%',
                 ],
                 'on_leave_today' => [
-                    'count'             => $onLeaveToday,
-                    'growth_percentage' => ($leaveGrowthPct >= 0 ? '+' : '') . $leaveGrowthPct . '%',
-                    'period_label'      => 'From Previous Day',
+                    'count'                      => $onLeaveToday,
+                    'growth_percentage'          => ($leaveGrowthPct >= 0 ? '+' : '') . $leaveGrowthPct . '%',
+                    'period_label'               => 'From Previous Day',
+                    'percentage_of_total'        => $onLeavePctOfTotal,
+                    'percentage_of_total_string' => $onLeavePctOfTotal . '%',
                 ],
             ],
             'employee_overview' => [

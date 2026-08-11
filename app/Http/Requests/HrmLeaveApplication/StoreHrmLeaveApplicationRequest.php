@@ -20,8 +20,6 @@ class StoreHrmLeaveApplicationRequest extends FormRequest
             'to_date'         => 'required|date|after_or_equal:from_date',
             'documents'             => 'nullable',
             'documents.*'           => 'nullable',
-            'essential_documents'   => 'nullable',
-            'essential_documents.*' => 'nullable',
         ];
     }
 

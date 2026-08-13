@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\HasUuidColumn;
 use App\Models\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,6 +13,7 @@ use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable implements OAuthenticatable
 {
@@ -60,6 +62,11 @@ class User extends Authenticatable implements OAuthenticatable
     public function userOrganizations(): HasMany
     {
         return $this->hasMany(UserOrganization::class);
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(HrmEmployee::class, 'employee_id', 'id');
     }
 
     /**

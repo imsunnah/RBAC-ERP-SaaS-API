@@ -33,7 +33,7 @@ class StoreHrmEmployeeMealSelectionRequest extends FormRequest
                 'selections'                    => 'required|array|min:1',
                 'selections.*.hrm_weekly_meal_id' => 'required|uuid|exists:hrm_weekly_meals,uuid',
                 'selections.*.date'             => 'required|date',
-                'selections.*.selection'        => 'required|string|in:standard,alternative,none',
+                'selections.*.selection'        => 'required|string|in:standard,alternative,none,opted_out',
             ];
         }
 

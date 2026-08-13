@@ -14,10 +14,11 @@ class StoreHrmLeaveApplicationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'hrm_employee_id' => 'required|uuid|exists:hrm_employees,uuid',
+            'hrm_employee_id' => 'nullable|uuid|exists:hrm_employees,uuid',
             'leave_type_id'   => 'required|uuid|exists:hrm_lookups,uuid',
             'from_date'       => 'required|date',
             'to_date'         => 'required|date|after_or_equal:from_date',
+            'reason'          => 'nullable|string|max:2000',
             'documents'             => 'nullable',
             'documents.*'           => 'nullable',
         ];

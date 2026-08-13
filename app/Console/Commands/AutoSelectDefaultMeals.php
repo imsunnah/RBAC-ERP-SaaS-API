@@ -75,6 +75,7 @@ class AutoSelectDefaultMeals extends Command
                                 'hrm_weekly_meal_id' => $meal->id,
                                 'date'                => $date->format('Y-m-d'),
                                 'selection'           => 'standard',
+                                'selected_item_name'  => $meal->lunch_item,
                                 'is_manually_updated' => false,
                                 'created_at'          => $now,
                                 'updated_at'          => $now,
@@ -83,6 +84,7 @@ class AutoSelectDefaultMeals extends Command
                             $selection->update([
                                 'hrm_weekly_meal_id' => $meal->id,
                                 'selection'           => 'standard',
+                                'selected_item_name'  => $meal->lunch_item,
                             ]);
                         }
                     }

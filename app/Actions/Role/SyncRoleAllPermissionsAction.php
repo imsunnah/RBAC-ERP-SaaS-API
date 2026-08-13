@@ -42,9 +42,10 @@ class SyncRoleAllPermissionsAction
         $role->permissions()->sync($syncData);
 
         // Flush caches
-        $role->users->each(function ($u) use ($orgId) {
-            $this->rbacService->flushCache($u->id, $orgId);
-            Cache::forget("erp:sidebar:{$orgId}:{$u->id}");
+        $role->users->each(function ($u) {
+            $userOrgId = $u->pivot->organization_id;
+            $this->rbacService->flushCache($u->id, $userOrgId);
+            Cache::forget("erp:sidebar:{$userOrgId}:{$u->id}");
         });
 
         $this->auditService->logAction('update', $role, 'role_sync_all', [

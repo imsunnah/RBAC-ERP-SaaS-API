@@ -194,6 +194,13 @@ Route::prefix('v1')->group(function () {
 
             // HRM Attendance — requires hrm.attendance.view permission
             Route::prefix('attendance/hrm')->group(function () {
+
+                Route::post('/dev-push-day-attendance', [HrmAttendanceController::class, 'devPushDayAttendance'])
+                    ->middleware('permission:hrm.attendance.view');
+                Route::get('/dashboard-summary', [HrmAttendanceController::class, 'employeeDashboardSummary'])
+                    ->middleware('permission:hrm.attendance.view');
+                Route::get('/employee-monthly-details', [HrmAttendanceController::class, 'employeeMonthlyDetails'])
+                    ->middleware('permission:hrm.attendance.view');
                 Route::get('/', [HrmAttendanceController::class, 'index'])
                     ->middleware('permission:hrm.attendance.view');
             });
@@ -345,6 +352,10 @@ Route::prefix('v1')->group(function () {
 
             // Employee Meal Selections
             Route::prefix('hrm-employee-meal-selections')->group(function () {
+                Route::get('/dashboard', [HrmEmployeeMealSelectionController::class, 'dashboard'])
+                    ->middleware('permission:hrm.meal.view');
+                Route::get('/user-meal-overview', [HrmEmployeeMealSelectionController::class, 'mealOverview'])
+                    ->middleware('permission:hrm.meal.view');    
                 Route::get('/today/meal-lists', [HrmEmployeeMealSelectionController::class, 'todayMealList'])
                     ->middleware('permission:hrm.meal.view');
                 Route::get('/', [HrmEmployeeMealSelectionController::class, 'index'])

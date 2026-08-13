@@ -28,8 +28,18 @@ class CreateHrmLeaveApplicationAction
             $currentOrg = app('current_organization');
             $userId     = Auth::id();
 
+            $employeeId = null;
+            if (!empty($data['hrm_employee_id'])) {
+                $employeeId = HrmEmployee::where('uuid', $data['hrm_employee_id'])->value('id');
+            } else {
+                $user = Auth::user();
+                if ($user) {
+                    $employeeId = $user->employee_id ?: $user->id;
+                }
+            }
+
             $leave = HrmLeaveApplication::create([
-                'hrm_employee_id' => HrmEmployee::where('uuid', $data['hrm_employee_id'])->value('id'),
+                'hrm_employee_id' => $employeeId,
                 'leave_type_id'   => HrmLookup::where('uuid', $data['leave_type_id'])->value('id'),
                 'from_date'       => $data['from_date'],
                 'to_date'         => $data['to_date'],

@@ -31,34 +31,98 @@ class HrmLeaveApplicationController extends Controller
     {
         $this->authorize('viewAny', HrmLeaveApplication::class);
 
+        $validated = $request->validate([
+            'date'          => ['nullable', 'date'],
+            'search'        => ['nullable', 'string', 'max:100'],
+            'department'    => ['nullable', 'uuid'],
+            'per_page'      => ['nullable', 'integer', 'min:1'],
+            'limit'         => ['nullable', 'integer', 'min:1'],
+            'employee_id'   => ['nullable', 'uuid'],
+            'status'        => ['nullable', 'string'],
+            'leave_type_id' => ['nullable', 'uuid'],
+        ]);
+
         $query = HrmLeaveApplication::with(self::RELATIONS)->orderBy('created_at', 'desc');
 
-        if ($request->filled('employee_id')) {
-            $empId = HrmEmployee::where('uuid', $request->employee_id)->value('id');
+        if (!empty($validated['employee_id'])) {
+            $empId = HrmEmployee::where('uuid', $validated['employee_id'])->value('id');
             if ($empId) {
                 $query->where('hrm_employee_id', $empId);
             }
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if (!empty($validated['status'])) {
+            $query->where('status', $validated['status']);
         }
 
-        if ($request->filled('leave_type_id')) {
-            $typeId = HrmLookup::where('uuid', $request->leave_type_id)->value('id');
+        if (!empty($validated['leave_type_id'])) {
+            $typeId = HrmLookup::where('uuid', $validated['leave_type_id'])->value('id');
             if ($typeId) {
                 $query->where('leave_type_id', $typeId);
             }
         }
 
-        if ($request->filled('from_date')) {
-            $query->where('from_date', '>=', $request->from_date);
-        }
-        if ($request->filled('to_date')) {
-            $query->where('to_date', '<=', $request->to_date);
+        if (!empty($validated['department'])) {
+            $deptId = HrmLookup::where('uuid', $validated['department'])->value('id');
+            if ($deptId) {
+                $query->whereHas('employee', function ($q) use ($deptId) {
+                    $q->where('department_id', (string) $deptId);
+                });
+            }
         }
 
-        $limit = $request->get('limit', 15);
+        if (!empty($validated['search'])) {
+            $searchTerm = $validated['search'];
+
+            // Pre-fetch matching lookup IDs to prevent Postgres type mismatches
+            $matchingDeptIds = HrmLookup::whereHas('hrmLookupGroup', fn($q) => $q->where('slug', 'department'))
+                ->where('name', 'like', "%{$searchTerm}%")
+                ->pluck('id')
+                ->map(fn($id) => (string)$id)
+                ->toArray();
+
+            $matchingDesigIds = HrmLookup::whereHas('hrmLookupGroup', fn($q) => $q->where('slug', 'designation'))
+                ->where('name', 'like', "%{$searchTerm}%")
+                ->pluck('id')
+                ->map(fn($id) => (string)$id)
+                ->toArray();
+
+            $matchingLeaveTypeIds = HrmLookup::whereHas('hrmLookupGroup', fn($q) => $q->whereIn('slug', ['leave-type', 'leave_type', 'leave']))
+                ->where('name', 'like', "%{$searchTerm}%")
+                ->pluck('id')
+                ->toArray();
+
+            $query->where(function ($q) use ($searchTerm, $matchingDeptIds, $matchingDesigIds, $matchingLeaveTypeIds) {
+                $q->where('reason', 'like', "%{$searchTerm}%")
+                  ->orWhere('rejection_reason', 'like', "%{$searchTerm}%")
+                  ->orWhereHas('employee', function ($empQ) use ($searchTerm, $matchingDeptIds, $matchingDesigIds) {
+                      $empQ->where('full_name', 'like', "%{$searchTerm}%")
+                           ->orWhere('user_employee_id', 'like', "%{$searchTerm}%");
+                      if (!empty($matchingDeptIds)) {
+                          $empQ->orWhereIn('department_id', $matchingDeptIds);
+                      }
+                      if (!empty($matchingDesigIds)) {
+                          $empQ->orWhereIn('designation_id', $matchingDesigIds);
+                      }
+                  });
+
+                if (!empty($matchingLeaveTypeIds)) {
+                    $q->orWhereIn('leave_type_id', $matchingLeaveTypeIds);
+                }
+            });
+        }
+
+        if (!empty($validated['date'])) {
+            try {
+                $searchDate = \Carbon\Carbon::parse($validated['date'])->format('Y-m-d');
+                $query->where('from_date', '<=', $searchDate)
+                      ->where('to_date', '>=', $searchDate);
+            } catch (\Exception $e) {}
+        }
+
+
+
+        $limit = $validated['limit'] ?? $validated['per_page'] ?? 15;
         $leaves = $query->paginate($limit);
 
         return response()->json([

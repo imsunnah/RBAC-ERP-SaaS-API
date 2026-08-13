@@ -19,6 +19,7 @@ class HrmAttendanceResource extends JsonResource
             'biometric_id'   => $this->biometric_id,
             'employee'       => $this->whenLoaded('employee', function () {
                 return [
+                    'uuid'             => $this->employee->uuid,
                     'full_name'        => $this->employee->full_name,
                     'user_employee_id' => $this->employee->user_employee_id,
                     'profile_picture'  => $this->employee->profile_picture,

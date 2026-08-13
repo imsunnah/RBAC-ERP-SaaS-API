@@ -99,7 +99,7 @@ class RoleController extends Controller
         $this->roleRepository->update($role, $request->validated());
         $this->auditService->logUpdated($role->fresh(), $original);
 
-        $role->users->each(fn ($u) => $this->rbacService->flushCache($u->id, $orgId));
+        $role->users->each(fn ($u) => $this->rbacService->flushCache($u->id, $u->pivot->organization_id));
 
         return response()->json([
             'success' => true,

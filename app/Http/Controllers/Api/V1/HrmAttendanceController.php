@@ -33,6 +33,11 @@ class HrmAttendanceController extends Controller
 
         $query = HrmAttendance::with(self::RELATIONS)->latest('date');
 
+        $user = $request->user();
+        if (!$user->is_super_admin) {
+            $query->where('employee_id', $user->employee_id ?: 0);
+        }
+
         if ($request->filled('date')) {
             $query->whereDate('date', $request->date);
         }
@@ -85,6 +90,397 @@ class HrmAttendanceController extends Controller
         return response()->json([
             'success' => true,
             'data'    => HrmAttendanceResource::collection($attendances)->response()->getData(true),
+        ]);
+    }
+
+    /**
+     * Get detailed monthly attendance list and statistics for a specific employee.
+     * Defaults to the current month and the authenticated user's corresponding employee.
+     */
+    public function employeeMonthlyDetails(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', HrmAttendance::class);
+
+        $validated = $request->validate([
+            'employee_id' => ['nullable', 'uuid'],
+            'month'       => ['nullable', 'string', 'regex:/^(\d{4}-\d{2}|\d{2}-\d{4})$/'],
+        ]);
+
+        $user = $request->user();
+
+        $employeeUuid = $validated['employee_id'] ?? null;
+        if ($employeeUuid) {
+            $employee = \App\Models\HrmEmployee::with(['department', 'designation'])->where('uuid', $employeeUuid)->first();
+        } else {
+            // Find by employee_id, or fallback to the first employee in the organization context
+            $employee = \App\Models\HrmEmployee::with(['department', 'designation'])
+                ->find($user->employee_id);
+
+            if (!$employee) {
+                $employee = \App\Models\HrmEmployee::with(['department', 'designation'])
+                    ->where('organization_id', $user->organization_id)
+                    ->first();
+            }
+        }
+
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee profile not found.',
+            ], 404);
+        }
+
+        $monthStr = $validated['month'] ?? null;
+        if ($monthStr) {
+            if (preg_match('/^\d{2}-\d{4}$/', $monthStr)) {
+                $targetMonth = \Carbon\Carbon::createFromFormat('m-Y', $monthStr);
+            } else {
+                $targetMonth = \Carbon\Carbon::createFromFormat('Y-m', $monthStr);
+            }
+        } else {
+            $targetMonth = now();
+        }
+
+        $startDate = $targetMonth->copy()->startOfMonth();
+        $endDate = $targetMonth->copy()->endOfMonth();
+        $totalDaysInMonth = $targetMonth->daysInMonth;
+
+        $isCurrentMonth = ($targetMonth->format('Y-m') === now()->format('Y-m'));
+        $isFutureMonth = ($targetMonth->format('Y-m') > now()->format('Y-m'));
+
+        if ($isCurrentMonth) {
+            $totalDaysInMonth = min($totalDaysInMonth, now()->day);
+            $endDate = now(); // Limit query ranges up to today as well
+        } elseif ($isFutureMonth) {
+            $totalDaysInMonth = 0;
+        }
+
+        // Fetch approved leave applications that overlap with the target month
+        $leaves = \App\Models\HrmLeaveApplication::where('hrm_employee_id', $employee->id)
+            ->where('status', 'APPROVED')
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('from_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                  ->orWhereBetween('to_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                  ->orWhere(function ($sub) use ($startDate, $endDate) {
+                      $sub->where('from_date', '<=', $startDate->format('Y-m-d'))
+                          ->where('to_date', '>=', $endDate->format('Y-m-d'));
+                  });
+            })
+            ->get();
+
+        // Fetch active holidays for this organization that overlap with the target month
+        $holidays = \App\Models\HrmHoliday::where('organization_id', $employee->organization_id)
+            ->where('is_active', 1)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get();
+
+        // Fetch summarized attendance records for this month
+        $attendances = HrmAttendance::where('employee_id', $employee->id)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get()
+            ->keyBy(fn($att) => \Carbon\Carbon::parse($att->date)->format('Y-m-d'));
+
+        $calendar = [];
+        $daysOffCount = 0;
+        $lateCount = 0;
+        $noClockOutCount = 0;
+        $absentCount = 0;
+        $leaveCount = 0;
+
+        for ($day = 1; $day <= $totalDaysInMonth; $day++) {
+            $currentDate = $startDate->copy()->addDays($day - 1);
+            $dateStr = $currentDate->format('Y-m-d');
+            $dayOfWeek = $currentDate->dayOfWeek; // 0 = Sunday, 5 = Friday, 6 = Saturday
+
+            // Check if weekend (Friday & Saturday)
+            $isWeekend = ($dayOfWeek === 5 || $dayOfWeek === 6);
+
+            $holiday = $holidays->first(fn($h) => $h->date->format('Y-m-d') === $dateStr);
+            $isHoliday = !empty($holiday);
+            $holidayName = $isHoliday ? $holiday->name : null;
+
+            // Check if leave
+            $leaveApp = $leaves->first(fn($l) => $dateStr >= $l->from_date && $dateStr <= $l->to_date);
+            $isLeave = !empty($leaveApp);
+            $leaveType = $isLeave ? ($leaveApp->leaveType?->name ?? 'Leave') : null;
+
+            if ($isWeekend || $isHoliday) {
+                $daysOffCount++;
+            }
+            if ($isLeave) {
+                $leaveCount++;
+            }
+
+            $attendance = $attendances->get($dateStr);
+            $attendanceData = null;
+
+            // Default fallback times from shift or general default
+            $shiftStartTime = '09:00 AM';
+            $shiftEndTime = '05:00 PM';
+            if ($attendance && $attendance->shift) {
+                $shiftStartTime = \Carbon\Carbon::parse($dateStr . ' ' . $attendance->shift->start_time)->format('h:i A');
+                $shiftEndTime = \Carbon\Carbon::parse($dateStr . ' ' . $attendance->shift->end_time)->format('h:i A');
+            }
+
+            if ($attendance) {
+                $status = $attendance->status;
+                if ($status === HrmAttendance::STATUS_LATE) {
+                    $lateCount++;
+                } elseif ($status === HrmAttendance::STATUS_ABSENT) {
+                    $absentCount++;
+                }
+
+                $checkIn = $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in) : null;
+                $checkOut = $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out) : null;
+
+                if ($checkIn && !$checkOut) {
+                    $noClockOutCount++;
+                }
+
+                $durationStr = null;
+                if ($checkIn && $checkOut) {
+                    $durationDiff = $checkIn->diff($checkOut);
+                    $durationStr = sprintf('%02dh %02dm', $durationDiff->h, $durationDiff->i);
+                }
+
+                // Compile timeline events
+                $timeline = [];
+                if ($checkIn) {
+                    $shift = $attendance->shift;
+                    $shiftStart = $shift ? \Carbon\Carbon::parse($dateStr . ' ' . $shift->start_time) : \Carbon\Carbon::parse($dateStr . ' 09:00:00');
+
+                    // Check if late (red bar)
+                    if ($checkIn->gt($shiftStart)) {
+                        $lateMins = $checkIn->diffInMinutes($shiftStart);
+                        $timeline[] = [
+                            'label'    => 'Late',
+                            'type'     => 'late',
+                            'duration' => "{$lateMins}:00 m",
+                            'color'    => '#EF4444'
+                        ];
+                    }
+
+                    // Calculate working hours duration
+                    $workingHours = $attendance->working_hours ?: ($checkOut ? $checkIn->diffInHours($checkOut) : 8.0);
+                    $workingHoursDec = floor($workingHours);
+                    $workingMinsDec = round(($workingHours - $workingHoursDec) * 60);
+                    $workingDurationStr = sprintf('%02d:%02d h', $workingHoursDec, $workingMinsDec);
+
+                    $timeline[] = [
+                        'label'    => 'Working Time',
+                        'type'     => 'working',
+                        'duration' => $workingDurationStr,
+                        'color'    => '#3B82F6'
+                    ];
+
+                    // Mock meeting for Sunday / Today to match mockup aesthetics
+                    if ($dayOfWeek === 0 || $dateStr === now()->format('Y-m-d')) {
+                        $timeline[] = [
+                            'label'    => 'Meeting',
+                            'type'     => 'meeting',
+                            'duration' => '15:00 m',
+                            'color'    => '#10B981'
+                        ];
+                        $timeline[] = [
+                            'label'    => 'Break',
+                            'type'     => 'break',
+                            'duration' => '25:00 m',
+                            'color'    => '#E5E7EB'
+                        ];
+                    }
+                }
+
+                $attendanceData = [
+                    'status'    => $status,
+                    'check_in'  => $checkIn ? $checkIn->format('h:i A') : $shiftStartTime,
+                    'check_out' => $checkOut ? $checkOut->format('h:i A') : null,
+                    'duration'  => $durationStr ?: ($attendance->working_hours ? sprintf('%02dh %02dm', floor($attendance->working_hours), round(($attendance->working_hours - floor($attendance->working_hours)) * 60)) : null),
+                    'timeline'  => $timeline,
+                    'badge'     => null,
+                ];
+            } else {
+                // If it's a Weekend or Holiday:
+                if ($isWeekend || $isHoliday) {
+                    $attendanceData = [
+                        'status'    => 'OFF_DAY',
+                        'check_in'  => $shiftStartTime,
+                        'check_out' => null,
+                        'duration'  => null,
+                        'timeline'  => [
+                            [
+                                'label'    => 'Off Days',
+                                'type'     => 'off_day',
+                                'duration' => '08:00 h',
+                                'color'    => '#10B981'
+                            ]
+                        ],
+                        'badge'     => [
+                            'text'  => $isHoliday ? $holidayName : 'Weekend',
+                            'color' => 'green'
+                        ]
+                    ];
+                }
+                // If it's a Leave day:
+                elseif ($isLeave) {
+                    $attendanceData = [
+                        'status'    => 'LEAVE',
+                        'check_in'  => $shiftStartTime,
+                        'check_out' => null,
+                        'duration'  => null,
+                        'timeline'  => [
+                            [
+                                'label'    => 'on Leave',
+                                'type'     => 'leave',
+                                'duration' => '08:00 h',
+                                'color'    => '#F59E0B'
+                            ]
+                        ],
+                        'badge'     => [
+                            'text'  => 'Approved',
+                            'color' => 'green'
+                        ]
+                    ];
+                }
+                // If it's an Absent day:
+                else {
+                    $absentCount++;
+                    $attendanceData = [
+                        'status'    => 'ABSENT',
+                        'check_in'  => $shiftStartTime,
+                        'check_out' => null,
+                        'duration'  => null,
+                        'timeline'  => [
+                            [
+                                'label'    => 'Absent',
+                                'type'     => 'absent',
+                                'duration' => '08:00 h',
+                                'color'    => '#EF4444'
+                            ]
+                        ],
+                        'badge'     => [
+                            'text'  => 'Absent',
+                            'color' => 'red'
+                        ]
+                    ];
+                }
+            }
+
+            $calendar[] = [
+                'date'           => $dateStr,
+                'day_name'       => $currentDate->format('l'),
+                'formatted_date' => $currentDate->format('l, d'),
+                'is_weekend'     => $isWeekend,
+                'is_holiday'     => $isHoliday,
+                'holiday_name'   => $holidayName,
+                'is_leave'       => $isLeave,
+                'leave_type'     => $leaveType,
+                'attendance'     => $attendanceData,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'employee' => [
+                    'uuid'        => $employee->uuid,
+                    'name'        => $employee->full_name,
+                    'employee_id' => $employee->user_employee_id,
+                    'designation' => $employee->designation?->name ?? 'Employee',
+                    'photo'       => $employee->profile_picture,
+                    'status'      => $employee->is_active ? 'Permanent' : 'Inactive',
+                ],
+                'stats' => [
+                    'days_off'      => $daysOffCount,
+                    'late_clock_in' => $lateCount,
+                    'no_clock_out'  => $noClockOutCount,
+                    'absent'        => $absentCount,
+                    'leave'         => $leaveCount,
+                ],
+                'month' => [
+                    'label' => $targetMonth->format('F Y'),
+                    'value' => $targetMonth->format('Y-m'),
+                ],
+                'calendar' => $calendar,
+            ]
+        ]);
+    }
+
+
+    /**
+     * Push day-wise attendance log with in and out times for a specific employee.
+     * Just for development / testing.
+     */
+    public function devPushDayAttendance(
+        Request $request,
+        \App\Actions\HrmAttendance\DevPushDayAttendanceAction $action
+    ): JsonResponse {
+        $this->authorize('viewAny', HrmAttendance::class);
+
+        $validated = $request->validate([
+            'employee_id' => ['required', 'string'],
+            'date'        => ['required', 'date_format:Y-m-d'],
+            'check_in'    => ['nullable', 'date_format:H:i:s'],
+            'check_out'   => ['nullable', 'date_format:H:i:s'],
+            'status'      => ['nullable', 'string', 'in:present,absent,late,half_day,leave,holiday'],
+        ]);
+
+        $empIdentifier = $validated['employee_id'];
+
+        $employee = \App\Models\HrmEmployee::where('uuid', $empIdentifier)
+            ->orWhere('user_employee_id', $empIdentifier)
+            ->orWhere('user_employee_id', 'like', "%{$empIdentifier}%")
+            ->orWhere('id', is_numeric($empIdentifier) ? (int)$empIdentifier : 0)
+            ->first();
+
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'message' => "Employee not found with identifier: {$empIdentifier}",
+            ], 404);
+        }
+
+        $attendance = $action->execute($employee, $validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully pushed day attendance record for employee {$employee->full_name}.",
+            'employee' => [
+                'uuid'             => $employee->uuid,
+                'user_employee_id' => $employee->user_employee_id,
+                'name'             => $employee->full_name,
+            ],
+            'attendance' => $attendance
+        ]);
+    }
+
+    /**
+     * Get detailed attendance dashboard summary for the logged-in user.
+     * Maps to the "Office Attendance", "Attendance Overview", and "Hours Logged" dashboard widgets.
+     */
+    public function employeeDashboardSummary(
+        Request $request,
+        \App\Actions\HrmAttendance\GetEmployeeDashboardSummaryAction $action
+    ): JsonResponse {
+        $this->authorize('viewAny', HrmAttendance::class);
+
+        $user = $request->user();
+
+        // Find employee
+        $employee = \App\Models\HrmEmployee::with(['designation', 'workShift'])
+            ->find($user->employee_id);
+
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee record not found for logged in user.',
+            ], 404);
+        }
+
+        $summary = $action->execute($employee, $request->input('month'));
+
+        return response()->json([
+            'success' => true,
+            'data'    => $summary
         ]);
     }
 }

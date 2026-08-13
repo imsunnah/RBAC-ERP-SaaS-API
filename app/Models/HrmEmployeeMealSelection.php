@@ -23,6 +23,7 @@ class HrmEmployeeMealSelection extends Model
         'hrm_weekly_meal_id',
         'date',
         'selection',
+        'selected_item_name',
         'is_manually_updated',
         'created_by',
         'updated_by',

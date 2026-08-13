@@ -34,7 +34,7 @@ class SyncRolePermissionsAction
 
         $role->permissions()->sync($syncData);
 
-        $role->users->each(fn ($u) => $this->rbacService->flushCache($u->id, $orgId));
+        $role->users->each(fn ($u) => $this->rbacService->flushCache($u->id, $u->pivot->organization_id));
         $this->auditService->logAction('update', $role, 'permissions', $incomingPermissions);
     }
 }

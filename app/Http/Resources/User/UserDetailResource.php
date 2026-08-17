@@ -35,6 +35,17 @@ class UserDetailResource extends JsonResource
                         : [],
                 ]);
             }),
+            'organizations' => $this->whenLoaded('organizations', function () {
+                return $this->organizations->map(fn($org) => [
+                    'id'         => $org->uuid,
+                    'name'       => $org->name,
+                    'slug'       => $org->slug,
+                    'logo'       => $org->logo ?? null,
+                    'status'     => $org->status ?? null,
+                    'is_owner'   => (bool) ($org->pivot?->is_owner ?? false),
+                    'is_primary' => (bool) ($org->pivot?->is_primary ?? false),
+                ]);
+            }),
         ];
     }
 }

@@ -15,7 +15,7 @@ class UpdateHrmHolidayRequest extends FormRequest
     {
         return [
             'name'      => 'sometimes|required|string|max:255',
-            'date'      => 'sometimes|required|date',
+            'date'      => 'sometimes|required|date|after_or_equal:today',
             'is_active' => 'nullable|boolean',
         ];
     }

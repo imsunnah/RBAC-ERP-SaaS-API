@@ -66,12 +66,26 @@ class ModuleController extends Controller
     {
         $this->authorize('create', Module::class);
 
-        $module = Module::create($request->validated());
+        $validated = $request->validated();
+        $module = Module::create(\Illuminate\Support\Arr::except($validated, ['organizations']));
+
+        if ($request->has('organizations')) {
+            $orgIds = $validated['organizations'] ?? [];
+            $syncData = [];
+            foreach ($orgIds as $orgId) {
+                $syncData[$orgId] = [
+                    'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                    'is_active' => true,
+                    'activated_at' => now(),
+                ];
+            }
+            $module->organizations()->sync($syncData);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Module created successfully.',
-            'data' => new ModuleResource($module),
+            'data' => new ModuleResource($module->load('organizations')),
         ], 201);
     }
 
@@ -84,7 +98,7 @@ class ModuleController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new ModuleResource($module),
+            'data' => new ModuleResource($module->load('organizations')),
         ]);
     }
 
@@ -95,12 +109,26 @@ class ModuleController extends Controller
     {
         $this->authorize('update', $module);
 
-        $module->update($request->validated());
+        $validated = $request->validated();
+        $module->update(\Illuminate\Support\Arr::except($validated, ['organizations']));
+
+        if ($request->has('organizations')) {
+            $orgIds = $validated['organizations'] ?? [];
+            $syncData = [];
+            foreach ($orgIds as $orgId) {
+                $syncData[$orgId] = [
+                    'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                    'is_active' => true,
+                    'activated_at' => now(),
+                ];
+            }
+            $module->organizations()->sync($syncData);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Module updated successfully.',
-            'data' => new ModuleResource($module),
+            'data' => new ModuleResource($module->load('organizations')),
         ]);
     }
 

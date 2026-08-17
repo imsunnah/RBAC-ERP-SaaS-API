@@ -39,12 +39,25 @@ class HrmEmployeeController extends Controller
         'emergencyContacts',
         'emergencyContacts.relationship',
         'documents',
+        'leaveBalances',
+        'leaveBalances.leaveType',
     ];
 
     /** Display a listing of the employees. */
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', HrmEmployee::class);
+
+        $request->validate([
+            'search'     => ['nullable', 'string', 'max:255'],
+            'name'       => ['nullable', 'string', 'max:255'],
+            'email'      => ['nullable', 'string', 'max:255'],
+            'status'     => ['nullable', 'string', 'in:true,false,1,0,active,inactive'],
+            'start_date' => ['nullable', 'date_format:d-m-Y'],
+            'end_date'   => ['nullable', 'date_format:d-m-Y', 'after_or_equal:start_date'],
+            'limit'      => ['nullable', 'integer', 'min:1', 'max:50000'],
+            'per_page'   => ['nullable', 'integer', 'min:1', 'max:50000'],
+        ]);
 
         $query = HrmEmployee::with(self::EMPLOYEE_RELATIONS);
 
@@ -67,6 +80,22 @@ class HrmEmployeeController extends Controller
         if ($request->filled('status')) {
             $status = filter_var($request->status, FILTER_VALIDATE_BOOLEAN);
             $query->where('is_active', $status);
+        }
+
+        if ($request->filled('start_date')) {
+            $startDate = \Illuminate\Support\Carbon::parse($request->start_date)->format('Y-m-d');
+            $query->where(function ($q) use ($startDate) {
+                $q->where('start_date', '>=', $startDate)
+                    ->orWhere('hire_date', '>=', $startDate);
+            });
+        }
+
+        if ($request->filled('end_date')) {
+            $endDate = \Illuminate\Support\Carbon::parse($request->end_date)->format('Y-m-d');
+            $query->where(function ($q) use ($endDate) {
+                $q->where('start_date', '<=', $endDate)
+                    ->orWhere('hire_date', '<=', $endDate);
+            });
         }
 
         $query->orderBy('user_employee_id', 'asc');
@@ -166,6 +195,70 @@ class HrmEmployeeController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Employee deleted successfully.',
+        ]);
+    }
+
+    /** Retrieve team members in the same department. */
+    public function myTeamMembers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $employee = $user->employee;
+
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No employee record associated with the logged-in user.',
+            ], 404);
+        }
+
+        $departmentId = $employee->department_id;
+
+        if (!$departmentId) {
+            return response()->json([
+                'success' => true,
+                'data'    => [],
+            ]);
+        }
+
+        $query = HrmEmployee::where('department_id', $departmentId)
+            ->where('id', '!=', $employee->id)
+            ->where('organization_id', $employee->organization_id)
+            ->with(self::EMPLOYEE_RELATIONS);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('user_employee_id', 'like', "%{$search}%")
+                    ->orWhere('office_email', 'like', "%{$search}%")
+                    ->orWhere('office_mobile_no', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('start_date')) {
+            $startDate = \Illuminate\Support\Carbon::parse($request->start_date)->format('Y-m-d');
+            $query->where(function ($q) use ($startDate) {
+                $q->where('start_date', '>=', $startDate)
+                    ->orWhere('hire_date', '>=', $startDate);
+            });
+        }
+
+        if ($request->filled('end_date')) {
+            $endDate = \Illuminate\Support\Carbon::parse($request->end_date)->format('Y-m-d');
+            $query->where(function ($q) use ($endDate) {
+                $q->where('start_date', '<=', $endDate)
+                    ->orWhere('hire_date', '<=', $endDate);
+            });
+        }
+
+        $query->orderBy('user_employee_id', 'asc');
+
+        $limit = min((int) $request->input('limit', $request->input('per_page', 15)), 50000);
+        $teamMembers = $query->paginate($limit);
+
+        return response()->json([
+            'success' => true,
+            'data'    => HrmEmployeeResource::collection($teamMembers)->response()->getData(true),
         ]);
     }
 }

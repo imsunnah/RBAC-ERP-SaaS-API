@@ -126,6 +126,17 @@ class HrmEmployeeResource extends JsonResource
                 ];
             }) : null,
 
+            'leave_balances'      => $this->relationLoaded('leaveBalances') ? $this->leaveBalances->map(function ($balance) {
+                return [
+                    'uuid'       => $balance->uuid,
+                    'leave_type' => $balance->leaveType ? new MetadataResource($balance->leaveType) : null,
+                    'year'       => $balance->year,
+                    'total_days' => (float) $balance->total_days,
+                    'used_days'  => (float) $balance->used_days,
+                    'remaining'  => (float) max(0, $balance->total_days - $balance->used_days),
+                ];
+            }) : null,
+
             // ── Images / Files ────────────────────────────────────────────────
             'employee_photo'      => $this->employee_photo ? Storage::url($this->employee_photo) : null,
             'profile_picture'     => $this->profile_picture ? Storage::url($this->profile_picture) : null,

@@ -9,6 +9,7 @@ use App\Models\HrmLookup;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class HrmEmployee extends Model
@@ -183,5 +184,10 @@ class HrmEmployee extends Model
     public function workShift(): BelongsTo
     {
         return $this->belongsTo(WorkShift::class, 'work_shift_id', 'shift_id');
+    }
+
+    public function leaveBalances(): HasMany
+    {
+        return $this->hasMany(HrmLeaveBalance::class, 'hrm_employee_id');
     }
 }

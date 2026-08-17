@@ -10,6 +10,7 @@ use App\Services\Audit\AuditService;
 use App\Services\Auth\AuthService;
 use App\Services\Billing\BillingService;
 use App\Services\RBAC\RBACService;
+use App\Services\RBAC\RoutePermissionSyncer;
 use App\Services\Sidebar\SidebarService;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
@@ -46,9 +47,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // ── Passport token expiry ─────────────────────────────────────────────
-        Passport::tokensExpireIn(now()->addDays(15));
-        Passport::refreshTokensExpireIn(now()->addDays(30));
-        Passport::personalAccessTokensExpireIn(now()->addMonths(6));
+        Passport::tokensExpireIn(new \DateInterval('PT6H'));
+        Passport::refreshTokensExpireIn(new \DateInterval('P30D'));
+        Passport::personalAccessTokensExpireIn(new \DateInterval('PT6H'));
 
         // ── Log slow queries in debug mode ────────────────────────────────────
         if (config('app.debug')) {
@@ -72,6 +73,11 @@ class AppServiceProvider extends ServiceProvider
                     'X-ORG-ID' => [],
                 ]),
             ];
+        });
+
+        // ── Auto-sync route permissions ───────────────────────────────────────
+        $this->app->booted(function () {
+            RoutePermissionSyncer::sync();
         });
     }
 }

@@ -9,6 +9,7 @@ use App\Actions\User\UpdateUserAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\IndexUserRequest;
 use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\SyncUserOrganizationsRequest;
 use App\Http\Requests\User\SyncUserRolesRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\User\UserDetailResource;
@@ -133,6 +134,45 @@ class UserController extends Controller
             'success' => true,
             'message' => 'User roles updated successfully.',
             'data'    => new UserDetailResource($user),
+        ]);
+    }
+
+    /** PUT /api/v1/users/{user}/organizations */
+    
+    public function syncOrganizations(
+        SyncUserOrganizationsRequest $request,
+        User $user
+    ): JsonResponse {
+        $this->authorize('update', $user);
+
+        $orgId = app('current_organization')->id;
+
+        if (!$user->organizations()->where('organizations.id', $orgId)->exists()) {
+            return response()->json(['success' => false, 'message' => 'User not found.'], 404);
+        }
+
+        // Sync organizations
+        $orgIdsToSync = $request->validated('organizations') ?? [];
+        
+        // Ensure current active organization remains attached/active
+        if (!in_array($orgId, $orgIdsToSync)) {
+            $orgIdsToSync[] = $orgId;
+        }
+
+        $syncData = [];
+        foreach (array_unique($orgIdsToSync) as $idToSync) {
+            $syncData[$idToSync] = [
+                'is_owner' => false,
+                'status'   => 'active',
+            ];
+        }
+        
+        $user->organizations()->sync($syncData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User organizations updated successfully.',
+            'data'    => new UserDetailResource($user->load('organizations')),
         ]);
     }
 }

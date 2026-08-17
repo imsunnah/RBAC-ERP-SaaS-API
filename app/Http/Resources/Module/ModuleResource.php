@@ -28,6 +28,13 @@ class ModuleResource extends JsonResource
                     'expires_at' => $this->pivot->expires_at,
                 ];
             }),
+            'organizations' => $this->whenLoaded('organizations', function () {
+                return $this->organizations->map(fn($org) => [
+                    'id' => $org->uuid,
+                    'name' => $org->name,
+                    'slug' => $org->slug,
+                ]);
+            }),
         ];
     }
 }

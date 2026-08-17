@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\Module;
 
+use App\Http\Requests\Traits\ResolvesUuidToId;
+use App\Models\Organization;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ModuleRequest extends FormRequest
 {
+    use ResolvesUuidToId;
+
     public function authorize(): bool
     {
         return $this->user()->is_super_admin;
@@ -26,10 +30,26 @@ class ModuleRequest extends FormRequest
             'description' => 'nullable|string',
             'icon' => 'nullable|string|max:255',
             'route' => 'nullable|string|max:255',
-            'url' => 'nullable|string|max:255',
             'is_core' => 'boolean',
             'sort_order' => 'integer',
             'url' => 'required|string|max:255',
+            'organizations' => 'nullable|array',
+            'organizations.*' => 'uuid|exists:organizations,uuid',
         ];
+    }
+
+    /**
+     * Define which fields should be resolved from UUID to ID.
+     */
+    protected function resolvedKeys(): array
+    {
+        return [
+            'organizations' => [Organization::class],
+        ];
+    }
+
+    protected function passedValidation(): void
+    {
+        $this->resolveUuids();
     }
 }

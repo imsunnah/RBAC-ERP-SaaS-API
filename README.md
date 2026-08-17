@@ -70,10 +70,35 @@ The repository includes a sleek, dark-mode Single Page Application (SPA) built w
    php artisan passport:client --personal --name="ERP Personal Access Client"
    ```
 
-4. **Database Migration &  **
+4. **Database Migration & Seeding**
    ```bash
    php artisan migrate:fresh --seed
    ```
+
+---
+
+## 🔒 Route Permissions Management
+
+The system automatically extracts permissions defined on routes using the `permission:` middleware and synchronizes them with the database.
+
+### 💻 Local Development Workflow
+When developing locally:
+- Simply define your route with the permission middleware, e.g.:
+  ```php
+  Route::get('/sales/invoices', [InvoiceController::class, 'index'])
+      ->middleware('permission:sales.invoice.view');
+  ```
+- The application will **automatically scan** the routes, register the new permission slug `sales.invoice.view` (and its module `sales`) in the database, and run `php artisan optimize` to update the cache.
+
+### 🌐 Live / Production Server Deployment Workflow
+Automatic database synchronization is disabled on production for performance and stability. When deploying new routes to your live server, sync them manually:
+
+1. Pull the code changes (e.g., `git pull`).
+2. Run the synchronization command:
+   ```bash
+   php artisan permissions:sync --force
+   ```
+   *(This scans the new routes, registers any missing permissions in the production database, and automatically triggers `php artisan optimize` to cache them).*
 
 ---
 
@@ -105,3 +130,11 @@ Authorization: Bearer <token>
 - `/app/Services/*`: Core business logic (`RBACService`, `SidebarService`)
 - `/database/migrations/*`: Idempotent schema definitions
 - `/public/demo/*`: Interactive test harness UI
+
+---
+
+## 👥 Author
+
+- **Author:** AH Anik
+- **Email:** [azizul@atilimited.net](mailto:azizul@atilimited.net), [hello.dev.anik@gmail.com](mailto:hello.dev.anik@gmail.com)
+

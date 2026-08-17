@@ -99,6 +99,12 @@ class HrmHolidayController extends Controller
     /** Update a holiday record. */
     public function update(UpdateHrmHolidayRequest $request, HrmHoliday $hrmHoliday): JsonResponse
     {
+        if (\Carbon\Carbon::parse($hrmHoliday->date)->lt(today())) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'date' => ['Cannot update a holiday from a past date.'],
+            ]);
+        }
+
         $hrmHoliday->update($request->validated());
 
         return response()->json([

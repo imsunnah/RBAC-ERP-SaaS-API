@@ -14,7 +14,7 @@ class UpdateHrmHolidayByDateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date'                 => 'required|date_format:Y-m-d',
+            'date'                 => 'required|date_format:Y-m-d|after_or_equal:today',
             'name'                 => 'nullable|string|max:255',
             'uuid'                 => 'nullable|string|exists:hrm_holidays,uuid',
             'is_active'            => 'nullable|boolean',

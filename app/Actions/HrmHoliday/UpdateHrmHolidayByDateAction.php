@@ -36,6 +36,11 @@ class UpdateHrmHolidayByDateAction
                     if (!empty($item['uuid'])) {
                         $holiday = HrmHoliday::where('uuid', $item['uuid'])->first();
                         if ($holiday) {
+                            if (\Carbon\Carbon::parse($holiday->date)->lt(today())) {
+                                throw \Illuminate\Validation\ValidationException::withMessages([
+                                    'date' => ['Cannot update a holiday from a past date.'],
+                                ]);
+                            }
                             $holiday->update([
                                 'name'      => $item['name'],
                                 'is_active' => $item['is_active'] ?? $holiday->is_active,
@@ -63,6 +68,11 @@ class UpdateHrmHolidayByDateAction
             if ($request->filled('uuid')) {
                 $holiday = HrmHoliday::where('uuid', $request->uuid)->first();
                 if ($holiday) {
+                    if (\Carbon\Carbon::parse($holiday->date)->lt(today())) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'date' => ['Cannot update a holiday from a past date.'],
+                        ]);
+                    }
                     $holiday->update(array_filter([
                         'name'      => $request->input('name', $holiday->name),
                         'is_active' => $request->has('is_active') ? filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) : $holiday->is_active,

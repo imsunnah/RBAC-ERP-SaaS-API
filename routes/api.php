@@ -121,6 +121,8 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.user.delete');
                 Route::put('/{user}/roles', [UserController::class, 'syncRoles'])
                     ->middleware('permission:admin.user.update');
+                Route::put('/{user}/organizations', [UserController::class, 'syncOrganizations'])
+                    ->middleware('permission:admin.user.update');
             });
 
             // Permissions — requires permission management permissions
@@ -190,6 +192,8 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.employee.update');
                 Route::delete('/{hrmEmployee}', [HrmEmployeeController::class, 'destroy'])
                     ->middleware('permission:hrm.employee.delete');
+                Route::get('/my-team-members', [HrmEmployeeController::class, 'myTeamMembers'])
+                    ->middleware('permission:hrm.employee.view');
             });
 
             // HRM Attendance — requires hrm.attendance.view permission

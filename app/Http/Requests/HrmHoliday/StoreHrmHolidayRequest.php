@@ -15,7 +15,7 @@ class StoreHrmHolidayRequest extends FormRequest
     {
         return [
             'name'      => 'required|string|max:255',
-            'date'      => 'required|date_format:Y-m-d',
+            'date'      => 'required|date_format:Y-m-d|after_or_equal:today',
             'is_active' => 'nullable|boolean',
         ];
     }

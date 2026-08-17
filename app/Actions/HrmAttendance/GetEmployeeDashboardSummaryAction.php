@@ -13,8 +13,13 @@ class GetEmployeeDashboardSummaryAction
 {
     /**
      * Execute the summary retrieval for the employee.
+     *
+     * @param HrmEmployee $employee
+     * @param string|null $targetMonthInput
+     * @param array $filters
+     * @return array
      */
-    public function execute(HrmEmployee $employee, ?string $targetMonthInput = null): array
+    public function execute(HrmEmployee $employee, ?string $targetMonthInput = null, array $filters = []): array
     {
         $today = Carbon::now();
         
@@ -34,9 +39,31 @@ class GetEmployeeDashboardSummaryAction
         }
             
         $startOfMonth = $targetMonth->copy()->startOfMonth();
-        $endOfMonth = $targetMonth->copy()->endOfMonth();
+        $endOfMonth   = $targetMonth->copy()->endOfMonth();
 
-        // 1. Resolve Office/Today Attendance
+        // 1. Resolve Date Range for "Hours Logged" (initially from start of month for 15 days)
+        $days = isset($filters['days']) && is_numeric($filters['days']) ? (int) $filters['days'] : 15;
+
+        if (!empty($filters['from_date']) && !empty($filters['to_date'])) {
+            $hoursLoggedStart = Carbon::parse($filters['from_date'])->startOfDay();
+            $hoursLoggedEnd   = Carbon::parse($filters['to_date'])->startOfDay();
+        } elseif (!empty($filters['from_date'])) {
+            $hoursLoggedStart = Carbon::parse($filters['from_date'])->startOfDay();
+            $hoursLoggedEnd   = $hoursLoggedStart->copy()->addDays($days - 1);
+        } elseif (!empty($filters['date'])) {
+            $refDate          = Carbon::parse($filters['date'])->startOfDay();
+            $hoursLoggedStart = $refDate->copy();
+            $hoursLoggedEnd   = $hoursLoggedStart->copy()->addDays($days - 1);
+        } else {
+            // Default initial: Starts from the 1st of the month for 15 days (Day 1 to Day 15)
+            $hoursLoggedStart = $startOfMonth->copy()->startOfDay();
+            $hoursLoggedEnd   = $hoursLoggedStart->copy()->addDays($days - 1);
+            if ($hoursLoggedEnd->gt($endOfMonth)) {
+                $hoursLoggedEnd = $endOfMonth->copy()->startOfDay();
+            }
+        }
+
+        // 2. Resolve Office/Today Attendance
         $todayAttendance = HrmAttendance::where('employee_id', $employee->id)
             ->whereDate('date', $today->format('Y-m-d'))
             ->first();
@@ -81,38 +108,39 @@ class GetEmployeeDashboardSummaryAction
             'office_time'      => $officeTimeStr,
         ];
 
-        // 2. Fetch monthly data (Attendances, Leaves, Holidays)
+        // 3. Fetch data spanning both Month Overview and Hours Logged date ranges
+        $queryStartDate = $startOfMonth->min($hoursLoggedStart)->format('Y-m-d');
+        $queryEndDate   = $endOfMonth->max($hoursLoggedEnd)->format('Y-m-d');
+
         $attendances = HrmAttendance::where('employee_id', $employee->id)
-            ->whereBetween('date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
+            ->whereBetween('date', [$queryStartDate, $queryEndDate])
             ->get()
             ->keyBy(fn($a) => Carbon::parse($a->date)->format('Y-m-d'));
 
         $leaves = HrmLeaveApplication::where('hrm_employee_id', $employee->id)
             ->where('status', 'approved')
-            ->where(function ($q) use ($startOfMonth, $endOfMonth) {
-                $q->whereBetween('from_date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
-                  ->orWhereBetween('to_date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
-                  ->orWhere(function ($sub) use ($startOfMonth, $endOfMonth) {
-                      $sub->where('from_date', '<=', $startOfMonth->format('Y-m-d'))
-                          ->where('to_date', '>=', $endOfMonth->format('Y-m-d'));
+            ->where(function ($q) use ($queryStartDate, $queryEndDate) {
+                $q->whereBetween('from_date', [$queryStartDate, $queryEndDate])
+                  ->orWhereBetween('to_date', [$queryStartDate, $queryEndDate])
+                  ->orWhere(function ($sub) use ($queryStartDate, $queryEndDate) {
+                      $sub->where('from_date', '<=', $queryStartDate)
+                          ->where('to_date', '>=', $queryEndDate);
                   });
             })
             ->get();
 
         $holidays = HrmHoliday::where('organization_id', $employee->organization_id)
             ->where('is_active', 1)
-            ->whereBetween('date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
+            ->whereBetween('date', [$queryStartDate, $queryEndDate])
             ->get();
 
-        // 3. Loop through days of target month and compile calendar/stats
+        // 4. Calculate Monthly Overview
         $totalDaysInMonth = $startOfMonth->daysInMonth;
         $presentCount = 0;
         $absentCount = 0;
         $leaveCount = 0;
         $holidayCount = 0;
         $weeklyHolidayCount = 0;
-        
-        $hoursLoggedList = [];
 
         for ($day = 1; $day <= $totalDaysInMonth; $day++) {
             $currentDate = $startOfMonth->copy()->day($day);
@@ -128,59 +156,30 @@ class GetEmployeeDashboardSummaryAction
 
             // Resolve holiday
             $hasHoliday = $holidays->first(function ($holiday) use ($dateStr) {
-                return $holiday->date === $dateStr;
+                return $holiday->date && $holiday->date->format('Y-m-d') === $dateStr;
             });
 
             $att = $attendances->get($dateStr);
-            
-            $status = 'Absent';
-            $hours = '00:00';
-            $color = 'orange';
 
             if ($att) {
                 if (in_array(strtoupper($att->status), ['PRESENT', 'LATE'])) {
-                    $isLate = strtoupper($att->status) === 'LATE';
-                    $status = $isLate ? 'Late' : 'Present';
-                    $hours = $att->working_hours ? sprintf('%02d:%02d', floor($att->working_hours), round(($att->working_hours - floor($att->working_hours)) * 60)) : '00:00';
-                    $color = $isLate ? 'red' : 'blue';
                     $presentCount++;
                 } else {
-                    $status = 'Absent';
                     $absentCount++;
                 }
             } elseif ($hasLeave) {
-                $status = 'Leave';
-                $color = 'purple';
                 $leaveCount++;
             } elseif ($hasHoliday) {
-                $status = 'Holiday';
-                $color = 'orange';
                 $holidayCount++;
             } elseif ($isWeekend) {
-                $status = 'Weekly holiday';
-                $color = 'green';
-                $hours = '08:45';
                 $weeklyHolidayCount++;
             } else {
-                // If in the past, it's considered absent
-                if ($currentDate->lt($today->startOfDay())) {
-                    $status = 'Absent';
+                if ($currentDate->lt($today->copy()->startOfDay())) {
                     $absentCount++;
-                } else {
-                    $status = 'Future';
-                    $color = 'gray';
                 }
             }
-
-            $hoursLoggedList[] = [
-                'day'    => sprintf('%02d', $day),
-                'hours'  => $hours,
-                'status' => $status,
-                'color'  => $color,
-            ];
         }
 
-        // Calculate Overview
         $totalAccountedDays = $presentCount + $absentCount + $leaveCount + $holidayCount + $weeklyHolidayCount;
         $totalAccountedDays = $totalAccountedDays ?: 1;
 
@@ -212,6 +211,71 @@ class GetEmployeeDashboardSummaryAction
                 ]
             ]
         ];
+
+        // 5. Compile "Hours Logged" for the resolved date range (initial 15 days or filtered days)
+        $hoursLoggedList = [];
+        $periodDays = $hoursLoggedStart->diffInDays($hoursLoggedEnd) + 1;
+
+        for ($i = 0; $i < $periodDays; $i++) {
+            $currentDate = $hoursLoggedStart->copy()->addDays($i);
+            $dateStr = $currentDate->format('Y-m-d');
+            $dayOfWeek = $currentDate->dayOfWeek; // 0=Sunday, 5=Friday, 6=Saturday
+            
+            $isWeekend = ($dayOfWeek === 5 || $dayOfWeek === 6);
+
+            // Resolve leave
+            $hasLeave = $leaves->first(function ($leave) use ($dateStr) {
+                return $dateStr >= $leave->from_date && $dateStr <= $leave->to_date;
+            });
+
+            // Resolve holiday
+            $hasHoliday = $holidays->first(function ($holiday) use ($dateStr) {
+                return $holiday->date && $holiday->date->format('Y-m-d') === $dateStr;
+            });
+
+            $att = $attendances->get($dateStr);
+            
+            $status = 'Absent';
+            $hours = '00:00';
+            $color = 'orange';
+
+            if ($att) {
+                if (in_array(strtoupper($att->status), ['PRESENT', 'LATE'])) {
+                    $isLate = strtoupper($att->status) === 'LATE';
+                    $status = $isLate ? 'Late' : 'Present';
+                    $hours = $att->working_hours ? sprintf('%02d:%02d', floor($att->working_hours), round(($att->working_hours - floor($att->working_hours)) * 60)) : '00:00';
+                    $color = $isLate ? 'red' : 'blue';
+                } else {
+                    $status = 'Absent';
+                }
+            } elseif ($hasLeave) {
+                $status = 'Leave';
+                $color = 'purple';
+            } elseif ($hasHoliday) {
+                $status = 'Holiday';
+                $color = 'orange';
+            } elseif ($isWeekend) {
+                $status = 'Weekly holiday';
+                $color = 'green';
+                $hours = '08:45';
+            } else {
+                if ($currentDate->lt($today->copy()->startOfDay())) {
+                    $status = 'Absent';
+                } else {
+                    $status = 'Future';
+                    $color = 'gray';
+                }
+            }
+
+            $hoursLoggedList[] = [
+                'date'     => $dateStr,
+                'day'      => sprintf('%02d', $currentDate->day),
+                'day_name' => $currentDate->format('D'),
+                'hours'    => $hours,
+                'status'   => $status,
+                'color'    => $color,
+            ];
+        }
 
         return [
             'office_attendance' => $todaySection,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\HrmAttendance\GetEmployeeDashboardSummaryAction;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\HrmAttendanceResource;
 use App\Models\HrmAttendance;
@@ -454,29 +455,45 @@ class HrmAttendanceController extends Controller
     }
 
     /**
-     * Get detailed attendance dashboard summary for the logged-in user.
+     * Get detailed attendance dashboard summary for an employee (or logged-in user).
      * Maps to the "Office Attendance", "Attendance Overview", and "Hours Logged" dashboard widgets.
      */
     public function employeeDashboardSummary(
         Request $request,
-        \App\Actions\HrmAttendance\GetEmployeeDashboardSummaryAction $action
+        GetEmployeeDashboardSummaryAction $action
     ): JsonResponse {
         $this->authorize('viewAny', HrmAttendance::class);
 
+        $validated = $request->validate([
+            'employee_id' => ['nullable', 'uuid', 'exists:hrm_employees,uuid'],
+            'month'       => ['nullable', 'string'],
+            'date'        => ['nullable', 'date'],
+            'from_date'   => ['nullable', 'date'],
+            'to_date'     => ['nullable', 'date', 'after_or_equal:from_date'],
+            'days'        => ['nullable', 'integer', 'min:1', 'max:365'],
+        ]);
+
         $user = $request->user();
 
-        // Find employee
-        $employee = \App\Models\HrmEmployee::with(['designation', 'workShift'])
-            ->find($user->employee_id);
+        // Find employee: Check request employee_id (UUID) first, fallback to logged-in user
+        $employee = null;
+        if ($request->filled('employee_id')) {
+            $employee = \App\Models\HrmEmployee::with(['designation', 'workShift'])
+                ->where('uuid', $request->input('employee_id'))
+                ->first();
+        } elseif ($user && $user->employee_id) {
+            $employee = \App\Models\HrmEmployee::with(['designation', 'workShift'])
+                ->find($user->employee_id);
+        }
 
         if (!$employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'Employee record not found for logged in user.',
+                'message' => 'Employee record not found.',
             ], 404);
         }
 
-        $summary = $action->execute($employee, $request->input('month'));
+        $summary = $action->execute($employee, $request->input('month'), $validated);
 
         return response()->json([
             'success' => true,

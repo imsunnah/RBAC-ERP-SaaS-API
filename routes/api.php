@@ -57,10 +57,18 @@ Route::prefix('v1')->group(function () {
 
         // Global Management (no org context needed)
         Route::get('companies', [CompanyController::class, 'index']);
-        Route::get('companies/{company}', [CompanyController::class, 'show']);
-        Route::get('organizations', [OrganizationController::class, 'index']);
-        Route::post('organizations', [OrganizationController::class, 'store']);
-        Route::get('organizations/{organization}', [OrganizationController::class, 'show']);
+        Route::prefix('organizations')->group(function () {
+            Route::get('/', [OrganizationController::class, 'index'])
+                ->middleware('permission:admin.organization.view');
+            Route::post('/', [OrganizationController::class, 'store'])
+                ->middleware('permission:admin.organization.create');
+            Route::get('/{organization}', [OrganizationController::class, 'show'])
+                ->middleware('permission:admin.organization.view');
+            Route::put('/{organization}', [OrganizationController::class, 'update'])
+                ->middleware('permission:admin.organization.update');
+            Route::patch('/{organization}', [OrganizationController::class, 'update'])
+                ->middleware('permission:admin.organization.update');
+        });
 
         // ─── Organization-Scoped Routes ───────────────────────────────────────
         // All routes below require X-ORG-ID header and active billing plan

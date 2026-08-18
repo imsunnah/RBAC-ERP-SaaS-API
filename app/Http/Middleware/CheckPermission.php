@@ -18,17 +18,27 @@ class CheckPermission
     public function handle(Request $request, Closure $next, string $permission): SymfonyResponse
     {
         $user = $request->user();
-        $organization = app('current_organization');
 
-        if (!$user || !$organization) {
+        if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated or missing organization context.',
+                'message' => 'Unauthenticated.',
             ], Response::HTTP_UNAUTHORIZED);
         }
 
+        // Super admins bypass all permission checks and do not require organization context
         if ($user->is_super_admin) {
             return $next($request);
+        }
+
+        // Resolve current organization context if available
+        $organization = app()->bound('current_organization') ? app('current_organization') : null;
+
+        if (!$organization) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Organization context is required. Provide valid X-ORG-ID header.',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $hasPerm = $this->rbacService->hasPermission($user, $organization->id, $permission);

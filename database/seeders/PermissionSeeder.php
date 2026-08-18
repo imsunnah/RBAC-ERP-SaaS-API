@@ -26,6 +26,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'Manage Modules', 'slug' => 'admin.module.manage', 'group' => 'admin.module'],
             ['name' => 'View Menus', 'slug' => 'admin.menu.view', 'group' => 'admin.menu'],
             ['name' => 'Manage Menus', 'slug' => 'admin.menu.manage', 'group' => 'admin.menu'],
+            ['name' => 'View Organizations', 'slug' => 'admin.organization.view', 'group' => 'admin.organization'],
+            ['name' => 'Create Organization', 'slug' => 'admin.organization.create', 'group' => 'admin.organization'],
+            ['name' => 'Update Organization', 'slug' => 'admin.organization.update', 'group' => 'admin.organization'],
+            ['name' => 'Delete Organization', 'slug' => 'admin.organization.delete', 'group' => 'admin.organization'],
         ],
         'hrm' => [
             ['name' => 'View Employees', 'slug' => 'hrm.employee.view', 'group' => 'hrm.employee'],

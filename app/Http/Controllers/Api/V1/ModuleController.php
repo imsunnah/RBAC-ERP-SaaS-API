@@ -16,7 +16,7 @@ class ModuleController extends Controller
      * GET /api/v1/modules
      * Lists modules the current user can access.
      * Filters by: org active modules ∩ role-assigned modules.
-     * Super admins see all organization modules.
+     * Super admins see all modules without requiring organization sync.
      */
     public function index(Request $request): JsonResponse
     {
@@ -25,10 +25,10 @@ class ModuleController extends Controller
         $user = $request->user();
         $organization = app('current_organization');
 
-        // Super admins see all active modules for the organization
+        // Super admins see all modules without requiring organization sync
         if ($user->is_super_admin) {
-            $modules = $organization->activeModules()
-                ->orderBy('sort_order')
+            $modules = Module::orderBy('sort_order')
+                ->where('is_active', true)
                 ->get();
 
             return response()->json([

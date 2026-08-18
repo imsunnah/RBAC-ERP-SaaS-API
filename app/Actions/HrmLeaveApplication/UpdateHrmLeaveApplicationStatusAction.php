@@ -3,6 +3,7 @@
 namespace App\Actions\HrmLeaveApplication;
 
 use App\Models\HrmLeaveApplication;
+use App\Models\HrmLeaveBalance;
 use Illuminate\Support\Facades\Auth;
 
 class UpdateHrmLeaveApplicationStatusAction
@@ -19,6 +20,17 @@ class UpdateHrmLeaveApplicationStatusAction
             'approved_at'      => now(),
             'updated_by'       => Auth::id(),
         ]);
+
+        if ($status === 'approved') {
+
+            $leaveBalance = HrmLeaveBalance::where('hrm_employee_id', Auth::user()->employee_id)
+                ->where('leave_type_id', $leave->leave_type_id)
+                ->first();
+
+            if ($leaveBalance) {
+                $leaveBalance->increment('used_days', $leave->total_days);
+            }
+        }
 
         return $leave->load([
             'employee',

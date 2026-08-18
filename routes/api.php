@@ -182,18 +182,21 @@ Route::prefix('v1')->group(function () {
             Route::prefix('hrm-employees')->group(function () {
                 Route::get('/dashboard', [HrmEmployeeController::class, 'dashboard'])
                     ->middleware('permission:hrm.employee.view');
+                Route::get('/my-team-members', [HrmEmployeeController::class, 'myTeamMembers'])
+                    ->middleware('permission:hrm.employee.view');
                 Route::get('/', [HrmEmployeeController::class, 'index'])
                     ->middleware('permission:hrm.employee.view');
                 Route::post('/', [HrmEmployeeController::class, 'store'])
                     ->middleware('permission:hrm.employee.create');
                 Route::get('/{hrmEmployee}', [HrmEmployeeController::class, 'show'])
+                    ->whereUuid('hrmEmployee')
                     ->middleware('permission:hrm.employee.view');
                 Route::put('/{hrmEmployee}', [HrmEmployeeController::class, 'update'])
+                    ->whereUuid('hrmEmployee')
                     ->middleware('permission:hrm.employee.update');
                 Route::delete('/{hrmEmployee}', [HrmEmployeeController::class, 'destroy'])
+                    ->whereUuid('hrmEmployee')
                     ->middleware('permission:hrm.employee.delete');
-                Route::get('/my-team-members', [HrmEmployeeController::class, 'myTeamMembers'])
-                    ->middleware('permission:hrm.employee.view');
             });
 
             // HRM Attendance — requires hrm.attendance.view permission

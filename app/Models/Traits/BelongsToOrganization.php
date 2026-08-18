@@ -20,11 +20,11 @@ trait BelongsToOrganization
         static::creating(function ($model) {
             if (!$model->organization_id) {
                 try {
-                    $currentOrg = app('current_organization');
+                    $currentOrg = app()->bound('current_organization') ? app('current_organization') : null;
                     if ($currentOrg) {
                         $model->organization_id = $currentOrg->id;
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     // Context not set
                 }
             }

@@ -15,12 +15,12 @@ class OrganizationScope implements Scope
     {
         // Only apply scope if an organization context is currently set
         try {
-            $currentOrg = app('current_organization');
+            $currentOrg = app()->bound('current_organization') ? app('current_organization') : null;
             if ($currentOrg) {
                 // Ensure every query on this model strictly limits data to the current organization's UUID
                 $builder->where($model->getTable() . '.organization_id', $currentOrg->id);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Context not set during system boots or CLI commands without explicit setup
         }
     }

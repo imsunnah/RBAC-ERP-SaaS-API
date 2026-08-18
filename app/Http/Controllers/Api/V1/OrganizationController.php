@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 use App\Http\Requests\Organization\StoreOrganizationRequest;
+use App\Http\Requests\Organization\UpdateOrganizationRequest;
 use App\Http\Resources\OrganizationResource;
 
 class OrganizationController extends Controller
@@ -42,6 +43,24 @@ class OrganizationController extends Controller
         return response()->json([
             'success' => true,
             'data' => new OrganizationResource($organization->load('company')),
+        ]);
+    }
+
+    public function update(UpdateOrganizationRequest $request, Organization $organization): JsonResponse
+    {
+        $validated = $request->validated();
+
+        if (!empty($validated['company_id'])) {
+            $company = Company::where('uuid', $validated['company_id'])->firstOrFail();
+            $validated['company_id'] = $company->id;
+        }
+
+        $organization->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Organization updated successfully.',
+            'data'    => new OrganizationResource($organization->load('company')),
         ]);
     }
 }

@@ -26,7 +26,7 @@ abstract class OrganizationPolicy
         }
 
         try {
-            $org = app('current_organization');
+            $org = app()->bound('current_organization') ? app('current_organization') : null;
         } catch (\Exception $e) {
             return false;
         }

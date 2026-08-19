@@ -42,12 +42,12 @@ trait HandlesEmployeeMedia
                 if ($employee && $employee->$field) {
                     Storage::disk('public')->delete($employee->$field);
                 }
-                $path = $request->file($field)->store("hrm/employees/{$field}", 'public');
+                $path = $request->file($field)->store("employees", 'public');
                 $validated[$field] = $path;
             } elseif (array_key_exists($field, $validated) && is_string($validated[$field])) {
                 $val = $validated[$field];
-                if (str_starts_with($val, '/storage/')) {
-                    $validated[$field] = substr($val, strlen('/storage/'));
+                if (str_contains($val, '/storage/')) {
+                    $validated[$field] = explode('/storage/', $val, 2)[1];
                 }
             } else {
                 unset($validated[$field]);
@@ -113,9 +113,13 @@ trait HandlesEmployeeMedia
         foreach ($documents as $doc) {
             $filePath = null;
             if (isset($doc['doc']) && $doc['doc'] instanceof \Illuminate\Http\UploadedFile && $doc['doc']->isValid()) {
-                $filePath = $doc['doc']->store('hrm/employees/documents', 'public');
+                $filePath = $doc['doc']->store('employees/documents', 'public');
             } elseif (isset($doc['doc']) && is_string($doc['doc'])) {
-                $filePath = $doc['doc'];
+                $val = $doc['doc'];
+                if (str_contains($val, '/storage/')) {
+                    $val = explode('/storage/', $val, 2)[1];
+                }
+                $filePath = $val;
             }
 
             $employee->documents()->create([
@@ -146,7 +150,7 @@ trait HandlesEmployeeMedia
                         if ($record->doc) {
                             Storage::disk('public')->delete($record->doc);
                         }
-                        $updateData['doc'] = $doc['doc']->store('hrm/employees/documents', 'public');
+                        $updateData['doc'] = $doc['doc']->store('employees/documents', 'public');
                     }
 
                     $record->update($updateData);
@@ -157,9 +161,13 @@ trait HandlesEmployeeMedia
 
             $filePath = null;
             if ($hasNewFile) {
-                $filePath = $doc['doc']->store('hrm/employees/documents', 'public');
+                $filePath = $doc['doc']->store('employees/documents', 'public');
             } elseif (isset($doc['doc']) && is_string($doc['doc'])) {
-                $filePath = $doc['doc'];
+                $val = $doc['doc'];
+                if (str_contains($val, '/storage/')) {
+                    $val = explode('/storage/', $val, 2)[1];
+                }
+                $filePath = $val;
             }
 
             $newRecord = $employee->documents()->create([

@@ -19,7 +19,7 @@ class HrmWeeklyMealResource extends JsonResource
         $chefPhoto = null;
         if ($chef) {
             $photoPath = $chef->profile_picture ?? $chef->employee_photo;
-            $chefPhoto = $photoPath ? Storage::url($photoPath) : null;
+            $chefPhoto = $photoPath ? asset(Storage::url($photoPath)) : null;
         }
 
         return [

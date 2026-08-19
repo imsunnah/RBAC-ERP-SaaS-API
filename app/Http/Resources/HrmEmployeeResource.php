@@ -122,7 +122,7 @@ class HrmEmployeeResource extends JsonResource
                 return [
                     'uuid'  => $doc->uuid,
                     'title' => $doc->title,
-                    'doc'   => $doc->doc ? Storage::url($doc->doc) : null,
+                    'doc'   => $doc->doc ? asset(Storage::url($doc->doc)) : null,
                 ];
             }) : null,
 
@@ -138,11 +138,11 @@ class HrmEmployeeResource extends JsonResource
             }) : null,
 
             // ── Images / Files ────────────────────────────────────────────────
-            'employee_photo'      => $this->employee_photo ? Storage::url($this->employee_photo) : null,
-            'profile_picture'     => $this->profile_picture ? Storage::url($this->profile_picture) : null,
-            'signature_image'     => $this->signature_image ? Storage::url($this->signature_image) : null,
-            'nid_image'           => $this->nid_image ? Storage::url($this->nid_image) : null,
-            'business_card_image' => $this->business_card_image ? Storage::url($this->business_card_image) : null,
+            'employee_photo'      => $this->employee_photo ? asset(Storage::url($this->employee_photo)) : null,
+            'profile_picture'     => $this->profile_picture ? asset(Storage::url($this->profile_picture)) : null,
+            'signature_image'     => $this->signature_image ? asset(Storage::url($this->signature_image)) : null,
+            'nid_image'           => $this->nid_image ? asset(Storage::url($this->nid_image)) : null,
+            'business_card_image' => $this->business_card_image ? asset(Storage::url($this->business_card_image)) : null,
 
             // ── System ────────────────────────────────────────────────────────
             'user_serial_no'      => $this->user_serial_no ? (int) $this->user_serial_no : null,

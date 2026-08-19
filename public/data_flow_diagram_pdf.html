@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StaffO Multi-Tenancy - System Data Flow Diagram (DFD) Architecture Specification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- html2pdf.js for client-side PDF download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --primary: #0F172A;
+      --accent-blue: #0284C7;
+      --accent-cyan: #0EA5E9;
+      --accent-indigo: #4F46E5;
+      --accent-emerald: #059669;
+      --accent-amber: #D97706;
+      --accent-purple: #7E22CE;
+      --accent-rose: #E11D48;
+      --border-color: #CBD5E1;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+      --bg-surface: #F8FAFC;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #F1F5F9;
+      color: var(--text-main);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    /* Floating Action Controls */
+    .action-bar {
+      position: fixed;
+      top: 16px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      padding: 8px 16px;
+      border-radius: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #059669, #0284C7);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #F8FAFC;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* PDF Printable Container */
+    .document-container {
+      max-width: 900px;
+      margin: 40px auto;
+      background: #FFFFFF;
+      padding: 50px 60px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      border-radius: 4px;
+    }
+
+    /* Page Header */
+    .doc-header {
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .brand-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      font-size: 14px;
+      color: var(--accent-emerald);
+      font-weight: 700;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .doc-meta {
+      text-align: right;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .doc-meta strong {
+      color: var(--text-main);
+    }
+
+    /* Section Typography */
+    h2.section-heading {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--primary);
+      margin: 36px 0 14px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #E2E8F0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    h3.sub-heading {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 22px 0 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    p {
+      margin-bottom: 12px;
+      color: #334155;
+      text-align: justify;
+    }
+
+    /* Metadata Table */
+    .meta-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .meta-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    /* Notation Cards */
+    .notation-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .notation-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .notation-icon {
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .notation-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .notation-desc {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* Diagram Container Box */
+    .diagram-container {
+      background: #0B1120;
+      border: 2px solid #1E293B;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0 28px 0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .diagram-container svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .diagram-caption {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #64748B;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* Data Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 24px 0;
+      font-size: 12px;
+    }
+
+    th, td {
+      padding: 9px 12px;
+      text-align: left;
+      border: 1px solid #E2E8F0;
+    }
+
+    th {
+      background: #F1F5F9;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    tr:nth-child(even) {
+      background-color: #F8FAFC;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: #EEF2F6;
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #0F172A;
+      border: 1px solid #E2E8F0;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge-process { background: rgba(14, 165, 233, 0.15); color: #0284C7; border: 1px solid rgba(14, 165, 233, 0.3); }
+    .badge-store { background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-entity { background: rgba(245, 158, 11, 0.15); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    /* Process Details Card */
+    .process-spec-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+    }
+
+    .process-spec-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .process-spec-title {
+      font-weight: 700;
+      font-size: 13.5px;
+      color: var(--primary);
+    }
+
+    /* Page Breaks for Printing */
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+      margin-top: 30px;
+    }
+
+    @media print {
+      body {
+        background: #FFF;
+        font-size: 11pt;
+      }
+      .action-bar {
+        display: none !important;
+      }
+      .document-container {
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        max-width: 100%;
+      }
+      .diagram-container {
+        background: #0B1120 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+      th {
+        background-color: #F1F5F9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Action Controls -->
+  <div class="action-bar">
+    <button onclick="generatePDF()" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      <span>📥 Download PDF Document</span>
+    </button>
+    <button onclick="window.print()" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+      <span>Print</span>
+    </button>
+    <a href="{{ url('/') }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      <span>Console</span>
+    </a>
+    <a href="{{ url('/database_architecture_pdf.html') }}" class="btn btn-secondary">
+      <span>📄 ERD PDF</span>
+    </a>
+  </div>
+
+  <!-- Main PDF Printable Document Wrapper -->
+  <div class="document-container" id="pdfContent">
+    
+    <!-- Document Header & Title -->
+    <div class="doc-header">
+      <div>
+        <div class="brand-title">StaffO Enterprise ERP</div>
+        <div class="brand-subtitle">System Data Flow Diagram (DFD) Specification</div>
+      </div>
+      <div class="doc-meta">
+        <div><strong>Document Code:</strong> STFO-DFD-2026-v2</div>
+        <div><strong>Classification:</strong> Confidential / Engineering</div>
+        <div><strong>Generated:</strong> 29-07-2026</div>
+      </div>
+    </div>
+
+    <!-- Metadata Grid Box -->
+    <div class="meta-box">
+      <div class="meta-item">
+        <span class="meta-label">Client Name</span>
+        <span class="meta-value" style="color: var(--accent-blue);">StaffO</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Project Name</span>
+        <span class="meta-value" style="color: var(--accent-indigo);">StaffO</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Project Start Date</span>
+        <span class="meta-value" style="color: var(--accent-emerald);">29-07-2026</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Development Dept</span>
+        <span class="meta-value" style="color: var(--accent-amber);">PHP (Laravel 11/12)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Frontend Portal</span>
+        <span class="meta-value">http://192.168.0.202:3020/login</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Architecture Standard</span>
+        <span class="meta-value">Yourdon / DeMarco & Gane / Sarson</span>
+      </div>
+    </div>
+
+    <!-- Executive Overview -->
+    <h2 class="section-heading">1. Executive Overview & DFD Architecture Scope</h2>
+    <p>
+      This document serves as the formal engineering Data Flow Diagram (DFD) specification for the <strong>StaffO Enterprise Multi-Tenant ERP System</strong>. The architecture facilitates rigorous multi-tenant data boundary isolation, granular role-based access control (RBAC), end-to-end HRM Employee 360 profile management, real-time hardware biometric attendance capture via the ZKTeco ADMS push protocol, leave quota workflows, and weekly cafeteria meal scheduling.
+    </p>
+
+    <!-- DFD Notation Guide -->
+    <h3 class="sub-heading">DFD Modeling Standard Notations</h3>
+    <div class="notation-grid">
+      <div class="notation-card">
+        <div class="notation-icon">🔲</div>
+        <div class="notation-title">External Entity</div>
+        <div class="notation-desc">Source/Sink actors outside system boundaries (Admins, Staff, ADMS Devices).</div>
+      </div>
+      <div class="notation-card">
+        <div class="notation-icon">⭕</div>
+        <div class="notation-title">Process Bubble</div>
+        <div class="notation-desc">Business transformation logic, validation rules, and algorithms (1.0 - 6.0).</div>
+      </div>
+      <div class="notation-card">
+        <div class="notation-icon">📂</div>
+        <div class="notation-title">Data Store</div>
+        <div class="notation-desc">Persistent relational repositories & caches (D1 - D7 Database Stores).</div>
+      </div>
+      <div class="notation-card">
+        <div class="notation-icon">➔</div>
+        <div class="notation-title">Data Flow</div>
+        <div class="notation-desc">Directional payloads, HTTP requests, SQL tuples & realtime push streams.</div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         SECTION 2: DFD LEVEL 0 (CONTEXT DIAGRAM)
+         ======================================================== -->
+    <div class="page-break"></div>
+    <h2 class="section-heading">2. DFD Level 0 — Global Context Diagram</h2>
+    <p>
+      The <strong>Level 0 Context Diagram</strong> defines the overall boundary of the StaffO ERP platform in relation to all external human actors and hardware IoT biometric devices. The central bubble <code>0.0</code> receives inputs, orchestrates processing, and delivers structured responses, notifications, and telemetry.
+    </p>
+
+    <!-- Vector SVG: Level 0 Context Diagram -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 580" xmlns="http://www.w3.org/2000/svg" style="background:#070C18; border-radius:8px;">
+        <defs>
+          <linearGradient id="pdfCenterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0284C7"/>
+            <stop offset="50%" stop-color="#4F46E5"/>
+            <stop offset="100%" stop-color="#059669"/>
+          </linearGradient>
+          <linearGradient id="pdfEntityGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1E293B"/>
+            <stop offset="100%" stop-color="#0F172A"/>
+          </linearGradient>
+          <marker id="pdfArrowCyan" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#38BDF8"/>
+          </marker>
+          <marker id="pdfArrowEmerald" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#34D399"/>
+          </marker>
+          <marker id="pdfArrowAmber" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#FBBF24"/>
+          </marker>
+          <marker id="pdfArrowRose" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#FB7185"/>
+          </marker>
+          <marker id="pdfArrowPurple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#C084FC"/>
+          </marker>
+        </defs>
+
+        <!-- Vectors -->
+        <!-- 1. Super Admin <-> 0.0 -->
+        <path d="M 220 95 C 340 95, 360 220, 395 255" stroke="#38BDF8" stroke-width="2" fill="none" marker-end="url(#pdfArrowCyan)"/>
+        <text x="240" y="150" fill="#38BDF8" font-size="9" font-family="'JetBrains Mono', monospace">Tenant Config, Roles, Plans</text>
+        
+        <path d="M 385 285 C 330 260, 260 190, 220 130" stroke="#94A3B8" stroke-dasharray="3" stroke-width="1.5" fill="none" marker-end="url(#pdfArrowCyan)"/>
+        <text x="200" y="210" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">Audit Trails & Telemetry</text>
+
+        <!-- 2. HR Managers <-> 0.0 -->
+        <path d="M 740 95 C 620 95, 600 220, 565 255" stroke="#34D399" stroke-width="2" fill="none" marker-end="url(#pdfArrowEmerald)"/>
+        <text x="600" y="150" fill="#34D399" font-size="9" font-family="'JetBrains Mono', monospace">Employee Onboarding, Rosters, Approvals</text>
+
+        <path d="M 575 285 C 630 260, 700 190, 740 130" stroke="#94A3B8" stroke-dasharray="3" stroke-width="1.5" fill="none" marker-end="url(#pdfArrowEmerald)"/>
+        <text x="630" y="210" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">Attendance Analytics & Leave Quota</text>
+
+        <!-- 3. ZKTeco ADMS Devices <-> 0.0 -->
+        <path d="M 110 350 L 350 320" stroke="#FBBF24" stroke-width="2.5" fill="none" marker-end="url(#pdfArrowAmber)"/>
+        <text x="130" y="315" fill="#FBBF24" font-size="9" font-weight="bold" font-family="'JetBrains Mono', monospace">Raw Punches (Push HTTP /iclock/cdata)</text>
+
+        <path d="M 350 345 L 110 375" stroke="#94A3B8" stroke-dasharray="3" stroke-width="1.5" fill="none" marker-end="url(#pdfArrowAmber)"/>
+        <text x="140" y="395" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">Heartbeat Sync Acks (OK)</text>
+
+        <!-- 4. Employees & Staff <-> 0.0 -->
+        <path d="M 360 475 C 400 425, 420 405, 450 385" stroke="#FB7185" stroke-width="2" fill="none" marker-end="url(#pdfArrowRose)"/>
+        <text x="240" y="455" fill="#FB7185" font-size="9" font-family="'JetBrains Mono', monospace">Credentials, Leave Req, Meal Book</text>
+
+        <path d="M 480 385 C 480 425, 460 455, 420 485" stroke="#94A3B8" stroke-dasharray="3" stroke-width="1.5" fill="none" marker-end="url(#pdfArrowRose)"/>
+        <text x="490" y="455" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">JWT Token, Balance, QR Token</text>
+
+        <!-- 5. Cafeteria Staff <-> 0.0 -->
+        <path d="M 850 350 L 610 320" stroke="#C084FC" stroke-width="2" fill="none" marker-end="url(#pdfArrowPurple)"/>
+        <text x="640" y="315" fill="#C084FC" font-size="9" font-family="'JetBrains Mono', monospace">Weekly Lunch Menus & Pricing</text>
+
+        <path d="M 610 345 L 850 375" stroke="#94A3B8" stroke-dasharray="3" stroke-width="1.5" fill="none" marker-end="url(#pdfArrowPurple)"/>
+        <text x="640" y="395" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">Booked Headcount & QR Scan</text>
+
+        <!-- Central Bubble 0.0 -->
+        <g transform="translate(480, 310)">
+          <circle r="120" fill="#0E1626" stroke="url(#pdfCenterGrad)" stroke-width="3"/>
+          <circle r="113" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4"/>
+          
+          <text x="0" y="-55" text-anchor="middle" fill="#38BDF8" font-size="13" font-weight="800" font-family="'JetBrains Mono', monospace">0.0</text>
+          <text x="0" y="-30" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="800">StaffO ERP Core Engine</text>
+          <text x="0" y="-12" text-anchor="middle" fill="#94A3B8" font-size="10.5">& API Gateway System</text>
+          
+          <line x1="-80" y1="2" x2="80" y2="2" stroke="rgba(255,255,255,0.15)"/>
+          
+          <text x="0" y="22" text-anchor="middle" fill="#34D399" font-size="9" font-weight="600" font-family="'JetBrains Mono', monospace">• Multi-Tenant RBAC</text>
+          <text x="0" y="38" text-anchor="middle" fill="#FBBF24" font-size="9" font-weight="600" font-family="'JetBrains Mono', monospace">• ADMS Push Ingestion</text>
+          <text x="0" y="54" text-anchor="middle" fill="#FB7185" font-size="9" font-weight="600" font-family="'JetBrains Mono', monospace">• Employee 360 & Leaves</text>
+          <text x="0" y="70" text-anchor="middle" fill="#C084FC" font-size="9" font-weight="600" font-family="'JetBrains Mono', monospace">• Weekly Cafeteria Meals</text>
+        </g>
+
+        <!-- Entities -->
+        <g transform="translate(50, 45)">
+          <rect width="170" height="85" rx="6" fill="url(#pdfEntityGrad)" stroke="#38BDF8" stroke-width="1.5"/>
+          <rect width="170" height="22" rx="6" fill="#0284C7"/>
+          <text x="12" y="15" fill="#FFF" font-size="10" font-weight="bold">👨‍💼 Super / Tenant Admin</text>
+          <text x="12" y="42" fill="#94A3B8" font-size="8.5">• Org & Company Setup</text>
+          <text x="12" y="56" fill="#94A3B8" font-size="8.5">• Role & Permission Matrix</text>
+          <text x="12" y="70" fill="#94A3B8" font-size="8.5">• Subscription Licensing</text>
+        </g>
+
+        <g transform="translate(740, 45)">
+          <rect width="170" height="85" rx="6" fill="url(#pdfEntityGrad)" stroke="#34D399" stroke-width="1.5"/>
+          <rect width="170" height="22" rx="6" fill="#059669"/>
+          <text x="12" y="15" fill="#FFF" font-size="10" font-weight="bold">👥 HR Operations / Mgr</text>
+          <text x="12" y="42" fill="#94A3B8" font-size="8.5">• Employee Onboarding</text>
+          <text x="12" y="56" fill="#94A3B8" font-size="8.5">• Work Shift Rostering</text>
+          <text x="12" y="70" fill="#94A3B8" font-size="8.5">• Leave Approvals Workflow</text>
+        </g>
+
+        <g transform="translate(15, 325)">
+          <rect width="170" height="85" rx="6" fill="url(#pdfEntityGrad)" stroke="#FBBF24" stroke-width="1.5"/>
+          <rect width="170" height="22" rx="6" fill="#D97706"/>
+          <text x="12" y="15" fill="#FFF" font-size="10" font-weight="bold">📟 ZKTeco ADMS Devices</text>
+          <text x="12" y="42" fill="#94A3B8" font-size="8.5">• Biometric Push Stream</text>
+          <text x="12" y="56" fill="#94A3B8" font-size="8.5">• Raw Timestamp Logs</text>
+          <text x="12" y="70" fill="#94A3B8" font-size="8.5">• Device Serial & Heartbeat</text>
+        </g>
+
+        <g transform="translate(300, 485)">
+          <rect width="180" height="80" rx="6" fill="url(#pdfEntityGrad)" stroke="#FB7185" stroke-width="1.5"/>
+          <rect width="180" height="22" rx="6" fill="#E11D48"/>
+          <text x="12" y="15" fill="#FFF" font-size="10" font-weight="bold">👤 Employees & Staff</text>
+          <text x="12" y="40" fill="#94A3B8" font-size="8.5">• Profile & Demographics</text>
+          <text x="12" y="54" fill="#94A3B8" font-size="8.5">• Leave Quotas & Requests</text>
+          <text x="12" y="68" fill="#94A3B8" font-size="8.5">• Lunch Meal Reservations</text>
+        </g>
+
+        <g transform="translate(775, 325)">
+          <rect width="170" height="85" rx="6" fill="url(#pdfEntityGrad)" stroke="#C084FC" stroke-width="1.5"/>
+          <rect width="170" height="22" rx="6" fill="#7E22CE"/>
+          <text x="12" y="15" fill="#FFF" font-size="10" font-weight="bold">🍳 Cafeteria Staff & Chefs</text>
+          <text x="12" y="42" fill="#94A3B8" font-size="8.5">• Publish Weekly Menu</text>
+          <text x="12" y="56" fill="#94A3B8" font-size="8.5">• Lunch Headcount Forecast</text>
+          <text x="12" y="70" fill="#94A3B8" font-size="8.5">• Token Consumption Scan</text>
+        </g>
+      </svg>
+      <div class="diagram-caption">Figure 2.1: Master Context Level 0 Data Flow Diagram (StaffO ERP Core Engine Boundary)</div>
+    </div>
+
+    <!-- Data Flow Matrix Table -->
+    <h3 class="sub-heading">Context Level Inbound / Outbound Data Flow Matrix</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>External Entity</th>
+          <th>Flow Direction</th>
+          <th>Payload / Data Items</th>
+          <th>Destination / Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-entity">Super Admin</span></td>
+          <td>Inbound ➔</td>
+          <td>Organization profile, company licensing, role definitions, permission closures</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">Super Admin</span></td>
+          <td>🠄 Outbound</td>
+          <td>Audit logs, system error logs, tenant resource usage metrics</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">HR Managers</span></td>
+          <td>Inbound ➔</td>
+          <td>Employee onboarding forms, work shift rosters, leave approvals</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">HR Managers</span></td>
+          <td>🠄 Outbound</td>
+          <td>Daily attendance summaries, evaluated late/overtime hours, leave quotas</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">ZKTeco Terminals</span></td>
+          <td>Inbound ➔</td>
+          <td>Raw biometric punches (Device Serial, User PIN, Timestamp, Verify Type)</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">ZKTeco Terminals</span></td>
+          <td>🠄 Outbound</td>
+          <td>HTTP 200 OK Heartbeat ACK, Sync commands, Device clock synchronization</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">Employees</span></td>
+          <td>Inbound ➔</td>
+          <td>Auth credentials, Leave applications, Weekly meal booking selections</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">Employees</span></td>
+          <td>🠄 Outbound</td>
+          <td>Sanctum JWT token, Profile payload, Remaining leave balance, Meal QR Token</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">Cafeteria Chefs</span></td>
+          <td>Inbound ➔</td>
+          <td>Weekly 7-day menu items, daily meal pricing, booking cutoff window</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-entity">Cafeteria Chefs</span></td>
+          <td>🠄 Outbound</td>
+          <td>Aggregated daily headcount report, QR barcode validation confirmation</td>
+          <td>0.0 StaffO Core</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ========================================================
+         SECTION 3: DFD LEVEL 1 (PROCESS DECOMPOSITION)
+         ======================================================== -->
+    <div class="page-break"></div>
+    <h2 class="section-heading">3. DFD Level 1 — System Process Decomposition</h2>
+    <p>
+      The <strong>Level 1 Decomposition Diagram</strong> dissects the single central system into <strong>6 autonomous functional transformation processes</strong> interacting with <strong>7 persistent multi-tenant data stores</strong>.
+    </p>
+
+    <!-- Vector SVG: Level 1 Decomposition Diagram -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 640" xmlns="http://www.w3.org/2000/svg" style="background:#070C18; border-radius:8px;">
+        <!-- Process 1.0 <-> Stores D1, D2, D7 -->
+        <path d="M 220 85 L 360 85" stroke="#38BDF8" stroke-width="2" fill="none" marker-end="url(#pdfArrowCyan)"/>
+        <path d="M 440 125 L 440 190" stroke="#38BDF8" stroke-width="1.8" fill="none" marker-end="url(#pdfArrowCyan)"/>
+        <path d="M 440 85 L 580 85" stroke="#818CF8" stroke-width="2" fill="none" marker-end="url(#pdfArrowCyan)"/>
+
+        <!-- Process 2.0 <-> Store D3 -->
+        <path d="M 160 280 L 250 280" stroke="#34D399" stroke-width="2" fill="none" marker-end="url(#pdfArrowEmerald)"/>
+        <path d="M 330 320 L 330 390" stroke="#34D399" stroke-width="1.8" fill="none" marker-end="url(#pdfArrowEmerald)"/>
+
+        <!-- Process 3.0 <-> Store D4 -->
+        <path d="M 740 280 L 650 280" stroke="#FBBF24" stroke-width="2" fill="none" marker-end="url(#pdfArrowAmber)"/>
+        <path d="M 570 320 L 570 390" stroke="#FBBF24" stroke-width="1.8" fill="none" marker-end="url(#pdfArrowAmber)"/>
+
+        <!-- Process 4.0 <-> Store D5 -->
+        <path d="M 250 500 L 360 500" stroke="#FB7185" stroke-width="2" fill="none" marker-end="url(#pdfArrowRose)"/>
+
+        <!-- Process 5.0 <-> Store D6 -->
+        <path d="M 650 500 L 550 500" stroke="#C084FC" stroke-width="2" fill="none" marker-end="url(#pdfArrowPurple)"/>
+
+        <!-- Process 1.0 Bubble -->
+        <g transform="translate(440, 85)">
+          <circle r="42" fill="#1E293B" stroke="#0284C7" stroke-width="2"/>
+          <text x="0" y="-10" text-anchor="middle" fill="#38BDF8" font-size="10.5" font-weight="bold" font-family="'JetBrains Mono', monospace">1.0</text>
+          <text x="0" y="6" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">Tenant Auth &</text>
+          <text x="0" y="18" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">RBAC Check</text>
+        </g>
+
+        <!-- Process 2.0 Bubble -->
+        <g transform="translate(160, 280)">
+          <circle r="42" fill="#1E293B" stroke="#059669" stroke-width="2"/>
+          <text x="0" y="-10" text-anchor="middle" fill="#34D399" font-size="10.5" font-weight="bold" font-family="'JetBrains Mono', monospace">2.0</text>
+          <text x="0" y="6" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">HRM Employee</text>
+          <text x="0" y="18" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">360 Lifecycle</text>
+        </g>
+
+        <!-- Process 3.0 Bubble -->
+        <g transform="translate(740, 280)">
+          <circle r="42" fill="#1E293B" stroke="#D97706" stroke-width="2"/>
+          <text x="0" y="-10" text-anchor="middle" fill="#FBBF24" font-size="10.5" font-weight="bold" font-family="'JetBrains Mono', monospace">3.0</text>
+          <text x="0" y="6" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">ADMS Push &</text>
+          <text x="0" y="18" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">Shift Evaluation</text>
+        </g>
+
+        <!-- Process 4.0 Bubble -->
+        <g transform="translate(160, 500)">
+          <circle r="42" fill="#1E293B" stroke="#E11D48" stroke-width="2"/>
+          <text x="0" y="-10" text-anchor="middle" fill="#FB7185" font-size="10.5" font-weight="bold" font-family="'JetBrains Mono', monospace">4.0</text>
+          <text x="0" y="6" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">Leave Quotas &</text>
+          <text x="0" y="18" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">Approval Rules</text>
+        </g>
+
+        <!-- Process 5.0 Bubble -->
+        <g transform="translate(740, 500)">
+          <circle r="42" fill="#1E293B" stroke="#7E22CE" stroke-width="2"/>
+          <text x="0" y="-10" text-anchor="middle" fill="#C084FC" font-size="10.5" font-weight="bold" font-family="'JetBrains Mono', monospace">5.0</text>
+          <text x="0" y="6" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">Cafeteria Menu &</text>
+          <text x="0" y="18" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">Meal Booking</text>
+        </g>
+
+        <!-- Process 6.0 Bubble -->
+        <g transform="translate(450, 580)">
+          <circle r="42" fill="#1E293B" stroke="#6366F1" stroke-width="2"/>
+          <text x="0" y="-10" text-anchor="middle" fill="#818CF8" font-size="10.5" font-weight="bold" font-family="'JetBrains Mono', monospace">6.0</text>
+          <text x="0" y="6" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">Audit Logging &</text>
+          <text x="0" y="18" text-anchor="middle" fill="#FFF" font-size="8" font-weight="bold">Live Telemetry</text>
+        </g>
+
+        <!-- Data Stores -->
+        <!-- D1 -->
+        <g transform="translate(40, 60)">
+          <rect width="170" height="48" fill="#0B132B" stroke="#0284C7" stroke-width="1.5"/>
+          <line x1="38" y1="0" x2="38" y2="48" stroke="#0284C7" stroke-width="1.5"/>
+          <text x="14" y="28" fill="#38BDF8" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace">D1</text>
+          <text x="48" y="22" fill="#FFF" font-size="8.5" font-weight="bold">Multi-Tenancy Store</text>
+          <text x="48" y="36" fill="#94A3B8" font-size="7">companies, orgs, plans</text>
+        </g>
+
+        <!-- D2 -->
+        <g transform="translate(590, 60)">
+          <rect width="170" height="48" fill="#0B132B" stroke="#6366F1" stroke-width="1.5"/>
+          <line x1="38" y1="0" x2="38" y2="48" stroke="#6366F1" stroke-width="1.5"/>
+          <text x="14" y="28" fill="#818CF8" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace">D2</text>
+          <text x="48" y="22" fill="#FFF" font-size="8.5" font-weight="bold">RBAC Permissions Matrix</text>
+          <text x="48" y="36" fill="#94A3B8" font-size="7">roles, perms, hierarchy</text>
+        </g>
+
+        <!-- D3 -->
+        <g transform="translate(250, 255)">
+          <rect width="170" height="48" fill="#0B132B" stroke="#059669" stroke-width="1.5"/>
+          <line x1="38" y1="0" x2="38" y2="48" stroke="#059669" stroke-width="1.5"/>
+          <text x="14" y="28" fill="#34D399" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace">D3</text>
+          <text x="48" y="22" fill="#FFF" font-size="8.5" font-weight="bold">Employee 360 Store</text>
+          <text x="48" y="36" fill="#94A3B8" font-size="7">employees, family, docs</text>
+        </g>
+
+        <!-- D4 -->
+        <g transform="translate(480, 255)">
+          <rect width="170" height="48" fill="#0B132B" stroke="#D97706" stroke-width="1.5"/>
+          <line x1="38" y1="0" x2="38" y2="48" stroke="#D97706" stroke-width="1.5"/>
+          <text x="14" y="28" fill="#FBBF24" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace">D4</text>
+          <text x="48" y="22" fill="#FFF" font-size="8.5" font-weight="bold">ADMS Attendance Store</text>
+          <text x="48" y="36" fill="#94A3B8" font-size="7">devices, raw_punches, shifts</text>
+        </g>
+
+        <!-- D5 -->
+        <g transform="translate(360, 475)">
+          <rect width="170" height="48" fill="#0B132B" stroke="#E11D48" stroke-width="1.5"/>
+          <line x1="38" y1="0" x2="38" y2="48" stroke="#E11D48" stroke-width="1.5"/>
+          <text x="14" y="28" fill="#FB7185" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace">D5</text>
+          <text x="48" y="22" fill="#FFF" font-size="8.5" font-weight="bold">Leave & Holiday Store</text>
+          <text x="48" y="36" fill="#94A3B8" font-size="7">balances, applications, days</text>
+        </g>
+
+        <!-- D6 -->
+        <g transform="translate(560, 475)">
+          <rect width="170" height="48" fill="#0B132B" stroke="#7E22CE" stroke-width="1.5"/>
+          <line x1="38" y1="0" x2="38" y2="48" stroke="#7E22CE" stroke-width="1.5"/>
+          <text x="14" y="28" fill="#C084FC" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace">D6</text>
+          <text x="48" y="22" fill="#FFF" font-size="8.5" font-weight="bold">Cafeteria Meals Store</text>
+          <text x="48" y="36" fill="#94A3B8" font-size="7">weekly_meals, selections</text>
+        </g>
+
+        <!-- D7 -->
+        <g transform="translate(360, 190)">
+          <rect width="170" height="48" fill="#0B132B" stroke="#6366F1" stroke-width="1.5"/>
+          <line x1="38" y1="0" x2="38" y2="48" stroke="#6366F1" stroke-width="1.5"/>
+          <text x="14" y="28" fill="#818CF8" font-size="9.5" font-weight="bold" font-family="'JetBrains Mono', monospace">D7</text>
+          <text x="48" y="22" fill="#FFF" font-size="8.5" font-weight="bold">Security & Audit Store</text>
+          <text x="48" y="36" fill="#94A3B8" font-size="7">users, audit_logs, logins</text>
+        </g>
+      </svg>
+      <div class="diagram-caption">Figure 3.1: DFD Level 1 System Process Decomposition & Data Store Flow</div>
+    </div>
+
+    <!-- ========================================================
+         SECTION 4: DETAILED PROCESS SPECIFICATIONS
+         ======================================================== -->
+    <div class="page-break"></div>
+    <h2 class="section-heading">4. Detailed Process Specifications</h2>
+
+    <!-- Process 1.0 -->
+    <div class="process-spec-card">
+      <div class="process-spec-header">
+        <span class="process-spec-title">Process 1.0: Tenant Resolution & RBAC Authorization Engine</span>
+        <span class="badge badge-process">Process 1.0</span>
+      </div>
+      <p style="font-size:12px; margin-bottom:6px;">
+        <strong>Purpose:</strong> Validates incoming HTTP requests, resolves tenant from <code>X-ORG-ID</code> header, authenticates Sanctum bearer tokens, and verifies user permissions through closure trees.
+      </p>
+      <div style="font-size:11px; color:#475569;">
+        <div><strong>Inputs:</strong> HTTP Request Headers (<code>Authorization</code>, <code>X-ORG-ID</code>), Login Credentials (email, password)</div>
+        <div><strong>Data Stores Accessed:</strong> <code>D1: Multi-Tenancy</code>, <code>D2: RBAC Matrix</code>, <code>D7: Security & Users</code></div>
+        <div><strong>Outputs:</strong> Authenticated User Session, Granted Permissions List, Access Denied (403) Exceptions</div>
+      </div>
+    </div>
+
+    <!-- Process 2.0 -->
+    <div class="process-spec-card">
+      <div class="process-spec-header">
+        <span class="process-spec-title">Process 2.0: HRM Employee 360 Lifecycle Management</span>
+        <span class="badge badge-process">Process 2.0</span>
+      </div>
+      <p style="font-size:12px; margin-bottom:6px;">
+        <strong>Purpose:</strong> Handles employee onboarding, biometric ID mappings, reporting lines, supervisor chains, and manages 6 child sub-profile tables.
+      </p>
+      <div style="font-size:11px; color:#475569;">
+        <div><strong>Inputs:</strong> Employee demographics, National ID, Bank accounts, Education records, Family details, Uploaded docs</div>
+        <div><strong>Data Stores Accessed:</strong> <code>D3: Employee 360 Store</code> (<code>hrm_employees</code>, <code>educations</code>, <code>families</code>, etc.)</div>
+        <div><strong>Outputs:</strong> Complete Employee 360 payload, Organogram tree structure, Profile audit logs</div>
+      </div>
+    </div>
+
+    <!-- Process 3.0 -->
+    <div class="process-spec-card">
+      <div class="process-spec-header">
+        <span class="process-spec-title">Process 3.0: Realtime ADMS Ingestion & Shift Evaluation</span>
+        <span class="badge badge-process">Process 3.0</span>
+      </div>
+      <p style="font-size:12px; margin-bottom:6px;">
+        <strong>Purpose:</strong> Listens on ADMS push HTTP endpoints (<code>/iclock/cdata</code>), decodes multi-line biometric packets, inserts raw logs, and applies shift evaluation rules (grace period, late flags, overtime).
+      </p>
+      <div style="font-size:11px; color:#475569;">
+        <div><strong>Inputs:</strong> Hardware push strings: <code>SN=BIOTERM01\n102\t2026-08-19 08:58:12\t1\t1</code></div>
+        <div><strong>Data Stores Accessed:</strong> <code>D4: ADMS Attendance Store</code> (<code>adms_devices</code>, <code>raw_attendances</code>, <code>work_shifts</code>)</div>
+        <div><strong>Outputs:</strong> HTTP 200 OK ACK to device, Daily evaluated attendances, Attendance discrepancy alerts</div>
+      </div>
+    </div>
+
+    <!-- Process 4.0 -->
+    <div class="process-spec-card">
+      <div class="process-spec-header">
+        <span class="process-spec-title">Process 4.0: Leave Quotas & Multi-Tier Workflow Engine</span>
+        <span class="badge badge-process">Process 4.0</span>
+      </div>
+      <p style="font-size:12px; margin-bottom:6px;">
+        <strong>Purpose:</strong> Initializes yearly quotas per leave type, validates balance deductions, skips public holidays/weekends, and routes approval requests up the manager chain.
+      </p>
+      <div style="font-size:11px; color:#475569;">
+        <div><strong>Inputs:</strong> Leave application date range, Leave type ID, Employee ID, Manager decision (Approve/Reject)</div>
+        <div><strong>Data Stores Accessed:</strong> <code>D5: Leave & Holiday Store</code> (<code>hrm_holidays</code>, <code>leave_balances</code>, <code>leave_applications</code>)</div>
+        <div><strong>Outputs:</strong> Balance decrement transactions, Approval status notifications, Calendar block updates</div>
+      </div>
+    </div>
+
+    <!-- Process 5.0 -->
+    <div class="process-spec-card">
+      <div class="process-spec-header">
+        <span class="process-spec-title">Process 5.0: Cafeteria Menu Scheduling & Booking Verification</span>
+        <span class="badge badge-process">Process 5.0</span>
+      </div>
+      <p style="font-size:12px; margin-bottom:6px;">
+        <strong>Purpose:</strong> Enables cafeteria chefs to schedule weekly meal menus, enforces reservation cutoff windows, generates meal redemption tokens, and verifies consumption at counters.
+      </p>
+      <div style="font-size:11px; color:#475569;">
+        <div><strong>Inputs:</strong> Weekly menu details, Staff lunch selection, Barcode scan at cafeteria counter</div>
+        <div><strong>Data Stores Accessed:</strong> <code>D6: Cafeteria Meals Store</code> (<code>hrm_weekly_meals</code>, <code>hrm_employee_meal_selections</code>)</div>
+        <div><strong>Outputs:</strong> Meal Token QR payload, Token redeemed validation response, Kitchen headcount forecast</div>
+      </div>
+    </div>
+
+    <!-- Process 6.0 -->
+    <div class="process-spec-card">
+      <div class="process-spec-header">
+        <span class="process-spec-title">Process 6.0: System Telemetry, Security & Field-Level Audit</span>
+        <span class="badge badge-process">Process 6.0</span>
+      </div>
+      <p style="font-size:12px; margin-bottom:6px;">
+        <strong>Purpose:</strong> Monitors API gateway response latency, tracks login failures to prevent brute force, and captures before/after JSON diffs on model mutations.
+      </p>
+      <div style="font-size:11px; color:#475569;">
+        <div><strong>Inputs:</strong> Request execution duration, Client IP, Eloquent model mutation events (created, updated, deleted)</div>
+        <div><strong>Data Stores Accessed:</strong> <code>D7: Security & Audit Store</code> (<code>audit_logs</code>, <code>user_login_attempts</code>, <code>password_histories</code>)</div>
+        <div><strong>Outputs:</strong> Security violation triggers, Historical field audit trails, Live gateway telemetry charts</div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         SECTION 5: DATA STORE CATALOG
+         ======================================================== -->
+    <div class="page-break"></div>
+    <h2 class="section-heading">5. Persistent Multi-Tenant Data Store Catalog</h2>
+    <p>
+      Below is the comprehensive catalog of persistent data repositories referenced across all DFD processes.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Store ID</th>
+          <th>Store Name</th>
+          <th>Primary Database Tables</th>
+          <th>Storage Purpose & Isolation Level</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>D1</code></td>
+          <td>Multi-Tenancy Store</td>
+          <td><code>companies</code>, <code>organizations</code>, <code>plans</code>, <code>organization_plans</code></td>
+          <td>Tenant organization hierarchy, company branding, and licensed module features.</td>
+        </tr>
+        <tr>
+          <td><code>D2</code></td>
+          <td>RBAC Permissions Matrix</td>
+          <td><code>roles</code>, <code>permissions</code>, <code>role_hierarchy</code>, <code>role_permissions</code></td>
+          <td>Hierarchical role inheritance closure table, granular permissions, and dynamic menus.</td>
+        </tr>
+        <tr>
+          <td><code>D3</code></td>
+          <td>Employee 360 Store</td>
+          <td><code>hrm_employees</code>, <code>educations</code>, <code>families</code>, <code>experiences</code>, <code>documents</code></td>
+          <td>Complete 50+ column master employee profile and 6 relational sub-profile repositories.</td>
+        </tr>
+        <tr>
+          <td><code>D4</code></td>
+          <td>ADMS Attendance Store</td>
+          <td><code>adms_devices</code>, <code>raw_attendances</code>, <code>work_shifts</code>, <code>attendances</code></td>
+          <td>Biometric hardware registry, raw punch logs, work shifts, and evaluated daily records.</td>
+        </tr>
+        <tr>
+          <td><code>D5</code></td>
+          <td>Leave & Holiday Store</td>
+          <td><code>hrm_holidays</code>, <code>hrm_leave_balances</code>, <code>hrm_leave_applications</code></td>
+          <td>Annual leave quotas, government holiday calendar, multi-level application workflow.</td>
+        </tr>
+        <tr>
+          <td><code>D6</code></td>
+          <td>Cafeteria Meals Store</td>
+          <td><code>hrm_weekly_meals</code>, <code>hrm_employee_meal_selections</code></td>
+          <td>Chef 7-day weekly menu configurations, employee lunch bookings, counter scans.</td>
+        </tr>
+        <tr>
+          <td><code>D7</code></td>
+          <td>Security & Audit Store</td>
+          <td><code>users</code>, <code>audit_logs</code>, <code>user_login_attempts</code>, <code>password_histories</code></td>
+          <td>System user accounts, SHA-256 password histories, and model JSON audit trails.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ========================================================
+         SECTION 6: HARDWARE PROTOCOL DATA FLOW
+         ======================================================== -->
+    <h2 class="section-heading">6. ZKTeco ADMS Realtime Stream Sequence</h2>
+    <p>
+      The sequence below depicts the real-time hardware stream flow between the physical ZKTeco terminal and Process <code>3.0</code> over HTTP port <code>8090</code>.
+    </p>
+
+    <div class="diagram-container" style="background:#0F172A; padding:16px;">
+      <pre style="color:#38BDF8; font-family:'JetBrains Mono', monospace; font-size:11px; line-height:1.6;">
+[ ZKTeco Terminal ]                     [ Process 3.0 (Gateway) ]             [ D4 ADMS Attendance Store ]
+        |                                           |                                      |
+        |--- 1. POST /iclock/cdata (Device SN) ---->|                                      |
+        |                                           |--- 2. Lookup & Verify Device ------->|
+        |<-- 3. HTTP 200 OK: "POST /iclock/cdata" --|                                      |
+        |                                           |                                      |
+        |--- 4. POST /iclock/cdata (Raw Punches) -->|                                      |
+        |       SN=TERM01\nPIN=102\t2026-08-19 ...  |--- 5. Batch Insert Raw Logs -------->|
+        |                                           |--- 6. Match Shift & Compute OT ----->|
+        |                                           |--- 7. Update Daily Attendance ------>|
+        |<-- 8. HTTP 200 OK: "OK: 1" ---------------|                                      |
+        |                                           |                                      |
+      </pre>
+    </div>
+
+    <!-- ========================================================
+         SECTION 7: DOCUMENT CONTROL & SIGN-OFF
+         ======================================================== -->
+    <h2 class="section-heading">7. Document Control & Sign-Off</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Name / Department</th>
+          <th>Approval Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Lead Architect</strong></td>
+          <td>Lead Software Architect (PHP / ERP)</td>
+          <td><span style="color:var(--accent-emerald); font-weight:bold;">APPROVED</span></td>
+          <td>29-07-2026</td>
+        </tr>
+        <tr>
+          <td><strong>QA Lead</strong></td>
+          <td>Quality Assurance Department</td>
+          <td><span style="color:var(--accent-emerald); font-weight:bold;">VERIFIED</span></td>
+          <td>29-07-2026</td>
+        </tr>
+        <tr>
+          <td><strong>Project Director</strong></td>
+          <td>StaffO Project Management Office</td>
+          <td><span style="color:var(--accent-emerald); font-weight:bold;">SIGNED-OFF</span></td>
+          <td>29-07-2026</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+
+  <script>
+    // Manual 1-Click Client-Side PDF Generation
+    function generatePDF() {
+      const element = document.getElementById('pdfContent');
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: 'StaffO_ERP_System_Data_Flow_Diagram_DFD_Documentation.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      const btn = document.querySelector('.btn-primary');
+      let originalText = '📥 Download PDF Document';
+      if (btn) {
+        originalText = btn.innerText;
+        btn.innerText = '⏳ Generating PDF...';
+        btn.disabled = true;
+      }
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        if (btn) {
+          btn.innerText = originalText;
+          btn.disabled = false;
+        }
+      }).catch(err => {
+        console.error('PDF generation error, falling back to print dialog:', err);
+        window.print();
+        if (btn) {
+          btn.innerText = originalText;
+          btn.disabled = false;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

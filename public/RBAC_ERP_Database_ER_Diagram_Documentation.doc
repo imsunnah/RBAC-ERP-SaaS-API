@@ -1,0 +1,349 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>RBAC ERP API - Comprehensive Database ER Diagram & Architecture Specification</title>
+<!--[if gte mso 9]>
+<xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  body {
+    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #1a1a1a;
+    margin: 1.2in 1in 1.2in 1in;
+  }
+  h1 {
+    font-size: 24pt;
+    font-weight: bold;
+    color: #0b3c5d;
+    border-bottom: 2pt solid #0b3c5d;
+    padding-bottom: 6pt;
+    margin-top: 18pt;
+    margin-bottom: 12pt;
+  }
+  h2 {
+    font-size: 16pt;
+    font-weight: bold;
+    color: #1d2731;
+    border-bottom: 1pt solid #d9b310;
+    padding-bottom: 4pt;
+    margin-top: 20pt;
+    margin-bottom: 8pt;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #328cc1;
+    margin-top: 14pt;
+    margin-bottom: 6pt;
+    page-break-after: avoid;
+  }
+  p {
+    margin-top: 0;
+    margin-bottom: 8pt;
+    text-align: justify;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8pt;
+    margin-bottom: 16pt;
+    font-size: 9.5pt;
+  }
+  th {
+    background-color: #0b3c5d;
+    color: #ffffff;
+    font-weight: bold;
+    text-align: left;
+    padding: 6pt 8pt;
+    border: 1pt solid #0b3c5d;
+  }
+  td {
+    padding: 5pt 8pt;
+    border: 1pt solid #d1d5db;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background-color: #f9fafb;
+  }
+  .badge-pk {
+    font-weight: bold;
+    color: #b91c1c;
+    background-color: #fee2e2;
+    padding: 1pt 4pt;
+    border-radius: 3pt;
+  }
+  .badge-fk {
+    font-weight: bold;
+    color: #0369a1;
+    background-color: #e0f2fe;
+    padding: 1pt 4pt;
+    border-radius: 3pt;
+  }
+  .badge-uk {
+    font-weight: bold;
+    color: #b45309;
+    background-color: #fef3c7;
+    padding: 1pt 4pt;
+    border-radius: 3pt;
+  }
+  .code-block {
+    background-color: #f3f4f6;
+    border-left: 3pt solid #0b3c5d;
+    padding: 8pt 12pt;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9pt;
+    margin-bottom: 12pt;
+    white-space: pre-wrap;
+  }
+  .cover-page {
+    text-align: center;
+    padding-top: 80pt;
+    padding-bottom: 120pt;
+    page-break-after: always;
+  }
+  .cover-title {
+    font-size: 28pt;
+    font-weight: 800;
+    color: #0b3c5d;
+    margin-bottom: 12pt;
+  }
+  .cover-subtitle {
+    font-size: 15pt;
+    color: #4b5563;
+    margin-bottom: 40pt;
+  }
+  .cover-meta {
+    font-size: 11pt;
+    color: #6b7280;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<div class="cover-page">
+  <div class="cover-title">RBAC ERP API</div>
+  <div class="cover-subtitle">Enterprise Database Architecture & Entity Relationship (ER) Specification</div>
+  <div style="width: 80pt; height: 3pt; background-color: #0b3c5d; margin: 0 auto 40pt auto;"></div>
+  <div class="cover-meta">
+    <strong>Author:</strong> ERP Engineering Team<br>
+    <strong>Framework:</strong> Laravel 11 / PHP 8.2+ / MySQL / PostgreSQL<br>
+    <strong>Total Entities Monitored:</strong> 38 Database Tables & Pivots<br>
+    <strong>Core Architecture:</strong> Multi-Tenant SaaS, Hierarchical RBAC, Employee 360, ZKTeco ADMS Biometrics<br>
+    <strong>Date:</strong> August 2026<br>
+    <strong>Status:</strong> Approved Production Architecture
+  </div>
+</div>
+
+<h1>1. System Overview & Multi-Tenant Architecture</h1>
+<p>The <strong>RBAC ERP API</strong> is an enterprise-grade SaaS system designed around strict multi-tenancy, granular hierarchical permissions, complete Employee 360 profile tracking, and real-time hardware biometric attendance capture via ZKTeco ADMS push protocol.</p>
+
+<h2>1.1 Core Subsystems Breakdown</h2>
+<ul>
+  <li><strong>Subsystem 1: Multi-Tenancy & Licensing</strong> (<code>companies</code>, <code>organizations</code>, <code>organization_plans</code>, <code>user_organizations</code>, <code>organization_modules</code>, <code>user_modules</code>)</li>
+  <li><strong>Subsystem 2: RBAC & Dynamic Menus</strong> (<code>modules</code>, <code>permissions</code>, <code>roles</code>, <code>role_hierarchy</code>, <code>role_permissions</code>, <code>user_roles</code>, <code>user_permissions</code>, <code>menus</code>, <code>submenus</code>, <code>role_menus</code>, <code>role_submenus</code>, <code>role_modules</code>)</li>
+  <li><strong>Subsystem 3: Auth, Security & Auditing</strong> (<code>users</code>, <code>audit_logs</code>, <code>user_login_attempts</code>, <code>password_histories</code>)</li>
+  <li><strong>Subsystem 4: Dual-Tier Reference Lookups</strong> (<code>global_lookup_groups</code>, <code>global_lookups</code>, <code>hrm_lookup_groups</code>, <code>hrm_lookups</code>)</li>
+  <li><strong>Subsystem 5: HRM Employee 360 Profile</strong> (<code>hrm_employees</code>, <code>hrm_employee_education</code>, <code>hrm_employee_experience</code>, <code>hrm_employee_family</code>, <code>hrm_employee_emergency_contacts</code>, <code>hrm_employee_documents</code>)</li>
+  <li><strong>Subsystem 6: ZKTeco ADMS Biometrics & Shifts</strong> (<code>adms_devices</code>, <code>work_shifts</code>, <code>duty_rosters</code>, <code>hrm_raw_attendances</code>, <code>hrm_attendances</code>, <code>payroll_configs</code>)</li>
+  <li><strong>Subsystem 7: Leave Quotas & Holidays</strong> (<code>hrm_holidays</code>, <code>hrm_leave_balances</code>, <code>hrm_leave_applications</code>, <code>hrm_leave_application_documents</code>)</li>
+  <li><strong>Subsystem 8: Cafeteria & Meal Reservations</strong> (<code>hrm_weekly_meals</code>, <code>hrm_employee_meal_selections</code>)</li>
+</ul>
+
+<h1>2. Master Entity Relational Map (ASCII Architecture)</h1>
+<div class="code-block">
++----------------------------------------------------------------------------------------------------+
+|                                    MASTER RBAC ERP ARCHITECTURE                                    |
++----------------------------------------------------------------------------------------------------+
+                                      [ companies ] (Root Multi-Tenant)
+                                            |
+                                            | (1:N)
+                                            v
+                                   [ organizations ] (Tenant Unit)
+                                    /     |        \
+                +------------------+      |         +------------------+
+                | (1:1)                   | (1:N)                      | (1:N)
+                v                         v                            v
+      [ organization_plans ]          [ roles ]                 [ hrm_employees ]
+                                       /     \                      /     |     \
+                        (Inherits)    /       \ (N:M)              /      |      \ (1:N)
+                                     v         v                  /       |       v
+                              [ roles ]    [ permissions ]       /        |    [ hrm_employee_edu/exp/fam ]
+                                     \         /                /         |
+                                      \       /                /          |
+                                       v     v                /           | (1:N)
+                                      [ users ] <------------+            v
+                                       /  |  \                     [ hrm_attendances ]
+                         (Stream Logs)/   |   \(Performs)                 ^
+                                     v    |    v                          | (Calculates)
+                        [ audit_logs ]    |   [ password_histories ] [ hrm_raw_attendances ]
+                                          |                               ^
+                                          v (Assigned Roster)             | (Streams ATTLOG)
+                                   [ duty_rosters ] <----------- [ adms_devices ]
+                                          ^
+                                          | (Shift Timing)
+                                   [ work_shifts ]
+</div>
+
+<h1>3. Complete Data Dictionary & Schema Specification</h1>
+
+<h2>3.1 Multi-Tenancy & Licensing Tables</h2>
+
+<h3>Table: companies</h3>
+<p>The root multi-company SaaS tenant entity.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Auto-increment primary key</td></tr>
+  <tr><td><code>uuid</code></td><td>CHAR(36)</td><td><span class="badge-uk">UK</span></td><td>Universally unique identifier</td></tr>
+  <tr><td><code>name</code></td><td>VARCHAR(255)</td><td></td><td>Company trading name</td></tr>
+  <tr><td><code>slug</code></td><td>VARCHAR(255)</td><td><span class="badge-uk">UK</span></td><td>URL safe unique slug</td></tr>
+  <tr><td><code>domain</code></td><td>VARCHAR(255)</td><td></td><td>Primary custom domain</td></tr>
+  <tr><td><code>status</code></td><td>ENUM</td><td></td><td>active, inactive, suspended</td></tr>
+  <tr><td><code>deleted_at</code></td><td>TIMESTAMP</td><td></td><td>Soft delete support</td></tr>
+</table>
+
+<h3>Table: organizations</h3>
+<p>Subsidiaries, branches, and operational business units scoped under a company.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Auto-increment primary key</td></tr>
+  <tr><td><code>uuid</code></td><td>CHAR(36)</td><td><span class="badge-uk">UK</span></td><td>Tenant UUID</td></tr>
+  <tr><td><code>company_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References companies.id</td></tr>
+  <tr><td><code>name</code></td><td>VARCHAR(255)</td><td></td><td>Organization title</td></tr>
+  <tr><td><code>slug</code></td><td>VARCHAR(255)</td><td></td><td>Subdomain / slug identifier</td></tr>
+  <tr><td><code>timezone</code></td><td>VARCHAR(50)</td><td></td><td>Default timezone (e.g. Asia/Dhaka)</td></tr>
+  <tr><td><code>currency</code></td><td>VARCHAR(10)</td><td></td><td>Currency code (BDT, USD, EUR)</td></tr>
+  <tr><td><code>settings</code></td><td>JSON</td><td></td><td>Tenant-level dynamic settings</td></tr>
+  <tr><td><code>status</code></td><td>ENUM</td><td></td><td>active, inactive, suspended</td></tr>
+  <tr><td><code>deleted_at</code></td><td>TIMESTAMP</td><td></td><td>Soft delete support</td></tr>
+</table>
+
+<h3>Table: organization_plans</h3>
+<p>Subscription and license quota limits for organizations.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Primary Key</td></tr>
+  <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References organizations.id</td></tr>
+  <tr><td><code>plan_name</code></td><td>VARCHAR(255)</td><td></td><td>Trial, Starter, Professional, Enterprise</td></tr>
+  <tr><td><code>max_users</code></td><td>INT</td><td></td><td>Maximum allowed system users</td></tr>
+  <tr><td><code>max_modules</code></td><td>INT</td><td></td><td>Maximum allowed enabled modules</td></tr>
+  <tr><td><code>trial_ends_at</code></td><td>TIMESTAMP</td><td></td><td>Trial expiration date</td></tr>
+  <tr><td><code>expires_at</code></td><td>TIMESTAMP</td><td></td><td>Subscription renewal date</td></tr>
+</table>
+
+<h2>3.2 RBAC, Hierarchical Roles & Navigation</h2>
+
+<h3>Table: roles</h3>
+<p>Hierarchical role definitions supporting parent inheritance.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Primary Key</td></tr>
+  <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References organizations.id</td></tr>
+  <tr><td><code>parent_role_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>Self-referencing parent role for inheritance</td></tr>
+  <tr><td><code>name</code></td><td>VARCHAR(255)</td><td></td><td>Role title (Super Admin, HR Manager, Employee)</td></tr>
+  <tr><td><code>slug</code></td><td>VARCHAR(255)</td><td></td><td>Role identifier</td></tr>
+  <tr><td><code>is_inheritable</code></td><td>BOOLEAN</td><td></td><td>True if child roles inherit permissions</td></tr>
+  <tr><td><code>level</code></td><td>INT</td><td></td><td>Hierarchy depth ranking</td></tr>
+</table>
+
+<h3>Table: permissions</h3>
+<p>Atomic authorization permissions grouped by functional module.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Primary Key</td></tr>
+  <tr><td><code>module_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References modules.id</td></tr>
+  <tr><td><code>name</code></td><td>VARCHAR(255)</td><td></td><td>Human readable name</td></tr>
+  <tr><td><code>slug</code></td><td>VARCHAR(255)</td><td><span class="badge-uk">UK</span></td><td>Permission slug (e.g. hrm.employee.create)</td></tr>
+  <tr><td><code>group</code></td><td>VARCHAR(100)</td><td></td><td>Permission subgroup</td></tr>
+</table>
+
+<h2>3.3 HRM Employee 360 Core Specification</h2>
+
+<h3>Table: hrm_employees</h3>
+<p>The centralized master employee repository with 50+ demographic, job, and hardware columns.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Primary Key</td></tr>
+  <tr><td><code>uuid</code></td><td>CHAR(36)</td><td><span class="badge-uk">UK</span></td><td>Universally unique identifier</td></tr>
+  <tr><td><code>company_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References companies.id</td></tr>
+  <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References organizations.id</td></tr>
+  <tr><td><code>user_employee_id</code></td><td>VARCHAR(50)</td><td><span class="badge-uk">UK</span></td><td>Employee code / Hardware Biometric ID</td></tr>
+  <tr><td><code>full_name</code></td><td>VARCHAR(255)</td><td></td><td>Official full name</td></tr>
+  <tr><td><code>department_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References hrm_lookups.id (Department)</td></tr>
+  <tr><td><code>designation_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References hrm_lookups.id (Designation)</td></tr>
+  <tr><td><code>reporting_manager_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>Self-referencing manager employee_id</td></tr>
+  <tr><td><code>work_shift_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References work_shifts.shift_id</td></tr>
+  <tr><td><code>hire_date</code></td><td>DATE</td><td></td><td>Official employment start date</td></tr>
+  <tr><td><code>passport_no</code></td><td>VARCHAR(100)</td><td></td><td>Passport Identification</td></tr>
+  <tr><td><code>is_active</code></td><td>SMALLINT</td><td></td><td>1 = Active, 0 = Inactive / Terminated</td></tr>
+  <tr><td><code>deleted_at</code></td><td>TIMESTAMP</td><td></td><td>Soft delete support</td></tr>
+</table>
+
+<h2>3.4 Attendance, Shift Policies & Hardware Ingestion</h2>
+
+<h3>Table: adms_devices</h3>
+<p>Hardware biometric push-protocol device terminals (ZKTeco).</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Primary Key</td></tr>
+  <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References organizations.id</td></tr>
+  <tr><td><code>serial_number</code></td><td>VARCHAR(100)</td><td><span class="badge-uk">UK</span></td><td>Hardware device serial</td></tr>
+  <tr><td><code>ip_address</code></td><td>VARCHAR(45)</td><td></td><td>Terminal IP address</td></tr>
+  <tr><td><code>firmware</code></td><td>VARCHAR(100)</td><td></td><td>Firmware version</td></tr>
+  <tr><td><code>last_seen</code></td><td>TIMESTAMP</td><td></td><td>Heartbeat timestamp</td></tr>
+  <tr><td><code>push_count</code></td><td>INT</td><td></td><td>Total raw punches uploaded</td></tr>
+</table>
+
+<h3>Table: hrm_attendances</h3>
+<p>Consolidated daily attendance records evaluated against work shift rules.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Primary Key</td></tr>
+  <tr><td><code>employee_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References hrm_employees.id</td></tr>
+  <tr><td><code>shift_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References work_shifts.shift_id</td></tr>
+  <tr><td><code>date</code></td><td>DATE</td><td></td><td>Attendance calendar date</td></tr>
+  <tr><td><code>check_in</code></td><td>DATETIME</td><td></td><td>First in-punch timestamp</td></tr>
+  <tr><td><code>check_out</code></td><td>DATETIME</td><td></td><td>Last out-punch timestamp</td></tr>
+  <tr><td><code>working_hours</code></td><td>DECIMAL(5,2)</td><td></td><td>Calculated active work hours</td></tr>
+  <tr><td><code>overtime</code></td><td>DECIMAL(5,2)</td><td></td><td>Approved overtime hours</td></tr>
+  <tr><td><code>status</code></td><td>VARCHAR(50)</td><td></td><td>Present, Late, Absent, Half-Day, Holiday</td></tr>
+</table>
+
+<h2>3.5 Leave, Holidays & Cafeteria</h2>
+
+<h3>Table: hrm_leave_balances</h3>
+<p>Yearly allocated vs used leave quotas per employee.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Primary Key</td></tr>
+  <tr><td><code>hrm_employee_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References hrm_employees.id</td></tr>
+  <tr><td><code>leave_type_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References hrm_lookups.id</td></tr>
+  <tr><td><code>year</code></td><td>INT</td><td></td><td>Quota calendar year (e.g. 2026)</td></tr>
+  <tr><td><code>total_days</code></td><td>DECIMAL(5,2)</td><td></td><td>Annual quota days granted</td></tr>
+  <tr><td><code>used_days</code></td><td>DECIMAL(5,2)</td><td></td><td>Accumulated used days</td></tr>
+</table>
+
+<h3>Table: hrm_weekly_meals</h3>
+<p>Weekly cafeteria lunch menu planning.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr>
+  <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-pk">PK</span></td><td>Primary Key</td></tr>
+  <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References organizations.id</td></tr>
+  <tr><td><code>chef_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge-fk">FK</span></td><td>References hrm_employees.id (Assigned Chef)</td></tr>
+  <tr><td><code>day</code></td><td>VARCHAR(20)</td><td></td><td>Day of week (Monday - Sunday)</td></tr>
+  <tr><td><code>lunch_item</code></td><td>VARCHAR(255)</td><td></td><td>Standard scheduled lunch</td></tr>
+  <tr><td><code>alternative_lunch</code></td><td>VARCHAR(255)</td><td></td><td>Dietary / alternative choice</td></tr>
+  <tr><td><code>expected_person</code></td><td>INT</td><td></td><td>Expected headcount</td></tr>
+</table>
+
+</body>
+</html>

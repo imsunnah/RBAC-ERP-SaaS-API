@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi Tenancy - Master Database ER Diagram & Architecture Specification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- html2pdf.js for manual client-side PDF download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --primary: #0F172A;
+      --accent-blue: #0284C7;
+      --accent-cyan: #0EA5E9;
+      --accent-indigo: #4F46E5;
+      --accent-emerald: #059669;
+      --accent-amber: #D97706;
+      --accent-purple: #7E22CE;
+      --accent-rose: #E11D48;
+      --border-color: #CBD5E1;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+      --bg-surface: #F8FAFC;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #F1F5F9;
+      color: var(--text-main);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    /* Floating Action Controls */
+    .action-bar {
+      position: fixed;
+      top: 16px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      padding: 8px 16px;
+      border-radius: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284C7, #3B82F6);
+      color: #FFF;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.12);
+      color: #FFF;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    /* PDF Container */
+    .pdf-document {
+      max-width: 980px;
+      margin: 40px auto 80px auto;
+      background: #FFF;
+      padding: 50px 60px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+    }
+
+    /* Cover Page */
+    .cover-section {
+      text-align: center;
+      padding: 30px 0 50px 0;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 40px;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      padding: 5px 14px;
+      background: rgba(2, 132, 199, 0.1);
+      color: var(--accent-blue);
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cover-title {
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 10px;
+      letter-spacing: -0.03em;
+    }
+
+    .cover-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto 26px auto;
+    }
+
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      max-width: 820px;
+      margin: 0 auto;
+      text-align: left;
+      background: var(--bg-surface);
+      padding: 18px 22px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .meta-item-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .meta-item-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Section Headings */
+    h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-top: 40px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #E2E8F0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-top: 24px;
+      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    p {
+      margin-bottom: 12px;
+      color: var(--text-main);
+    }
+
+    /* ER Diagram Visual Image Wrapper */
+    .er-visual-wrapper {
+      margin: 18px 0 30px 0;
+      padding: 16px;
+      background: #090D16;
+      border: 1px solid #1E293B;
+      border-radius: 10px;
+      page-break-inside: avoid;
+    }
+
+    .er-visual-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #1E293B;
+    }
+
+    .er-visual-title {
+      color: #38BDF8;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .er-visual-badge {
+      font-size: 11px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38BDF8;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .er-svg-container {
+      width: 100%;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+    }
+
+    .er-svg-container svg {
+      width: 100%;
+      height: auto;
+    }
+
+    /* Tables */
+    .table-box {
+      margin-bottom: 24px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      page-break-inside: avoid;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th {
+      background: #F1F5F9;
+      color: var(--primary);
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    td {
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #FAFAFA;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: #0F172A;
+      font-weight: 600;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge-pk { background: #FEE2E2; color: #BE123C; }
+    .badge-fk { background: #E0F2FE; color: #0284C7; }
+    .badge-uk { background: #FEF3C7; color: #B45309; }
+    .badge-soft { background: #F3E8FF; color: #7E22CE; }
+
+    /* Print Specifics */
+    @media print {
+      body {
+        background: #FFF;
+        font-size: 11pt;
+      }
+      .action-bar {
+        display: none !important;
+      }
+      .pdf-document {
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+      }
+      .page-break {
+        page-break-after: always;
+      }
+      .table-box, .er-visual-wrapper {
+        page-break-inside: avoid;
+      }
+      .er-visual-wrapper {
+        border-color: #CBD5E1;
+        background: #090D16 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Action Bar -->
+  <div class="action-bar">
+    <button class="btn btn-primary" onclick="generatePDF()">📥 Download PDF Document</button>
+    <button class="btn btn-secondary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <a href="/data_flow_diagram_pdf.html" class="btn btn-secondary">📊 DFD PDF Document</a>
+    <a href="/er_diagram.html" class="btn btn-secondary">🌐 Open Interactive Studio</a>
+  </div>
+
+  <div class="pdf-document" id="pdfContent">
+    
+    <!-- Cover Page -->
+    <div class="cover-section">
+      <div class="cover-badge">Master Enterprise Specification</div>
+      <h1 class="cover-title">Multi Tenancy</h1>
+      <div class="cover-subtitle">Enterprise Database Architecture & Relational Entity-Relationship (ER) Model Covering 38 Database Entities Across 8 Subsystems</div>
+
+      <div class="cover-meta-grid">
+        <div>
+          <div class="meta-item-label">System Title</div>
+          <div class="meta-item-val">Multi Tenancy ERP</div>
+        </div>
+        <div>
+          <div class="meta-item-label">Entities Mapped</div>
+          <div class="meta-item-val">38 Relational Models</div>
+        </div>
+        <div>
+          <div class="meta-item-label">Architecture</div>
+          <div class="meta-item-val">Multi-Tenant SaaS</div>
+        </div>
+        <div>
+          <div class="meta-item-label">Access Control</div>
+          <div class="meta-item-val">Hierarchical RBAC</div>
+        </div>
+        <div>
+          <div class="meta-item-label">Attendance Engine</div>
+          <div class="meta-item-val">ZKTeco ADMS Biometrics</div>
+        </div>
+        <div>
+          <div class="meta-item-label">Document Version</div>
+          <div class="meta-item-val">Production Specification (v1.0)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         MASTER FULL SYSTEM ER DIAGRAM (38 ENTITIES ACROSS 8 ZONES)
+         ======================================================== -->
+    <h2>🗺️ Master System ER Diagram (All 38 Entities Across 8 Subsystems)</h2>
+    <p>This master architecture diagram illustrates the end-to-end foreign key relationships connecting Multi-Tenancy, RBAC, Auth, Lookups, Employee 360, ADMS Hardware Attendance, Leaves, and Cafeteria.</p>
+
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title">
+          <span>🌐 Master Architecture Relationship Map</span>
+        </div>
+        <span class="er-visual-badge">Full 38 Entities • Vector SVG</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:8px;">
+          <defs>
+            <linearGradient id="gBlue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0284C7"/><stop offset="100%" stop-color="#0369A1"/></linearGradient>
+            <linearGradient id="gIndigo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#4F46E5"/></linearGradient>
+            <linearGradient id="gTeal" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0D9488"/><stop offset="100%" stop-color="#0F766E"/></linearGradient>
+            <linearGradient id="gAmber" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#D97706"/><stop offset="100%" stop-color="#B45309"/></linearGradient>
+            <linearGradient id="gRose" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E11D48"/><stop offset="100%" stop-color="#BE123C"/></linearGradient>
+            <linearGradient id="gPurple" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7E22CE"/><stop offset="100%" stop-color="#581C87"/></linearGradient>
+          </defs>
+
+          <!-- Zone 1 & 2 Lines -->
+          <path d="M 120 70 C 120 120, 240 70, 240 120" stroke="#38BDF8" stroke-width="2" fill="none"/>
+          <text x="160" y="85" fill="#38BDF8" font-size="9" font-weight="bold">1:N</text>
+
+          <path d="M 310 150 L 390 150" stroke="#38BDF8" stroke-width="2" fill="none"/>
+          <text x="340" y="142" fill="#38BDF8" font-size="9" font-weight="bold">1:1 Plan</text>
+
+          <path d="M 240 190 C 240 250, 440 200, 440 250" stroke="#818CF8" stroke-width="2" fill="none"/>
+          <text x="320" y="225" fill="#818CF8" font-size="9" font-weight="bold">1:N Roles</text>
+
+          <path d="M 510 280 L 590 280" stroke="#818CF8" stroke-width="2" fill="none"/>
+          <text x="540" y="272" fill="#818CF8" font-size="9" font-weight="bold">N:M</text>
+
+          <path d="M 660 280 L 740 280" stroke="#818CF8" stroke-width="2" fill="none"/>
+          <text x="690" y="272" fill="#818CF8" font-size="9" font-weight="bold">1:N</text>
+
+          <path d="M 440 320 C 440 360, 440 360, 440 390" stroke="#818CF8" stroke-width="2" fill="none"/>
+          <text x="450" y="360" fill="#818CF8" font-size="9" font-weight="bold">N:M Users</text>
+
+          <path d="M 240 190 C 240 380, 240 380, 240 390" stroke="#34D399" stroke-width="2.5" fill="none"/>
+          <text x="250" y="300" fill="#34D399" font-size="10" font-weight="bold">1:N Employees</text>
+
+          <path d="M 370 430 L 310 430" stroke="#FBBF24" stroke-width="2" stroke-dasharray="4" fill="none"/>
+          <text x="325" y="422" fill="#FBBF24" font-size="9" font-weight="bold">1:1</text>
+
+          <path d="M 170 430 L 90 430" stroke="#34D399" stroke-width="2" fill="none"/>
+          <text x="105" y="422" fill="#34D399" font-size="9" font-weight="bold">1:N Sub</text>
+
+          <!-- Attendance & Hardware Lines -->
+          <path d="M 670 150 L 750 150" stroke="#F59E0B" stroke-width="2" fill="none"/>
+          <path d="M 820 190 L 820 250" stroke="#F59E0B" stroke-width="2" fill="none"/>
+          <text x="830" y="225" fill="#F59E0B" font-size="9" font-weight="bold">Push</text>
+          <path d="M 820 320 C 820 360, 720 360, 720 390" stroke="#F59E0B" stroke-width="2" fill="none"/>
+          <path d="M 240 470 C 240 500, 650 450, 650 390" stroke="#F59E0B" stroke-width="2" fill="none"/>
+          <text x="460" y="485" fill="#F59E0B" font-size="9" font-weight="bold">Calculates Daily Attendance</text>
+
+          <!-- Leaves & Meals Lines -->
+          <path d="M 240 470 C 240 540, 240 540, 240 560" stroke="#E11D48" stroke-width="2" fill="none"/>
+          <text x="250" y="525" fill="#E11D48" font-size="9" font-weight="bold">1:N Leaves</text>
+          <path d="M 310 600 L 390 600" stroke="#E11D48" stroke-width="2" fill="none"/>
+
+          <path d="M 440 470 C 440 540, 650 540, 650 560" stroke="#C084FC" stroke-width="2" fill="none"/>
+          <text x="520" y="535" fill="#C084FC" font-size="9" font-weight="bold">Meal Reservation</text>
+          <path d="M 720 600 L 800 600" stroke="#C084FC" stroke-width="2" fill="none"/>
+
+          <!-- Master Node Cards -->
+          <!-- companies -->
+          <g transform="translate(50, 20)">
+            <rect width="130" height="65" rx="6" fill="#1E293B" stroke="#0284C7" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gBlue)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">🏢 companies</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id (bigint)</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">UK: uuid, slug</text>
+          </g>
+
+          <!-- organizations -->
+          <g transform="translate(180, 120)">
+            <rect width="130" height="75" rx="6" fill="#1E293B" stroke="#0284C7" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gBlue)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">🏛️ organizations</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: company_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">slug, timezone, curr</text>
+            <text x="8" y="65" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">settings (json)</text>
+          </g>
+
+          <!-- org_plans -->
+          <g transform="translate(390, 120)">
+            <rect width="120" height="65" rx="6" fill="#1E293B" stroke="#0284C7" stroke-width="1.5"/>
+            <rect width="120" height="22" rx="6" fill="url(#gBlue)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">📋 org_plans</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: org_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">max_users, modules</text>
+          </g>
+
+          <!-- roles -->
+          <g transform="translate(380, 250)">
+            <rect width="130" height="70" rx="6" fill="#1E293B" stroke="#6366F1" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gIndigo)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">🛡️ roles</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: parent_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">FK: org_id | slug</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">is_inheritable</text>
+          </g>
+
+          <!-- permissions -->
+          <g transform="translate(590, 250)">
+            <rect width="120" height="70" rx="6" fill="#1E293B" stroke="#6366F1" stroke-width="1.5"/>
+            <rect width="120" height="22" rx="6" fill="url(#gIndigo)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">🔑 permissions</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: module_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">UK: slug (string)</text>
+          </g>
+
+          <!-- menus / submenus -->
+          <g transform="translate(740, 250)">
+            <rect width="110" height="70" rx="6" fill="#1E293B" stroke="#6366F1" stroke-width="1.5"/>
+            <rect width="110" height="22" rx="6" fill="url(#gIndigo)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">📑 menus/sub</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: mod_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">FK: perm_id</text>
+          </g>
+
+          <!-- users -->
+          <g transform="translate(370, 390)">
+            <rect width="130" height="80" rx="6" fill="#1E293B" stroke="#6366F1" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gIndigo)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">👤 users</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | UK: uuid, email</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">FK: org_id, employee_id</text>
+            <text x="8" y="65" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">is_super_admin</text>
+          </g>
+
+          <!-- hrm_employees -->
+          <g transform="translate(180, 390)">
+            <rect width="130" height="90" rx="6" fill="#1E293B" stroke="#0D9488" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gTeal)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">👥 hrm_employees</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | UK: user_emp_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">FK: dept_id, desig_id</text>
+            <text x="8" y="65" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">FK: shift_id, manager_id</text>
+            <text x="8" y="78" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">Demographics/Job 360</text>
+          </g>
+
+          <!-- Sub-Profiles -->
+          <g transform="translate(10, 390)">
+            <rect width="80" height="85" rx="6" fill="#1E293B" stroke="#0D9488" stroke-width="1.5"/>
+            <rect width="80" height="22" rx="6" fill="url(#gTeal)"/>
+            <text x="6" y="15" fill="#FFF" font-size="9" font-weight="bold" font-family="'JetBrains Mono', monospace">📂 Sub-Profiles</text>
+            <text x="6" y="36" fill="#94A3B8" font-size="8" font-family="'JetBrains Mono', monospace">• education</text>
+            <text x="6" y="48" fill="#94A3B8" font-size="8" font-family="'JetBrains Mono', monospace">• experience</text>
+            <text x="6" y="60" fill="#94A3B8" font-size="8" font-family="'JetBrains Mono', monospace">• family</text>
+            <text x="6" y="72" fill="#94A3B8" font-size="8" font-family="'JetBrains Mono', monospace">• emergency/doc</text>
+          </g>
+
+          <!-- work_shifts -->
+          <g transform="translate(560, 120)">
+            <rect width="110" height="65" rx="6" fill="#1E293B" stroke="#D97706" stroke-width="1.5"/>
+            <rect width="110" height="22" rx="6" fill="url(#gAmber)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">⏰ work_shifts</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: shift_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">start_time, end_time</text>
+          </g>
+
+          <!-- adms_devices -->
+          <g transform="translate(750, 120)">
+            <rect width="130" height="65" rx="6" fill="#1E293B" stroke="#D97706" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gAmber)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">📟 adms_devices</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | UK: serial_no</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">ip_address, firmware</text>
+          </g>
+
+          <!-- hrm_raw_attendances -->
+          <g transform="translate(760, 250)">
+            <rect width="120" height="70" rx="6" fill="#1E293B" stroke="#D97706" stroke-width="1.5"/>
+            <rect width="120" height="22" rx="6" fill="url(#gAmber)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">📥 raw_attlog</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | dev_user_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">punch_time, state</text>
+          </g>
+
+          <!-- hrm_attendances -->
+          <g transform="translate(650, 390)">
+            <rect width="130" height="80" rx="6" fill="#1E293B" stroke="#D97706" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gAmber)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">✅ attendances</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: employee_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">FK: shift_id | date</text>
+            <text x="8" y="65" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">in, out, work_hrs, OT</text>
+          </g>
+
+          <!-- Leaves & Quotas -->
+          <g transform="translate(180, 560)">
+            <rect width="130" height="75" rx="6" fill="#1E293B" stroke="#E11D48" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gRose)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">🏖️ leave_balances</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: emp_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">FK: leave_type_id</text>
+            <text x="8" y="65" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">total_days, used_days</text>
+          </g>
+
+          <g transform="translate(390, 560)">
+            <rect width="130" height="75" rx="6" fill="#1E293B" stroke="#E11D48" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gRose)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">📝 leave_apps</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: emp_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">from_date, to_date</text>
+            <text x="8" y="65" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">status (approved/etc)</text>
+          </g>
+
+          <!-- Cafeteria -->
+          <g transform="translate(590, 560)">
+            <rect width="130" height="75" rx="6" fill="#1E293B" stroke="#7E22CE" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gPurple)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">🍲 weekly_meals</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: chef_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">day, lunch_item</text>
+            <text x="8" y="65" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">alt_item, expected</text>
+          </g>
+
+          <g transform="translate(800, 560)">
+            <rect width="130" height="75" rx="6" fill="#1E293B" stroke="#7E22CE" stroke-width="1.5"/>
+            <rect width="130" height="22" rx="6" fill="url(#gPurple)"/>
+            <text x="8" y="15" fill="#FFF" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">🍽️ meal_selections</text>
+            <text x="8" y="38" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">PK: id | FK: emp_id</text>
+            <text x="8" y="52" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">FK: weekly_meal_id</text>
+            <text x="8" y="65" fill="#94A3B8" font-size="8.5" font-family="'JetBrains Mono', monospace">date, selection_type</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         SUBSYSTEM 1: MULTI-TENANCY & PLANS
+         ======================================================== -->
+    <h2>1. Multi-Tenancy & Subscription Licensing Subsystem</h2>
+    <p>Multi-tenancy enables complete tenant isolation where root <code>companies</code> manage branches / subsidiaries (<code>organizations</code>), each controlled by active subscription limits (<code>organization_plans</code>) and enabled features (<code>organization_modules</code>).</p>
+
+    <!-- Subsystem 1 Diagram -->
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title"><span>🏢 Subsystem 1 ER Diagram: Multi-Tenancy</span></div>
+        <span class="er-visual-badge">6 Tables</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:6px;">
+          <!-- Connectors -->
+          <path d="M 140 80 L 220 80" stroke="#38BDF8" stroke-width="2" fill="none"/>
+          <path d="M 370 80 L 450 80" stroke="#38BDF8" stroke-width="2" fill="none"/>
+          <path d="M 295 125 L 295 145 L 450 145" stroke="#38BDF8" stroke-width="2" fill="none"/>
+          
+          <g transform="translate(20, 40)">
+            <rect width="120" height="75" rx="5" fill="#1E293B" stroke="#0284C7"/>
+            <rect width="120" height="20" rx="5" fill="#0284C7"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">companies</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">UK: uuid, slug</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">domain, status</text>
+          </g>
+
+          <g transform="translate(220, 35)">
+            <rect width="150" height="90" rx="5" fill="#1E293B" stroke="#0284C7"/>
+            <rect width="150" height="20" rx="5" fill="#0284C7"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">organizations</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: company_id</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">slug, timezone, curr</text>
+            <text x="8" y="78" fill="#94A3B8" font-size="8">settings (json)</text>
+          </g>
+
+          <g transform="translate(450, 20)">
+            <rect width="150" height="70" rx="5" fill="#1E293B" stroke="#0284C7"/>
+            <rect width="150" height="20" rx="5" fill="#0284C7"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">organization_plans</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: org_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">max_users, max_modules</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">trial_ends, expires_at</text>
+          </g>
+
+          <g transform="translate(450, 100)">
+            <rect width="150" height="70" rx="5" fill="#1E293B" stroke="#0284C7"/>
+            <rect width="150" height="20" rx="5" fill="#0284C7"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">organization_modules</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: org_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: module_id</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">is_active, expires_at</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Schemas -->
+    <h3>Table: companies</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Auto-increment unique ID</td></tr>
+          <tr><td><code>uuid</code></td><td>CHAR(36)</td><td><span class="badge badge-uk">UK</span></td><td>UUID identifier for secure routing</td></tr>
+          <tr><td><code>name</code></td><td>VARCHAR(255)</td><td></td><td>Company official trading name</td></tr>
+          <tr><td><code>slug</code></td><td>VARCHAR(255)</td><td><span class="badge badge-uk">UK</span></td><td>Unique sub-domain slug</td></tr>
+          <tr><td><code>domain</code></td><td>VARCHAR(255)</td><td></td><td>Custom DNS domain mapping</td></tr>
+          <tr><td><code>status</code></td><td>ENUM</td><td></td><td>active, inactive, suspended</td></tr>
+          <tr><td><code>deleted_at</code></td><td>TIMESTAMP</td><td><span class="badge badge-soft">SOFT</span></td><td>Soft delete support</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Table: organizations</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>uuid</code></td><td>CHAR(36)</td><td><span class="badge badge-uk">UK</span></td><td>Organization UUID</td></tr>
+          <tr><td><code>company_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References companies.id</td></tr>
+          <tr><td><code>name</code></td><td>VARCHAR(255)</td><td></td><td>Organization name</td></tr>
+          <tr><td><code>slug</code></td><td>VARCHAR(255)</td><td></td><td>Tenant slug for headers (X-ORG-ID)</td></tr>
+          <tr><td><code>timezone</code></td><td>VARCHAR(50)</td><td></td><td>Default timezone (e.g. Asia/Dhaka)</td></tr>
+          <tr><td><code>currency</code></td><td>VARCHAR(10)</td><td></td><td>Default currency (BDT, USD)</td></tr>
+          <tr><td><code>status</code></td><td>ENUM</td><td></td><td>active, inactive</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ========================================================
+         SUBSYSTEM 2: RBAC & DYNAMIC MENUS
+         ======================================================== -->
+    <h2>2. RBAC, Hierarchical Roles & Dynamic Menus Subsystem</h2>
+    <p>Role-Based Access Control incorporates hierarchical role inheritance (<code>parent_role_id</code> & <code>role_hierarchy</code> closure table), atomic permissions grouped by module, and dynamic UI menu trees guarded by permission slugs.</p>
+
+    <!-- Subsystem 2 Diagram -->
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title"><span>🛡️ Subsystem 2 ER Diagram: RBAC & Permissions</span></div>
+        <span class="er-visual-badge">9 Tables</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:6px;">
+          <!-- Connectors -->
+          <path d="M 140 65 L 210 65" stroke="#818CF8" stroke-width="2" fill="none"/>
+          <path d="M 340 65 L 410 65" stroke="#818CF8" stroke-width="2" fill="none"/>
+          <path d="M 275 110 L 275 140 L 410 140" stroke="#818CF8" stroke-width="2" fill="none"/>
+          <path d="M 540 65 L 610 65" stroke="#818CF8" stroke-width="2" fill="none"/>
+
+          <g transform="translate(20, 25)">
+            <rect width="120" height="80" rx="5" fill="#1E293B" stroke="#6366F1"/>
+            <rect width="120" height="20" rx="5" fill="#6366F1"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">modules</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">UK: slug</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">name, icon, route</text>
+          </g>
+
+          <g transform="translate(210, 25)">
+            <rect width="130" height="85" rx="5" fill="#1E293B" stroke="#6366F1"/>
+            <rect width="130" height="20" rx="5" fill="#6366F1"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">permissions</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: module_id</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">UK: slug (guard)</text>
+            <text x="8" y="78" fill="#94A3B8" font-size="8">group, name</text>
+          </g>
+
+          <g transform="translate(410, 25)">
+            <rect width="130" height="85" rx="5" fill="#1E293B" stroke="#6366F1"/>
+            <rect width="130" height="20" rx="5" fill="#6366F1"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">roles</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: parent_role_id</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">FK: organization_id</text>
+            <text x="8" y="78" fill="#94A3B8" font-size="8">is_inheritable, level</text>
+          </g>
+
+          <g transform="translate(610, 25)">
+            <rect width="150" height="85" rx="5" fill="#1E293B" stroke="#6366F1"/>
+            <rect width="150" height="20" rx="5" fill="#6366F1"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">role_permissions</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: role_id</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">FK: permission_id</text>
+            <text x="8" y="78" fill="#94A3B8" font-size="8">is_granted (bool)</text>
+          </g>
+
+          <g transform="translate(410, 115)">
+            <rect width="130" height="55" rx="5" fill="#1E293B" stroke="#6366F1"/>
+            <rect width="130" height="18" rx="5" fill="#6366F1"/>
+            <text x="8" y="13" fill="#FFF" font-size="9" font-weight="bold">menus & submenus</text>
+            <text x="8" y="32" fill="#94A3B8" font-size="8">FK: module_id</text>
+            <text x="8" y="45" fill="#94A3B8" font-size="8">FK: permission_id</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Schemas -->
+    <h3>Table: roles</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References organizations.id</td></tr>
+          <tr><td><code>parent_role_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>Self-referencing parent role for inheritance</td></tr>
+          <tr><td><code>name</code></td><td>VARCHAR(255)</td><td></td><td>Role title (Super Admin, HR Manager, Employee)</td></tr>
+          <tr><td><code>slug</code></td><td>VARCHAR(255)</td><td></td><td>Role identifier</td></tr>
+          <tr><td><code>is_inheritable</code></td><td>BOOLEAN</td><td></td><td>True if child roles inherit permissions</td></tr>
+          <tr><td><code>level</code></td><td>INT</td><td></td><td>Hierarchy depth ranking</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ========================================================
+         SUBSYSTEM 3: HRM EMPLOYEE 360 & SUB-PROFILES
+         ======================================================== -->
+    <h2>3. HRM Employee 360 & Sub-Profile Subsystem</h2>
+    <p>Centralized employee repository with complete 360-degree demographic data, departmental assignments, reporting hierarchy, and 6 dedicated child profile tables.</p>
+
+    <!-- Subsystem 3 Diagram -->
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title"><span>👥 Subsystem 3 ER Diagram: Employee 360</span></div>
+        <span class="er-visual-badge">7 Tables</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:6px;">
+          <!-- Connectors -->
+          <path d="M 230 85 L 320 45" stroke="#34D399" stroke-width="2" fill="none"/>
+          <path d="M 230 85 L 320 85" stroke="#34D399" stroke-width="2" fill="none"/>
+          <path d="M 230 85 L 320 125" stroke="#34D399" stroke-width="2" fill="none"/>
+
+          <g transform="translate(30, 25)">
+            <rect width="200" height="130" rx="5" fill="#1E293B" stroke="#0D9488"/>
+            <rect width="200" height="22" rx="5" fill="#0D9488"/>
+            <text x="8" y="15" fill="#FFF" font-size="11" font-weight="bold">hrm_employees</text>
+            <text x="8" y="40" fill="#94A3B8" font-size="8.5">PK: id | UK: uuid, user_emp_id</text>
+            <text x="8" y="55" fill="#94A3B8" font-size="8.5">FK: company_id, org_id</text>
+            <text x="8" y="70" fill="#94A3B8" font-size="8.5">FK: dept_id, desig_id, shift_id</text>
+            <text x="8" y="85" fill="#94A3B8" font-size="8.5">FK: reporting_manager_id</text>
+            <text x="8" y="100" fill="#94A3B8" font-size="8.5">full_name, hire_date, passport</text>
+            <text x="8" y="115" fill="#94A3B8" font-size="8.5">50+ Demographics Columns</text>
+          </g>
+
+          <g transform="translate(320, 15)">
+            <rect width="180" height="45" rx="4" fill="#1E293B" stroke="#0D9488"/>
+            <text x="8" y="18" fill="#34D399" font-size="9" font-weight="bold">🎓 hrm_employee_education</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">degree, institution, passing_year</text>
+          </g>
+
+          <g transform="translate(320, 68)">
+            <rect width="180" height="45" rx="4" fill="#1E293B" stroke="#0D9488"/>
+            <text x="8" y="18" fill="#34D399" font-size="9" font-weight="bold">💼 hrm_employee_experience</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">company, designation, duration</text>
+          </g>
+
+          <g transform="translate(320, 120)">
+            <rect width="180" height="45" rx="4" fill="#1E293B" stroke="#0D9488"/>
+            <text x="8" y="18" fill="#34D399" font-size="9" font-weight="bold">👨‍👩‍👧 hrm_employee_family</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">full_name, dob, relationship_id</text>
+          </g>
+
+          <g transform="translate(530, 15)">
+            <rect width="180" height="45" rx="4" fill="#1E293B" stroke="#0D9488"/>
+            <text x="8" y="18" fill="#34D399" font-size="9" font-weight="bold">🚨 emergency_contacts</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">contact_name, phone, relation</text>
+          </g>
+
+          <g transform="translate(530, 68)">
+            <rect width="180" height="45" rx="4" fill="#1E293B" stroke="#0D9488"/>
+            <text x="8" y="18" fill="#34D399" font-size="9" font-weight="bold">📁 hrm_employee_documents</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">title, file_path, document_type</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Schemas -->
+    <h3>Table: hrm_employees</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>uuid</code></td><td>CHAR(36)</td><td><span class="badge badge-uk">UK</span></td><td>Employee UUID</td></tr>
+          <tr><td><code>company_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References companies.id</td></tr>
+          <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References organizations.id</td></tr>
+          <tr><td><code>user_employee_id</code></td><td>VARCHAR(50)</td><td><span class="badge badge-uk">UK</span></td><td>Employee ID / Hardware Biometric punch ID</td></tr>
+          <tr><td><code>full_name</code></td><td>VARCHAR(255)</td><td></td><td>Employee full official name</td></tr>
+          <tr><td><code>department_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References hrm_lookups.id (Department)</td></tr>
+          <tr><td><code>designation_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References hrm_lookups.id (Designation)</td></tr>
+          <tr><td><code>reporting_manager_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>Self-reference to manager employee_id</td></tr>
+          <tr><td><code>work_shift_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References work_shifts.shift_id</td></tr>
+          <tr><td><code>hire_date</code></td><td>DATE</td><td></td><td>Hire date</td></tr>
+          <tr><td><code>deleted_at</code></td><td>TIMESTAMP</td><td><span class="badge badge-soft">SOFT</span></td><td>Soft delete support</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ========================================================
+         SUBSYSTEM 4: ZKTECO ADMS BIOMETRICS & SHIFTS
+         ======================================================== -->
+    <h2>4. ZKTeco ADMS Biometrics & Shift Roster Subsystem</h2>
+    <p>Hardware push-protocol attendance gateway ingesting real-time raw logs from physical ZKTeco biometric terminals (<code>adms_devices</code>), evaluated against scheduled shift rules (<code>work_shifts</code>, <code>duty_rosters</code>) to compute daily attendance (<code>hrm_attendances</code>).</p>
+
+    <!-- Subsystem 4 Diagram -->
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title"><span>⏱️ Subsystem 4 ER Diagram: ADMS Biometrics & Shifts</span></div>
+        <span class="er-visual-badge">6 Tables</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:6px;">
+          <!-- Connectors -->
+          <path d="M 150 70 L 230 70" stroke="#F59E0B" stroke-width="2" fill="none"/>
+          <path d="M 370 70 L 460 70" stroke="#F59E0B" stroke-width="2" fill="none"/>
+          <path d="M 520 120 L 520 140 L 460 140" stroke="#F59E0B" stroke-width="2" fill="none"/>
+
+          <g transform="translate(20, 30)">
+            <rect width="130" height="80" rx="5" fill="#1E293B" stroke="#D97706"/>
+            <rect width="130" height="20" rx="5" fill="#D97706"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">adms_devices</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | UK: serial_no</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">ip_address, firmware</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">push_count, last_seen</text>
+          </g>
+
+          <g transform="translate(230, 30)">
+            <rect width="140" height="80" rx="5" fill="#1E293B" stroke="#D97706"/>
+            <rect width="140" height="20" rx="5" fill="#D97706"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">hrm_raw_attendances</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">device_user_id</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">punch_time, state</text>
+          </g>
+
+          <g transform="translate(460, 20)">
+            <rect width="160" height="95" rx="5" fill="#1E293B" stroke="#D97706"/>
+            <rect width="160" height="20" rx="5" fill="#D97706"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">hrm_attendances</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: employee_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: shift_id | date</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">check_in, check_out</text>
+            <text x="8" y="78" fill="#94A3B8" font-size="8">working_hours, overtime</text>
+          </g>
+
+          <g transform="translate(640, 20)">
+            <rect width="140" height="80" rx="5" fill="#1E293B" stroke="#D97706"/>
+            <rect width="140" height="20" rx="5" fill="#D97706"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">work_shifts</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: shift_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">start_time, end_time</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">grace_time, weekend</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Schemas -->
+    <h3>Table: hrm_attendances</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>employee_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References hrm_employees.id</td></tr>
+          <tr><td><code>shift_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References work_shifts.shift_id</td></tr>
+          <tr><td><code>date</code></td><td>DATE</td><td></td><td>Attendance calendar date</td></tr>
+          <tr><td><code>check_in</code></td><td>DATETIME</td><td></td><td>First in-punch timestamp</td></tr>
+          <tr><td><code>check_out</code></td><td>DATETIME</td><td></td><td>Last out-punch timestamp</td></tr>
+          <tr><td><code>working_hours</code></td><td>DECIMAL(5,2)</td><td></td><td>Calculated active work hours</td></tr>
+          <tr><td><code>overtime</code></td><td>DECIMAL(5,2)</td><td></td><td>Approved overtime hours</td></tr>
+          <tr><td><code>status</code></td><td>VARCHAR(50)</td><td></td><td>Present, Late, Absent, Half-Day, Holiday</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ========================================================
+         SUBSYSTEM 5: AUTHENTICATION, SECURITY & AUDIT LOGS
+         ======================================================== -->
+    <h2>5. User Authentication, Security & Audit Logs Subsystem</h2>
+    <p>User identities (<code>users</code>) link to both company/organization tenants and HRM employee profiles, secured by login telemetry (<code>user_login_attempts</code>), historical password reuse tracking (<code>password_histories</code>), and immutable field-level audit trails (<code>audit_logs</code>).</p>
+
+    <!-- Subsystem 5 Diagram -->
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title"><span>🔒 Subsystem 5 ER Diagram: Auth & Security</span></div>
+        <span class="er-visual-badge">4 Tables</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:6px;">
+          <path d="M 180 85 L 270 45" stroke="#6366F1" stroke-width="2" fill="none"/>
+          <path d="M 180 85 L 270 85" stroke="#6366F1" stroke-width="2" fill="none"/>
+          <path d="M 180 85 L 270 125" stroke="#6366F1" stroke-width="2" fill="none"/>
+
+          <g transform="translate(20, 25)">
+            <rect width="160" height="120" rx="5" fill="#1E293B" stroke="#6366F1"/>
+            <rect width="160" height="22" rx="5" fill="#6366F1"/>
+            <text x="8" y="15" fill="#FFF" font-size="11" font-weight="bold">users</text>
+            <text x="8" y="40" fill="#94A3B8" font-size="8.5">PK: id | UK: uuid, email</text>
+            <text x="8" y="55" fill="#94A3B8" font-size="8.5">FK: company_id, org_id</text>
+            <text x="8" y="70" fill="#94A3B8" font-size="8.5">FK: employee_id</text>
+            <text x="8" y="85" fill="#94A3B8" font-size="8.5">first_name, last_name</text>
+            <text x="8" y="100" fill="#94A3B8" font-size="8.5">is_super_admin (bool)</text>
+            <text x="8" y="113" fill="#94A3B8" font-size="8.5">status, last_login_at</text>
+          </g>
+
+          <g transform="translate(270, 15)">
+            <rect width="180" height="45" rx="4" fill="#1E293B" stroke="#6366F1"/>
+            <text x="8" y="18" fill="#818CF8" font-size="9" font-weight="bold">📜 audit_logs</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">FK: user_id | action, old_val, new_val</text>
+          </g>
+
+          <g transform="translate(270, 68)">
+            <rect width="180" height="45" rx="4" fill="#1E293B" stroke="#6366F1"/>
+            <text x="8" y="18" fill="#818CF8" font-size="9" font-weight="bold">🔐 user_login_attempts</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">FK: user_id | email, ip, status</text>
+          </g>
+
+          <g transform="translate(270, 120)">
+            <rect width="180" height="45" rx="4" fill="#1E293B" stroke="#6366F1"/>
+            <text x="8" y="18" fill="#818CF8" font-size="9" font-weight="bold">🔑 password_histories</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">FK: user_id | password (hash)</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Schemas -->
+    <h3>Table: users</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>uuid</code></td><td>CHAR(36)</td><td><span class="badge badge-uk">UK</span></td><td>User UUID</td></tr>
+          <tr><td><code>company_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References companies.id</td></tr>
+          <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References organizations.id</td></tr>
+          <tr><td><code>employee_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>Optional link to hrm_employees.id</td></tr>
+          <tr><td><code>email</code></td><td>VARCHAR(255)</td><td><span class="badge badge-uk">UK</span></td><td>Login email address</td></tr>
+          <tr><td><code>is_super_admin</code></td><td>BOOLEAN</td><td></td><td>System super administrative bypass flag</td></tr>
+          <tr><td><code>status</code></td><td>ENUM</td><td></td><td>active, inactive, suspended</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ========================================================
+         SUBSYSTEM 6: DUAL-TIER LOOKUPS
+         ======================================================== -->
+    <h2>6. Universal & HRM Dynamic Lookups Subsystem</h2>
+    <p>Provides dual-tier dictionary lookups: system-wide universal metadata (<code>global_lookup_groups</code>, <code>global_lookups</code>) and tenant-scoped dynamic lists (<code>hrm_lookup_groups</code>, <code>hrm_lookups</code>) for Departments, Designations, Shift Types, Leave Classifications, and Relationships.</p>
+
+    <!-- Subsystem 6 Diagram -->
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title"><span>📚 Subsystem 6 ER Diagram: Lookups</span></div>
+        <span class="er-visual-badge">4 Tables</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 800 150" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:6px;">
+          <path d="M 180 50 L 250 50" stroke="#38BDF8" stroke-width="2" fill="none"/>
+          <path d="M 520 50 L 590 50" stroke="#0D9488" stroke-width="2" fill="none"/>
+
+          <g transform="translate(30, 20)">
+            <rect width="150" height="60" rx="5" fill="#1E293B" stroke="#0284C7"/>
+            <rect width="150" height="18" rx="5" fill="#0284C7"/>
+            <text x="8" y="13" fill="#FFF" font-size="10" font-weight="bold">global_lookup_groups</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">PK: id | UK: slug</text>
+            <text x="8" y="48" fill="#94A3B8" font-size="8">name, is_active</text>
+          </g>
+
+          <g transform="translate(250, 20)">
+            <rect width="150" height="60" rx="5" fill="#1E293B" stroke="#0284C7"/>
+            <rect width="150" height="18" rx="5" fill="#0284C7"/>
+            <text x="8" y="13" fill="#FFF" font-size="10" font-weight="bold">global_lookups</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">PK: id | FK: global_group_id</text>
+            <text x="8" y="48" fill="#94A3B8" font-size="8">name, slug, value</text>
+          </g>
+
+          <g transform="translate(420, 20)">
+            <rect width="150" height="60" rx="5" fill="#1E293B" stroke="#0D9488"/>
+            <rect width="150" height="18" rx="5" fill="#0D9488"/>
+            <text x="8" y="13" fill="#FFF" font-size="10" font-weight="bold">hrm_lookup_groups</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">PK: id | FK: org_id</text>
+            <text x="8" y="48" fill="#94A3B8" font-size="8">name, slug</text>
+          </g>
+
+          <g transform="translate(610, 20)">
+            <rect width="150" height="60" rx="5" fill="#1E293B" stroke="#0D9488"/>
+            <rect width="150" height="18" rx="5" fill="#0D9488"/>
+            <text x="8" y="13" fill="#FFF" font-size="10" font-weight="bold">hrm_lookups</text>
+            <text x="8" y="34" fill="#94A3B8" font-size="8">PK: id | FK: hrm_group_id</text>
+            <text x="8" y="48" fill="#94A3B8" font-size="8">name, slug, code</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Schemas -->
+    <h3>Table: hrm_lookups</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>hrm_lookup_group_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References hrm_lookup_groups.id</td></tr>
+          <tr><td><code>name</code></td><td>VARCHAR(255)</td><td></td><td>Lookup label (e.g. IT, Finance, Casual Leave)</td></tr>
+          <tr><td><code>slug</code></td><td>VARCHAR(255)</td><td></td><td>Lookup slug</td></tr>
+          <tr><td><code>status</code></td><td>ENUM</td><td></td><td>active, inactive</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ========================================================
+         SUBSYSTEM 7: LEAVE MANAGEMENT & HOLIDAYS
+         ======================================================== -->
+    <h2>7. Leave Management, Quotas & Holiday Calendar Subsystem</h2>
+    <p>Tracks annual holiday calendars (<code>hrm_holidays</code>), individual yearly leave quotas and remaining balances (<code>hrm_leave_balances</code>), multi-day leave approval workflows (<code>hrm_leave_applications</code>), and medical document attachments (<code>hrm_leave_application_documents</code>).</p>
+
+    <!-- Subsystem 7 Diagram -->
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title"><span>🏖️ Subsystem 7 ER Diagram: Leave & Holidays</span></div>
+        <span class="er-visual-badge">4 Tables</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 800 160" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:6px;">
+          <path d="M 170 70 L 250 70" stroke="#E11D48" stroke-width="2" fill="none"/>
+          <path d="M 400 70 L 480 70" stroke="#E11D48" stroke-width="2" fill="none"/>
+          <path d="M 630 70 L 710 70" stroke="#E11D48" stroke-width="2" fill="none"/>
+
+          <g transform="translate(20, 30)">
+            <rect width="140" height="75" rx="5" fill="#1E293B" stroke="#E11D48"/>
+            <rect width="140" height="20" rx="5" fill="#E11D48"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">hrm_holidays</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: org_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">name, from_date, to_date</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">total_days, is_recurring</text>
+          </g>
+
+          <g transform="translate(250, 30)">
+            <rect width="150" height="80" rx="5" fill="#1E293B" stroke="#E11D48"/>
+            <rect width="150" height="20" rx="5" fill="#E11D48"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">hrm_leave_balances</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: employee_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: leave_type_id | year</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">total_days, used_days</text>
+            <text x="8" y="76" fill="#94A3B8" font-size="8">remaining_days</text>
+          </g>
+
+          <g transform="translate(480, 30)">
+            <rect width="150" height="80" rx="5" fill="#1E293B" stroke="#E11D48"/>
+            <rect width="150" height="20" rx="5" fill="#E11D48"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">hrm_leave_applications</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: employee_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: leave_type_id</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">from_date, to_date, days</text>
+            <text x="8" y="76" fill="#94A3B8" font-size="8">status, approved_by</text>
+          </g>
+
+          <g transform="translate(710, 30)">
+            <rect width="140" height="75" rx="5" fill="#1E293B" stroke="#E11D48"/>
+            <rect width="140" height="20" rx="5" fill="#E11D48"/>
+            <text x="8" y="14" fill="#FFF" font-size="9" font-weight="bold">leave_documents</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: leave_app_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">file_path, file_name</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">file_size, mime_type</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Schemas -->
+    <h3>Table: hrm_leave_applications</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>employee_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References hrm_employees.id</td></tr>
+          <tr><td><code>leave_type_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References hrm_lookups.id (Leave Type)</td></tr>
+          <tr><td><code>from_date</code></td><td>DATE</td><td></td><td>Leave start date</td></tr>
+          <tr><td><code>to_date</code></td><td>DATE</td><td></td><td>Leave end date</td></tr>
+          <tr><td><code>total_days</code></td><td>DECIMAL(4,1)</td><td></td><td>Total requested days (e.g. 1.0, 0.5)</td></tr>
+          <tr><td><code>status</code></td><td>ENUM</td><td></td><td>pending, approved, rejected, cancelled</td></tr>
+          <tr><td><code>approved_by</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>Approver user_id</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ========================================================
+         SUBSYSTEM 8: CAFETERIA & MEALS
+         ======================================================== -->
+    <h2>8. Cafeteria, Weekly Menus & Meal Reservation Subsystem</h2>
+    <p>Manages weekly cafeteria meal schedules created by chefs (<code>hrm_weekly_meals</code>) and employee daily lunch bookings (<code>hrm_employee_meal_selections</code>) with automated cutoff times and attendance cross-verification.</p>
+
+    <!-- Subsystem 8 Diagram -->
+    <div class="er-visual-wrapper">
+      <div class="er-visual-header">
+        <div class="er-visual-title"><span>🍽️ Subsystem 8 ER Diagram: Cafeteria & Meals</span></div>
+        <span class="er-visual-badge">2 Tables</span>
+      </div>
+      <div class="er-svg-container">
+        <svg viewBox="0 0 800 150" xmlns="http://www.w3.org/2000/svg" style="background:#090D16; border-radius:6px;">
+          <path d="M 230 75 L 340 75" stroke="#C084FC" stroke-width="2" fill="none"/>
+
+          <g transform="translate(40, 20)">
+            <rect width="190" height="100" rx="5" fill="#1E293B" stroke="#7E22CE"/>
+            <rect width="190" height="20" rx="5" fill="#7E22CE"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">hrm_weekly_meals</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: organization_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: chef_id (references users.id)</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">day (Monday..Sunday), week_no</text>
+            <text x="8" y="78" fill="#94A3B8" font-size="8">lunch_item, alt_item, expected_count</text>
+            <text x="8" y="92" fill="#94A3B8" font-size="8">is_active, cutoff_time</text>
+          </g>
+
+          <g transform="translate(340, 20)">
+            <rect width="210" height="100" rx="5" fill="#1E293B" stroke="#7E22CE"/>
+            <rect width="210" height="20" rx="5" fill="#7E22CE"/>
+            <text x="8" y="14" fill="#FFF" font-size="10" font-weight="bold">hrm_employee_meal_selections</text>
+            <text x="8" y="36" fill="#94A3B8" font-size="8">PK: id | FK: employee_id</text>
+            <text x="8" y="50" fill="#94A3B8" font-size="8">FK: weekly_meal_id</text>
+            <text x="8" y="64" fill="#94A3B8" font-size="8">date, selection_type (Standard, Alt, OptOut)</text>
+            <text x="8" y="78" fill="#94A3B8" font-size="8">is_consumed, consumed_at</text>
+            <text x="8" y="92" fill="#94A3B8" font-size="8">status, remarks</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Schemas -->
+    <h3>Table: hrm_weekly_meals</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>organization_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References organizations.id</td></tr>
+          <tr><td><code>chef_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References users.id (Chef / Cafeteria Manager)</td></tr>
+          <tr><td><code>day</code></td><td>VARCHAR(20)</td><td></td><td>Day of week (Monday to Sunday)</td></tr>
+          <tr><td><code>lunch_item</code></td><td>VARCHAR(255)</td><td></td><td>Primary lunch menu description</td></tr>
+          <tr><td><code>alternative_item</code></td><td>VARCHAR(255)</td><td></td><td>Vegetarian / diet alternative menu</td></tr>
+          <tr><td><code>is_active</code></td><td>BOOLEAN</td><td></td><td>Menu active status</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Table: hrm_employee_meal_selections</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-pk">PK</span></td><td>Primary Key</td></tr>
+          <tr><td><code>employee_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References hrm_employees.id</td></tr>
+          <tr><td><code>weekly_meal_id</code></td><td>BIGINT UNSIGNED</td><td><span class="badge badge-fk">FK</span></td><td>References hrm_weekly_meals.id</td></tr>
+          <tr><td><code>date</code></td><td>DATE</td><td></td><td>Meal reservation calendar date</td></tr>
+          <tr><td><code>selection</code></td><td>VARCHAR(50)</td><td></td><td>Standard, Alternative, No-Meal</td></tr>
+          <tr><td><code>is_consumed</code></td><td>BOOLEAN</td><td></td><td>Token scanned at cafeteria counter</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    // Manual 1-Click Client-Side PDF Generation
+    function generatePDF() {
+      const element = document.getElementById('pdfContent');
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: 'Multi_Tenancy_Database_ER_Diagram_Documentation.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      const btn = document.querySelector('.btn-primary');
+      let originalText = '📥 Download PDF Document';
+      if (btn) {
+        originalText = btn.innerText;
+        btn.innerText = '⏳ Generating PDF...';
+        btn.disabled = true;
+      }
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        if (btn) {
+          btn.innerText = originalText;
+          btn.disabled = false;
+        }
+      }).catch(err => {
+        console.error('PDF generation error, falling back to print dialog:', err);
+        window.print();
+        if (btn) {
+          btn.innerText = originalText;
+          btn.disabled = false;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

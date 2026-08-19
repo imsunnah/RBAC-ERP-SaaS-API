@@ -20,7 +20,7 @@ class HrmLeaveApplicationResource extends JsonResource
                     'full_name'        => $this->employee->full_name,
                     'user_employee_id' => $this->employee->user_employee_id,
                     'employee_photo'   => $this->employee->employee_photo
-                        ? Storage::url($this->employee->employee_photo)
+                        ? asset(Storage::url($this->employee->employee_photo))
                         : null,
                 ];
             }),
@@ -49,7 +49,7 @@ class HrmLeaveApplicationResource extends JsonResource
                     'uuid'      => $doc->uuid,
                     'title'     => $doc->title ?? $doc->file_name,
                     'file_name' => $doc->file_name,
-                    'file_url'  => $doc->file_path ? Storage::url($doc->file_path) : null,
+                    'file_url'  => $doc->file_path ? asset(Storage::url($doc->file_path)) : null,
                     'file_path' => $doc->file_path,
                 ]);
             }),

@@ -64,9 +64,9 @@ Route::prefix('v1')->group(function () {
                 ->middleware('permission:admin.organization.create');
             Route::get('/{organization}', [OrganizationController::class, 'show'])
                 ->middleware('permission:admin.organization.view');
-            Route::put('/{organization}', [OrganizationController::class, 'update'])
+            Route::match(['put', 'post'], '/{organization}', [OrganizationController::class, 'update'])
                 ->middleware('permission:admin.organization.update');
-            Route::patch('/{organization}', [OrganizationController::class, 'update'])
+            Route::match(['patch', 'post'], '/{organization}', [OrganizationController::class, 'update'])
                 ->middleware('permission:admin.organization.update');
         });
 
@@ -86,7 +86,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.module.create');
                 Route::get('/{module}', [ModuleController::class, 'show'])
                     ->middleware('permission:admin.module.view');
-                Route::put('/{module}', [ModuleController::class, 'update'])
+                Route::match(['put', 'post'], '/{module}', [ModuleController::class, 'update'])
                     ->middleware('permission:admin.module.update');
                 Route::delete('/{module}', [ModuleController::class, 'destroy'])
                     ->middleware('permission:admin.module.delete');
@@ -100,7 +100,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.role.create');
                 Route::get('/{role}', [RoleController::class, 'show'])
                     ->middleware('permission:admin.role.view');
-                Route::put('/{role}', [RoleController::class, 'update'])
+                Route::match(['put', 'post'], '/{role}', [RoleController::class, 'update'])
                     ->middleware('permission:admin.role.update');
                 Route::delete('/{role}', [RoleController::class, 'destroy'])
                     ->middleware('permission:admin.role.delete');
@@ -109,7 +109,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // Unified Role Sync — sync modules, menus, submenus & permissions
-            Route::put('sync-role/{role}', [RoleController::class, 'syncAll'])
+            Route::match(['put', 'post'], 'sync-role/{role}', [RoleController::class, 'syncAll'])
                 ->middleware('permission:admin.role.update');
 
             Route::get('syncRole/list', [RoleController::class, 'roleListData'])
@@ -123,13 +123,13 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.user.create');
                 Route::get('/{user}', [UserController::class, 'show'])
                     ->middleware('permission:admin.user.view');
-                Route::put('/{user}', [UserController::class, 'update'])
+                Route::match(['put', 'post'], '/{user}', [UserController::class, 'update'])
                     ->middleware('permission:admin.user.update');
                 Route::delete('/{user}', [UserController::class, 'destroy'])
                     ->middleware('permission:admin.user.delete');
-                Route::put('/{user}/roles', [UserController::class, 'syncRoles'])
+                Route::match(['put', 'post'], '/{user}/roles', [UserController::class, 'syncRoles'])
                     ->middleware('permission:admin.user.update');
-                Route::put('/{user}/organizations', [UserController::class, 'syncOrganizations'])
+                Route::match(['put', 'post'], '/{user}/organizations', [UserController::class, 'syncOrganizations'])
                     ->middleware('permission:admin.user.update');
             });
 
@@ -143,14 +143,14 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.permission.create');
                 Route::get('/{permission}', [PermissionController::class, 'show'])
                     ->middleware('permission:admin.permission.view');
-                Route::put('/{permission}', [PermissionController::class, 'update'])
+                Route::match(['put', 'post'], '/{permission}', [PermissionController::class, 'update'])
                     ->middleware('permission:admin.permission.update');
                 Route::delete('/{permission}', [PermissionController::class, 'destroy'])
                     ->middleware('permission:admin.permission.delete');
             });
 
             // Assign Permissions to Roles specifically
-            Route::put('roles/{role}/permissions', [PermissionController::class, 'sync'])
+            Route::match(['put', 'post'], 'roles/{role}/permissions', [PermissionController::class, 'sync'])
                 ->middleware('permission:admin.permission.assign');
 
             // Bulk Assign Direct User Permissions
@@ -165,7 +165,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.menu.create');
                 Route::get('/{menu}', [MenuController::class, 'show'])
                     ->middleware('permission:admin.menu.view');
-                Route::put('/{menu}', [MenuController::class, 'update'])
+                Route::match(['put', 'post'], '/{menu}', [MenuController::class, 'update'])
                     ->middleware('permission:admin.menu.update');
                 Route::delete('/{menu}', [MenuController::class, 'destroy'])
                     ->middleware('permission:admin.menu.delete');
@@ -179,7 +179,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.submenu.create');
                 Route::get('/{submenu}', [SubmenuController::class, 'show'])
                     ->middleware('permission:admin.submenu.view');
-                Route::put('/{submenu}', [SubmenuController::class, 'update'])
+                Route::match(['put', 'post'], '/{submenu}', [SubmenuController::class, 'update'])
                     ->middleware('permission:admin.submenu.update');
                 Route::delete('/{submenu}', [SubmenuController::class, 'destroy'])
                     ->middleware('permission:admin.submenu.delete');
@@ -199,7 +199,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{hrmEmployee}', [HrmEmployeeController::class, 'show'])
                     ->whereUuid('hrmEmployee')
                     ->middleware('permission:hrm.employee.view');
-                Route::put('/{hrmEmployee}', [HrmEmployeeController::class, 'update'])
+                Route::match(['put', 'post'], '/{hrmEmployee}', [HrmEmployeeController::class, 'update'])
                     ->whereUuid('hrmEmployee')
                     ->middleware('permission:hrm.employee.update');
                 Route::delete('/{hrmEmployee}', [HrmEmployeeController::class, 'destroy'])
@@ -224,7 +224,7 @@ Route::prefix('v1')->group(function () {
             Route::prefix('adms')->group(function () {
                 Route::get('devices', [AdmsPushController::class, 'devices'])
                     ->middleware('permission:hrm.device.view');
-                Route::put('devices/{id}', [AdmsPushController::class, 'updateDevice'])
+                Route::match(['put', 'post'], 'devices/{id}', [AdmsPushController::class, 'updateDevice'])
                     ->middleware('permission:hrm.device.update');
             });
 
@@ -246,7 +246,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.global-lookup.create');
                 Route::get('/{globalLookupGroup}', [GlobalLookupController::class, 'showGroup'])
                     ->middleware('permission:admin.global-lookup.view');
-                Route::put('/{globalLookupGroup}', [GlobalLookupController::class, 'updateGroup'])
+                Route::match(['put', 'post'], '/{globalLookupGroup}', [GlobalLookupController::class, 'updateGroup'])
                     ->middleware('permission:admin.global-lookup.update');
                 Route::delete('/{globalLookupGroup}', [GlobalLookupController::class, 'destroyGroup'])
                     ->middleware('permission:admin.global-lookup.delete');
@@ -261,7 +261,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.global-lookup.create');
                 Route::get('/{globalLookup}', [GlobalLookupController::class, 'show'])
                     ->middleware('permission:admin.global-lookup.view');
-                Route::put('/{globalLookup}', [GlobalLookupController::class, 'update'])
+                Route::match(['put', 'post'], '/{globalLookup}', [GlobalLookupController::class, 'update'])
                     ->middleware('permission:admin.global-lookup.update');
                 Route::delete('/{globalLookup}', [GlobalLookupController::class, 'destroy'])
                     ->middleware('permission:admin.global-lookup.delete');
@@ -274,7 +274,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.hrm-lookup.create');
                 Route::get('/{hrmLookupGroup}', [HrmLookupController::class, 'showGroup'])
                     ->middleware('permission:admin.hrm-lookup.view');
-                Route::put('/{hrmLookupGroup}', [HrmLookupController::class, 'updateGroup'])
+                Route::match(['put', 'post'], '/{hrmLookupGroup}', [HrmLookupController::class, 'updateGroup'])
                     ->middleware('permission:admin.hrm-lookup.update');
                 Route::delete('/{hrmLookupGroup}', [HrmLookupController::class, 'destroyGroup'])
                     ->middleware('permission:admin.hrm-lookup.delete');
@@ -289,7 +289,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.hrm-lookup.create');
                 Route::get('/{hrmLookup}', [HrmLookupController::class, 'show'])
                     ->middleware('permission:admin.hrm-lookup.view');
-                Route::put('/{hrmLookup}', [HrmLookupController::class, 'update'])
+                Route::match(['put', 'post'], '/{hrmLookup}', [HrmLookupController::class, 'update'])
                     ->middleware('permission:admin.hrm-lookup.update');
                 Route::delete('/{hrmLookup}', [HrmLookupController::class, 'destroy'])
                     ->middleware('permission:admin.hrm-lookup.delete');
@@ -303,7 +303,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.shift.create');
                 Route::get('/{workShift}', [WorkShiftController::class, 'show'])
                     ->middleware('permission:hrm.shift.view');
-                Route::put('/{workShift}', [WorkShiftController::class, 'update'])
+                Route::match(['put', 'post'], '/{workShift}', [WorkShiftController::class, 'update'])
                     ->middleware('permission:hrm.shift.update');
                 Route::delete('/{workShift}', [WorkShiftController::class, 'destroy'])
                     ->middleware('permission:hrm.shift.delete');
@@ -321,7 +321,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.holiday.create');
                 Route::get('/{hrmHoliday}', [HrmHolidayController::class, 'show'])
                     ->middleware('permission:hrm.holiday.view');
-                Route::put('/{hrmHoliday}', [HrmHolidayController::class, 'update'])
+                Route::match(['put', 'post'], '/{hrmHoliday}', [HrmHolidayController::class, 'update'])
                     ->middleware('permission:hrm.holiday.update');
                 Route::delete('/{hrmHoliday}', [HrmHolidayController::class, 'destroy'])
                     ->middleware('permission:hrm.holiday.delete');
@@ -339,7 +339,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.leave.update');
                 Route::delete('/{hrmLeaveApplication}', [HrmLeaveApplicationController::class, 'destroy'])
                     ->middleware('permission:hrm.leave.delete');
-                Route::patch('/{hrmLeaveApplication}/status', [HrmLeaveApplicationController::class, 'updateStatus'])
+                Route::match(['patch', 'post'], '/{hrmLeaveApplication}/status', [HrmLeaveApplicationController::class, 'updateStatus'])
                     ->middleware('permission:hrm.leave.approve');
             });
 
@@ -359,7 +359,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.meal.create');
                 Route::get('/{hrmWeeklyMeal}', [HrmWeeklyMealController::class, 'show'])
                     ->middleware('permission:hrm.meal.view');
-                Route::put('/{hrmWeeklyMeal}', [HrmWeeklyMealController::class, 'update'])
+                Route::match(['put', 'post'], '/{hrmWeeklyMeal}', [HrmWeeklyMealController::class, 'update'])
                     ->middleware('permission:hrm.meal.update');
                 Route::delete('/{hrmWeeklyMeal}', [HrmWeeklyMealController::class, 'destroy'])
                     ->middleware('permission:hrm.meal.delete');

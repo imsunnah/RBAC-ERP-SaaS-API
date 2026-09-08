@@ -108,6 +108,43 @@ class GetEmployeeDashboardSummaryAction
             'office_time'      => $officeTimeStr,
         ];
 
+        $totalEmployees = HrmEmployee::where('organization_id', $employee->organization_id)
+            ->where('is_active', true)
+            ->count();
+
+        $presentEmployees = HrmAttendance::where('organization_id', $employee->organization_id)
+            ->whereDate('date', $today->toDateString())
+            ->whereIn('status', [HrmAttendance::STATUS_PRESENT, HrmAttendance::STATUS_LATE])
+            ->whereHas('employee', fn ($query) => $query->where('is_active', true))
+            ->distinct('employee_id')
+            ->count('employee_id');
+
+        $leaveEmployees = HrmLeaveApplication::where('organization_id', $employee->organization_id)
+            ->where('status', 'approved')
+            ->whereDate('from_date', '<=', $today->toDateString())
+            ->whereDate('to_date', '>=', $today->toDateString())
+            ->whereHas('employee', fn ($query) => $query->where('is_active', true))
+            ->distinct('hrm_employee_id')
+            ->count('hrm_employee_id');
+
+        $leaveAndAbsenceEmployees = max(0, $totalEmployees - $presentEmployees);
+        $attendanceTotal = $totalEmployees ?: 1;
+
+        $employeeAttendance = [
+            'date' => $today->toDateString(),
+            'total_employees' => $totalEmployees,
+            'present' => [
+                'count' => $presentEmployees,
+                'percentage' => round(($presentEmployees / $attendanceTotal) * 100),
+            ],
+            'leave_and_absence' => [
+                'count' => $leaveAndAbsenceEmployees,
+                'percentage' => round(($leaveAndAbsenceEmployees / $attendanceTotal) * 100),
+                'leave_count' => min($leaveEmployees, $leaveAndAbsenceEmployees),
+                'absence_count' => max(0, $leaveAndAbsenceEmployees - $leaveEmployees),
+            ],
+        ];
+
         // 3. Fetch data spanning both Month Overview and Hours Logged date ranges
         $queryStartDate = $startOfMonth->min($hoursLoggedStart)->format('Y-m-d');
         $queryEndDate   = $endOfMonth->max($hoursLoggedEnd)->format('Y-m-d');
@@ -279,6 +316,7 @@ class GetEmployeeDashboardSummaryAction
 
         return [
             'office_attendance' => $todaySection,
+            'employee_attendance' => $employeeAttendance,
             'overview'          => $overview,
             'hours_logged'      => $hoursLoggedList,
         ];

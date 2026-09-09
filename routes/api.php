@@ -218,6 +218,8 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.attendance.view');
                 Route::get('/', [HrmAttendanceController::class, 'index'])
                     ->middleware('permission:hrm.attendance.view');
+                Route::get('/attendance-summary', [HrmAttendanceController::class, 'attendanceSummary'])
+                    ->middleware('permission:hrm.attendance.view');
             });
 
             // ADMS Device Management (authenticated) — requires hrm.device.* permissions

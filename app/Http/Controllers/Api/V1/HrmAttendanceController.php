@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\HrmAttendance\GetAttendanceAndLeaveSummaryAction;
 use App\Actions\HrmAttendance\GetEmployeeDashboardSummaryAction;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\HrmAttendanceResource;
@@ -500,6 +501,27 @@ class HrmAttendanceController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $summary
+        ]);
+    }
+
+    /**
+     * Get Attendance summary for both the Total Employee card and Attendance Overview card.
+     */
+    public function attendanceSummary(
+        Request $request,
+        GetAttendanceAndLeaveSummaryAction $action
+    ): JsonResponse {
+        $this->authorize('viewAny', HrmAttendance::class);
+
+        $request->validate([
+            'date' => ['nullable', 'date'],
+        ]);
+
+        $data = $action->execute($request->input('date'));
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
         ]);
     }
 }

@@ -22,8 +22,7 @@ class UpdateHrmLeaveApplicationStatusAction
         ]);
 
         if ($status === 'approved') {
-
-            $leaveBalance = HrmLeaveBalance::where('hrm_employee_id', Auth::user()->employee_id)
+            $leaveBalance = HrmLeaveBalance::where('hrm_employee_id', $leave->hrm_employee_id)
                 ->where('leave_type_id', $leave->leave_type_id)
                 ->first();
 

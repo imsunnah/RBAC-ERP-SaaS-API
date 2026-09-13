@@ -487,6 +487,8 @@ class HrmAttendanceController extends Controller
                 ->find($user->employee_id);
         }
 
+        // all employee for admin
+
         if (!$employee) {
             return response()->json([
                 'success' => false,

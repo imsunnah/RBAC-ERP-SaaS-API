@@ -17,7 +17,7 @@ class HrmEmployeeIndexResource extends JsonResource
             'nativeName'  => $this->employee_name_local,
             'avatarUrl'   => $this->profile_picture
                 ? asset(Storage::url($this->profile_picture))
-                : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+                : '',
             'designation' => $this->relationLoaded('designation') && $this->designation ? $this->designation->name : null,
             'workShift'   => $this->relationLoaded('workShift') && $this->workShift ? [
                 'name'    => $this->workShift->name,

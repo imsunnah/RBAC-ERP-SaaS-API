@@ -16,6 +16,7 @@ use App\Http\Resources\User\UserDetailResource;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -50,8 +51,9 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
-        $orgId = app('current_organization')->id;
-        $user  = $action->execute($request->validated(), $orgId);
+        $user = DB::transaction(function () use ($action, $request) {
+            return $action->execute($request->validated());
+        });
 
         return response()->json([
             'success' => true,

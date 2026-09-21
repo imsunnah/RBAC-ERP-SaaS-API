@@ -2,13 +2,12 @@
 
 namespace App\Actions\User;
 
-use App\Models\HrmEmployee;
 use App\Models\Organization;
 use App\Models\Role;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use App\Services\Audit\AuditService;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class CreateUserAction
@@ -19,53 +18,50 @@ class CreateUserAction
     ) {}
 
     /**
-     * Execute the creation of a user, organization attachment, and HRM employee record.
+     * Execute the creation of a user, organization attachment, and roles.
      */
-    public function execute(array $payload, int $orgId): User
+    public function execute(array $payload, ?int $orgId = null): User
     {
-        $payload['password']        = Hash::make($payload['password']);
-        $payload['name']            = trim(($payload['first_name'] ?? '') . ' ' . ($payload['last_name'] ?? ''));
-        $payload['is_super_admin']  = false;
-        $payload['organization_id'] = $orgId;
+        return DB::transaction(function () use ($payload, $orgId) {
+            $payload['password']       = Hash::make($payload['password']);
+            $payload['name']           = trim(($payload['first_name'] ?? '') . ' ' . ($payload['last_name'] ?? ''));
+            $payload['is_super_admin'] = false;
 
-        $user = $this->userRepository->create($payload);
+            // Resolve selected organization ID
+            $selectedOrgId = $payload['organization_id'] ?? $orgId;
+            if (!is_numeric($selectedOrgId)) {
+                $selectedOrgId = Organization::where('uuid', $selectedOrgId)->value('id');
+            }
+            $selectedOrgId = (int) $selectedOrgId;
 
-        $orgIdsToAttach = [$orgId];
-        if (!empty($payload['organizations'])) {
-            $extraOrgIds    = Organization::whereIn('uuid', $payload['organizations'])->pluck('id')->toArray();
-            $orgIdsToAttach = array_unique(array_merge($orgIdsToAttach, $extraOrgIds));
-        }
+            $payload['organization_id'] = $selectedOrgId;
 
-        foreach ($orgIdsToAttach as $idToAttach) {
-            $user->organizations()->attach($idToAttach, [
+            $user = $this->userRepository->create($payload);
+
+            // Attach only the selected organization
+            $user->organizations()->attach($selectedOrgId, [
                 'is_owner'   => false,
-                'is_primary' => ($idToAttach === $orgId),
+                'is_primary' => true,
                 'status'     => 'active',
                 'joined_at'  => now(),
             ]);
-        }
 
-        if (!empty($payload['roles'])) {
-            $roleIds = Role::whereIn('uuid', $payload['roles'])->pluck('id');
-            $user->roles()->attach(
-                $roleIds->mapWithKeys(fn ($roleId) => [$roleId => ['organization_id' => $orgId]])->toArray()
-            );
-        }
+            if (!empty($payload['roles'])) {
+                $firstRole = reset($payload['roles']);
+                if (is_numeric($firstRole)) {
+                    $roleIds = collect($payload['roles']);
+                } else {
+                    $roleIds = Role::whereIn('uuid', $payload['roles'])->pluck('id');
+                }
 
-        // Create HRM Employee record
-        HrmEmployee::create([
-            'company_id'       => $user->company_id,
-            'organization_id'  => $orgId,
-            'full_name'        => $user->name,
-            'office_email'     => $user->email,
-            'personal_email'   => $user->email,
-            'is_active'        => true,
-            'user_employee_id' => substr((string) $user->id, 0, 16),
-            'created_by'       => Auth::id() ?? $user->id,
-        ]);
+                $user->roles()->attach(
+                    $roleIds->mapWithKeys(fn ($rId) => [$rId => ['organization_id' => $selectedOrgId]])->toArray()
+                );
+            }
 
-        $this->auditService->logCreated($user);
+            $this->auditService->logCreated($user);
 
-        return $this->userRepository->findWithOrgRoles($user->id, $orgId);
+            return $this->userRepository->findWithOrgRoles($user->id, (string) $selectedOrgId);
+        });
     }
 }

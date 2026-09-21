@@ -5,7 +5,9 @@ namespace App\Actions\HrmLeaveApplication;
 use App\Actions\HrmLeaveApplication\Concerns\HandlesLeaveDocuments;
 use App\Models\HrmEmployee;
 use App\Models\HrmLeaveApplication;
+use App\Models\HrmLeaveBalance;
 use App\Models\HrmLookup;
+use App\Services\HrmLeave\LeaveCalculationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,12 +20,12 @@ class CreateHrmLeaveApplicationAction
     /**
      * Execute the action to create a leave application.
      */
-    public function execute(array $data, ?Request $request = null): HrmLeaveApplication
+    public function execute(array $data, ?Request $request = null, ?LeaveCalculationService $calculator = null): HrmLeaveApplication
     {
-        return DB::transaction(function () use ($data, $request) {
+        return DB::transaction(function () use ($data, $request, $calculator) {
+            $calculator ??= app(LeaveCalculationService::class);
             $fromDate  = Carbon::parse($data['from_date']);
             $toDate    = Carbon::parse($data['to_date']);
-            $totalDays = $fromDate->diffInDays($toDate) + 1;
 
             $currentOrg = app('current_organization');
             $userId     = Auth::id();
@@ -43,7 +45,14 @@ class CreateHrmLeaveApplicationAction
                 'leave_type_id'   => HrmLookup::where('uuid', $data['leave_type_id'])->value('id'),
                 'from_date'       => $data['from_date'],
                 'to_date'         => $data['to_date'],
-                'total_days'      => $totalDays,
+                'start_session'   => $data['start_session'] ?? 'full_day',
+                'end_session'     => $data['end_session'] ?? 'full_day',
+                'total_days'      => $calculator->calculateDays(
+                    $fromDate,
+                    $toDate,
+                    $data['start_session'] ?? 'full_day',
+                    $data['end_session'] ?? 'full_day'
+                ),
                 'reason'          => $data['reason'] ?? null,
                 'status'          => 'pending',
                 'organization_id' => $currentOrg?->id,
@@ -51,6 +60,12 @@ class CreateHrmLeaveApplicationAction
                 'created_by'      => $userId,
                 'updated_by'      => $userId,
             ]);
+
+            $calculator->validateApplication($leave, (float) $leave->total_days);
+            HrmLeaveBalance::where('hrm_employee_id', $leave->hrm_employee_id)
+                ->where('leave_type_id', $leave->leave_type_id)
+                ->where('year', $fromDate->year)
+                ->increment('pending_days', $leave->total_days);
 
             $this->saveUploadedDocuments($request, $leave, $data);
 

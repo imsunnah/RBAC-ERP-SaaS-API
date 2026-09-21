@@ -29,6 +29,8 @@ class HrmLeaveApplicationResource extends JsonResource
             'leave_type'       => new MetadataResource($this->whenLoaded('leaveType')),
             'from_date'        => $this->from_date?->format('Y-m-d'),
             'to_date'          => $this->to_date?->format('Y-m-d'),
+            'start_session'    => $this->start_session,
+            'end_session'      => $this->end_session,
             'total_days'       => $this->total_days,
             'reason'           => $this->reason,
 

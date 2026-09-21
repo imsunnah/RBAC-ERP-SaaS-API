@@ -24,11 +24,14 @@ class HrmLeaveApplication extends Model
         'leave_type_id',
         'from_date',
         'to_date',
+        'start_session',
+        'end_session',
         'total_days',
         'reason',
         'status',
         'approved_by',
         'approved_at',
+        'cancelled_at',
         'rejection_reason',
         'created_by',
         'updated_by',
@@ -37,8 +40,9 @@ class HrmLeaveApplication extends Model
     protected $casts = [
         'from_date'    => 'date',
         'to_date'      => 'date',
-        'total_days'   => 'integer',
+        'total_days'   => 'float',
         'approved_at'  => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     // ── Relationships ─────────────────────────────────────────

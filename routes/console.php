@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('hrm:auto-select-meals')->weeklyOn(6, '00:00');
+Schedule::command('hrm:generate-annual-leave-balances')
+    ->yearlyOn(1, 1, '00:05');

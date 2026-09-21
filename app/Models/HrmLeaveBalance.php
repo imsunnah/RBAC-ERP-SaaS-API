@@ -24,6 +24,7 @@ class HrmLeaveBalance extends Model
         'year',
         'total_days',
         'used_days',
+        'pending_days',
         'created_by',
         'updated_by',
     ];
@@ -32,6 +33,7 @@ class HrmLeaveBalance extends Model
         'year'       => 'integer',
         'total_days' => 'float',
         'used_days'  => 'float',
+        'pending_days' => 'float',
     ];
 
     public function employee(): BelongsTo

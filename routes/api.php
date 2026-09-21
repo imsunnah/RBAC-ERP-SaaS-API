@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\HrmHolidayController;
 use App\Http\Controllers\Api\V1\HrmLeaveApplicationController;
 use App\Http\Controllers\Api\V1\HrmWeeklyMealController;
 use App\Http\Controllers\Api\V1\HrmLeaveBalanceController;
+use App\Http\Controllers\Api\V1\HrmLeavePolicyController;
 use App\Http\Controllers\Api\V1\HrmEmployeeMealSelectionController;
 use Illuminate\Support\Facades\Route;
 
@@ -192,6 +193,9 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.employee.view');
                 Route::get('/my-team-members', [HrmEmployeeController::class, 'myTeamMembers'])
                     ->middleware('permission:hrm.employee.view');
+                Route::get('/{hrmEmployee}/leave-types', [HrmEmployeeController::class, 'leaveTypes'])
+                    ->whereUuid('hrmEmployee')
+                    ->middleware('permission:hrm.leave.view');
                 Route::get('/', [HrmEmployeeController::class, 'index'])
                     ->middleware('permission:hrm.employee.view');
                 Route::post('/', [HrmEmployeeController::class, 'store'])
@@ -351,6 +355,20 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.leave.view');
                 Route::post('/', [HrmLeaveBalanceController::class, 'store'])
                     ->middleware('permission:hrm.leave.create');
+            });
+
+            // Leave Policy Setup
+            Route::prefix('leave-policies')->group(function () {
+                Route::get('/', [HrmLeavePolicyController::class, 'index'])
+                    ->middleware('permission:hrm.leave.view');
+                Route::post('/', [HrmLeavePolicyController::class, 'store'])
+                    ->middleware('permission:hrm.leave.create');
+                Route::match(['put', 'post'], '/{hrmLeavePolicy}', [HrmLeavePolicyController::class, 'update'])
+                    ->whereUuid('hrmLeavePolicy')
+                    ->middleware('permission:hrm.leave.update');
+                Route::delete('/{hrmLeavePolicy}', [HrmLeavePolicyController::class, 'destroy'])
+                    ->whereUuid('hrmLeavePolicy')
+                    ->middleware('permission:hrm.leave.delete');
             });
 
             // Weekly Meals Setup

@@ -18,6 +18,8 @@ class StoreHrmLeaveApplicationRequest extends FormRequest
             'leave_type_id'   => 'required|uuid|exists:hrm_lookups,uuid',
             'from_date'       => 'required|date',
             'to_date'         => 'required|date|after_or_equal:from_date',
+            'start_session'   => 'nullable|in:full_day,first_half,second_half',
+            'end_session'     => 'nullable|in:full_day,first_half,second_half',
             'reason'          => 'nullable|string|max:2000',
             'documents'             => 'nullable',
             'documents.*'           => 'nullable',

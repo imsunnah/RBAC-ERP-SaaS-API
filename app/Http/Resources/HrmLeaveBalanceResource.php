@@ -19,7 +19,8 @@ class HrmLeaveBalanceResource extends JsonResource
             'year'       => $this->year,
             'total_days' => (float) $this->total_days,
             'used_days'  => (float) $this->used_days,
-            'remaining'  => (float) max(0, $this->total_days - $this->used_days),
+            'pending_days' => (float) ($this->pending_days ?? 0),
+            'remaining'  => (float) max(0, $this->total_days - $this->used_days - ($this->pending_days ?? 0)),
         ];
     }
 }

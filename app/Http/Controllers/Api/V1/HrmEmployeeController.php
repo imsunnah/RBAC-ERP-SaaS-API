@@ -12,6 +12,8 @@ use App\Http\Requests\HrmEmployee\UpdateHrmEmployeeRequest;
 use App\Http\Resources\HrmEmployeeIndexResource;
 use App\Http\Resources\HrmEmployeeResource;
 use App\Models\HrmEmployee;
+use App\Models\HrmLeaveBalance;
+use App\Http\Resources\MetadataResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -42,6 +44,48 @@ class HrmEmployeeController extends Controller
         'leaveBalances',
         'leaveBalances.leaveType',
     ];
+
+    /**
+     * employee leave types
+     */
+    public function leaveTypes(Request $request, HrmEmployee $hrmEmployee): JsonResponse
+    {
+        $this->authorize('viewAny', HrmLeaveBalance::class);
+
+        $request->validate([
+            'year' => ['nullable', 'integer'],
+        ]);
+
+        $leaveTypes = HrmLeaveBalance::query()
+            ->where('hrm_employee_id', $hrmEmployee->id)
+            ->when($request->filled('year'), fn ($query) => $query->where('year', $request->integer('year')))
+            ->whereHas('leaveType', fn ($query) => $query->where('is_active', true))
+            ->with('leaveType')
+            ->get()
+            ->map(function (HrmLeaveBalance $leaveBalance) use ($request) {
+                if (!$leaveBalance->leaveType) {
+                    return null;
+                }
+
+                $leaveType = (new MetadataResource($leaveBalance->leaveType))->toArray($request);
+                $leaveType['available_leave_balance'] = (float) max(
+                    0,
+                    $leaveBalance->total_days
+                    - $leaveBalance->used_days
+                    - ($leaveBalance->pending_days ?? 0)
+                );
+
+                return $leaveType;
+            })
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $leaveTypes,
+        ]);
+    }
 
     /** Display a listing of the employees. */
     public function index(Request $request): JsonResponse

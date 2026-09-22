@@ -9,6 +9,7 @@ use App\Repositories\UserRepository;
 use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class CreateUserAction
 {
@@ -29,9 +30,19 @@ class CreateUserAction
 
             // Resolve selected organization ID
             $selectedOrgId = $payload['organization_id'] ?? $orgId;
+            if (is_array($selectedOrgId)) {
+                $selectedOrgId = reset($selectedOrgId);
+            }
             if (!is_numeric($selectedOrgId)) {
                 $selectedOrgId = Organization::where('uuid', $selectedOrgId)->value('id');
             }
+
+            if (!is_numeric($selectedOrgId) || (int) $selectedOrgId < 1) {
+                throw ValidationException::withMessages([
+                    'organization_id' => 'A valid organization is required.',
+                ]);
+            }
+
             $selectedOrgId = (int) $selectedOrgId;
 
             $payload['organization_id'] = $selectedOrgId;

@@ -36,7 +36,7 @@ class GetEmployeeDashboardAction
             : ($totalEmployees > 0 ? 100 : 0);
 
         // 2. New Employees & Month-Over-Month Growth
-        $newEmployeesThisMonth = HrmEmployee::where('created_at', '>=', $startOfMonth)->count();
+        $newEmployeesThisMonth = HrmEmployee::where('created_at', '>=', $startOfMonth)->where('is_active', true)->count();
         $newEmployeesLastMonth = HrmEmployee::whereBetween('created_at', [$startOfLastMonth, $endOfLastMonth])->count();
 
         $newDiff      = $newEmployeesThisMonth - $newEmployeesLastMonth;

@@ -9,6 +9,7 @@ use App\Http\Resources\HrmAttendanceResource;
 use App\Models\HrmAttendance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class HrmAttendanceController extends Controller
 {
@@ -112,14 +113,14 @@ class HrmAttendanceController extends Controller
 
         $employeeUuid = $validated['employee_id'] ?? null;
         if ($employeeUuid) {
-            $employee = \App\Models\HrmEmployee::with(['department', 'designation'])->where('uuid', $employeeUuid)->first();
+            $employee = \App\Models\HrmEmployee::with(['department', 'designation', 'workShift', 'workShiftLookup'])->where('uuid', $employeeUuid)->first();
         } else {
             // Find by employee_id, or fallback to the first employee in the organization context
-            $employee = \App\Models\HrmEmployee::with(['department', 'designation'])
+            $employee = \App\Models\HrmEmployee::with(['department', 'designation', 'workShift', 'workShiftLookup'])
                 ->find($user->employee_id);
 
             if (!$employee) {
-                $employee = \App\Models\HrmEmployee::with(['department', 'designation'])
+                $employee = \App\Models\HrmEmployee::with(['department', 'designation', 'workShift', 'workShiftLookup'])
                     ->where('organization_id', $user->organization_id)
                     ->first();
             }
@@ -215,14 +216,19 @@ class HrmAttendanceController extends Controller
 
             $attendance = $attendances->get($dateStr);
             $attendanceData = null;
+            $workingMinutes = 0;
 
-            // Default fallback times from shift or general default
-            $shiftStartTime = '09:00 AM';
-            $shiftEndTime = '05:00 PM';
-            if ($attendance && $attendance->shift) {
-                $shiftStartTime = \Carbon\Carbon::parse($dateStr . ' ' . $attendance->shift->start_time)->format('h:i A');
-                $shiftEndTime = \Carbon\Carbon::parse($dateStr . ' ' . $attendance->shift->end_time)->format('h:i A');
+            // Attendance records use WorkShift, while employees store a GlobalLookup shift.
+            $workShift = $attendance?->shift ?: $employee->workShift;
+            $shiftName = $workShift?->name ?: $employee->workShiftLookup?->name;
+            $shiftTimes = $this->parseShiftTimes($shiftName);
+            $shiftStart = \Carbon\Carbon::parse($dateStr . ' ' . $shiftTimes['start']);
+            $shiftEnd = \Carbon\Carbon::parse($dateStr . ' ' . $shiftTimes['end']);
+            if ($shiftTimes['overnight'] && $shiftEnd->lessThanOrEqualTo($shiftStart)) {
+                $shiftEnd->addDay();
             }
+            $shiftStartTime = $shiftStart->format('h:i A');
+            $shiftEndTime = $shiftEnd->format('h:i A');
 
             if ($attendance) {
                 $status = $attendance->status;
@@ -232,8 +238,15 @@ class HrmAttendanceController extends Controller
                     $absentCount++;
                 }
 
-                $checkIn = $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in) : null;
-                $checkOut = $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out) : null;
+                $checkIn = $attendance->check_in
+                    ? $this->attendanceTimeOnDate($attendance->check_in, $dateStr)
+                    : null;
+                $checkOut = $attendance->check_out
+                    ? $this->attendanceTimeOnDate($attendance->check_out, $dateStr)
+                    : null;
+                if ($checkIn && $checkOut && $checkOut->lessThan($checkIn)) {
+                    $checkOut->addDay();
+                }
 
                 if ($checkIn && !$checkOut) {
                     $noClockOutCount++;
@@ -245,34 +258,40 @@ class HrmAttendanceController extends Controller
                     $durationStr = sprintf('%02dh %02dm', $durationDiff->h, $durationDiff->i);
                 }
 
+                // Calculate actual worked time and exclude the fixed 11:00-11:20 break.
+                if ($checkIn) {
+                    $workingMinutes = $checkOut
+                        ? $checkIn->diffInMinutes($checkOut)
+                        : (int) round(($attendance->working_hours ?: 0) * 60);
+                    $breakStart = \Carbon\Carbon::parse($dateStr . ' 11:00:00');
+                    $breakEnd = \Carbon\Carbon::parse($dateStr . ' 11:20:00');
+                    if ($checkOut && $checkIn->lt($breakEnd) && $checkOut->gt($breakStart)) {
+                        $workingMinutes -= $checkIn->max($breakStart)->diffInMinutes($checkOut->min($breakEnd));
+                    }
+                    $workingMinutes = max(0, $workingMinutes);
+                }
+
                 // Compile timeline events
                 $timeline = [];
                 if ($checkIn) {
-                    $shift = $attendance->shift;
-                    $shiftStart = $shift ? \Carbon\Carbon::parse($dateStr . ' ' . $shift->start_time) : \Carbon\Carbon::parse($dateStr . ' 09:00:00');
-
                     // Check if late (red bar)
                     if ($checkIn->gt($shiftStart)) {
-                        $lateMins = $checkIn->diffInMinutes($shiftStart);
+                        $lateMins = $shiftStart->diffInMinutes($checkIn);
                         $timeline[] = [
                             'label'    => 'Late',
                             'type'     => 'late',
                             'duration' => "{$lateMins}:00 m",
-                            'color'    => '#EF4444'
+                            'color'    => '#F44336'
                         ];
                     }
 
-                    // Calculate working hours duration
-                    $workingHours = $attendance->working_hours ?: ($checkOut ? $checkIn->diffInHours($checkOut) : 8.0);
-                    $workingHoursDec = floor($workingHours);
-                    $workingMinsDec = round(($workingHours - $workingHoursDec) * 60);
-                    $workingDurationStr = sprintf('%02d:%02d h', $workingHoursDec, $workingMinsDec);
+                    $workingDurationStr = sprintf('%02d:%02d h', intdiv($workingMinutes, 60), $workingMinutes % 60);
 
                     $timeline[] = [
                         'label'    => 'Working Time',
                         'type'     => 'working',
                         'duration' => $workingDurationStr,
-                        'color'    => '#3B82F6'
+                        'color'    => '#2196F3'
                     ];
 
                     // Mock meeting for Sunday / Today to match mockup aesthetics
@@ -281,13 +300,16 @@ class HrmAttendanceController extends Controller
                             'label'    => 'Meeting',
                             'type'     => 'meeting',
                             'duration' => '15:00 m',
-                            'color'    => '#10B981'
+                            'color'    => '#4CAF50'
                         ];
+                    }
+
+                    if (!$isWeekend && !$isHoliday && !$isLeave) {
                         $timeline[] = [
                             'label'    => 'Break',
                             'type'     => 'break',
-                            'duration' => '25:00 m',
-                            'color'    => '#E5E7EB'
+                            'duration' => '20:00 m',
+                            'color'    => '#C4D9CE'
                         ];
                     }
                 }
@@ -296,7 +318,7 @@ class HrmAttendanceController extends Controller
                     'status'    => $status,
                     'check_in'  => $checkIn ? $checkIn->format('h:i A') : $shiftStartTime,
                     'check_out' => $checkOut ? $checkOut->format('h:i A') : null,
-                    'duration'  => $durationStr ?: ($attendance->working_hours ? sprintf('%02dh %02dm', floor($attendance->working_hours), round(($attendance->working_hours - floor($attendance->working_hours)) * 60)) : null),
+                    'duration'  => $workingMinutes > 0 ? sprintf('%02dh %02dm', intdiv($workingMinutes, 60), $workingMinutes % 60) : null,
                     'timeline'  => $timeline,
                     'badge'     => null,
                 ];
@@ -313,7 +335,7 @@ class HrmAttendanceController extends Controller
                                 'label'    => 'Off Days',
                                 'type'     => 'off_day',
                                 'duration' => '08:00 h',
-                                'color'    => '#10B981'
+                                'color'    => '#4CAF50'
                             ]
                         ],
                         'badge'     => [
@@ -334,7 +356,7 @@ class HrmAttendanceController extends Controller
                                 'label'    => 'on Leave',
                                 'type'     => 'leave',
                                 'duration' => '08:00 h',
-                                'color'    => '#F59E0B'
+                                'color'    => '#FFC107'
                             ]
                         ],
                         'badge'     => [
@@ -356,7 +378,7 @@ class HrmAttendanceController extends Controller
                                 'label'    => 'Absent',
                                 'type'     => 'absent',
                                 'duration' => '08:00 h',
-                                'color'    => '#EF4444'
+                                'color'    => '#F44336'
                             ]
                         ],
                         'badge'     => [
@@ -388,7 +410,7 @@ class HrmAttendanceController extends Controller
                     'name'        => $employee->full_name,
                     'employee_id' => $employee->user_employee_id,
                     'designation' => $employee->designation?->name ?? 'Employee',
-                    'photo'       => $employee->profile_picture,
+                    'photo'       => $employee->profile_picture ? asset(Storage::url($employee->profile_picture)) : null,
                     'status'      => $employee->is_active ? 'Permanent' : 'Inactive',
                 ],
                 'stats' => [
@@ -405,6 +427,45 @@ class HrmAttendanceController extends Controller
                 'calendar' => $calendar,
             ]
         ]);
+    }
+
+    private function parseShiftTimes(?string $shiftName): array
+    {
+        $default = [
+            'start' => '09:00:00',
+            'end' => '17:00:00',
+            'overnight' => false,
+        ];
+
+        if (!$shiftName || !preg_match(
+            '/\((\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*-\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)\)/i',
+            $shiftName,
+            $matches
+        )) {
+            return $default;
+        }
+
+        $start = \Carbon\Carbon::createFromFormat(
+            'g:i A',
+            sprintf('%d:%02d %s', $matches[1], $matches[2] ?? 0, strtoupper($matches[3]))
+        );
+        $end = \Carbon\Carbon::createFromFormat(
+            'g:i A',
+            sprintf('%d:%02d %s', $matches[4], $matches[5] ?? 0, strtoupper($matches[6]))
+        );
+
+        return [
+            'start' => $start->format('H:i:s'),
+            'end' => $end->format('H:i:s'),
+            'overnight' => $end->lessThanOrEqualTo($start),
+        ];
+    }
+
+    private function attendanceTimeOnDate(mixed $value, string $date): \Carbon\Carbon
+    {
+        $time = \Carbon\Carbon::parse($value)->format('H:i:s');
+
+        return \Carbon\Carbon::parse($date . ' ' . $time);
     }
 
 

@@ -52,8 +52,8 @@ Route::prefix('v1')->group(function () {
 
         // Auth
         Route::prefix('auth')->group(function () {
-            Route::post('logout', [AuthController::class, 'logout']);
-            Route::get('me', [AuthController::class, 'me']);
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::get('/me', [AuthController::class, 'me']);
         });
 
         // Global Management (no org context needed)

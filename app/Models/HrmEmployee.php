@@ -186,6 +186,11 @@ class HrmEmployee extends Model
         return $this->belongsTo(WorkShift::class, 'work_shift_id', 'shift_id');
     }
 
+    public function workShiftLookup(): BelongsTo
+    {
+        return $this->belongsTo(GlobalLookup::class, 'work_shift_id');
+    }
+
     public function leaveBalances(): HasMany
     {
         return $this->hasMany(HrmLeaveBalance::class, 'hrm_employee_id');

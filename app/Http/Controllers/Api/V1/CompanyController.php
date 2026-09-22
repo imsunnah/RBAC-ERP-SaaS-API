@@ -7,14 +7,22 @@ use App\Models\Company;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Http\Resources\CompanyResource;
+use Illuminate\Support\Facades\Auth;
 
 class CompanyController extends Controller
 {
     public function index(): JsonResponse
     {
+        $user = Auth::user();
+        $companies = Company::with('organizations');
+
+        if (!$user->is_super_admin) {
+            $companies->whereKey($user->company_id);
+        }
+
         return response()->json([
             'success' => true,
-            'data' => CompanyResource::collection(Company::with('organizations')->get()),
+            'data' => CompanyResource::collection($companies->get()),
         ]);
     }
 

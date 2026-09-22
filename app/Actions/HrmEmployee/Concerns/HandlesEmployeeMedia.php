@@ -45,9 +45,14 @@ trait HandlesEmployeeMedia
                 $path = $request->file($field)->store("employees", 'public');
                 $validated[$field] = $path;
             } elseif (array_key_exists($field, $validated) && is_string($validated[$field])) {
-                $val = $validated[$field];
-                if (str_contains($val, '/storage/')) {
-                    $validated[$field] = explode('/storage/', $val, 2)[1];
+                $val = trim($validated[$field]);
+                if ($val === '' || in_array(strtolower($val), ['0', 'null', 'undefined'], true)) {
+                    unset($validated[$field]);
+                } else {
+                    if (str_contains($val, '/storage/')) {
+                        $val = explode('/storage/', $val, 2)[1];
+                    }
+                    $validated[$field] = $val;
                 }
             } else {
                 unset($validated[$field]);

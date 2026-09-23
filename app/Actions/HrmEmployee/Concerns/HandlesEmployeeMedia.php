@@ -5,6 +5,7 @@ namespace App\Actions\HrmEmployee\Concerns;
 use App\Models\GlobalLookup;
 use App\Models\HrmEmployee;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 
@@ -38,11 +39,13 @@ trait HandlesEmployeeMedia
     protected function handleImageUploads(Request $request, array $validated, ?HrmEmployee $employee = null): array
     {
         foreach (self::IMAGE_FIELDS as $field) {
-            if ($request->hasFile($field) && $request->file($field)->isValid()) {
+            $uploadedFile = $request->file($field) ?: ($validated[$field] ?? null);
+
+            if ($uploadedFile instanceof UploadedFile && $uploadedFile->isValid()) {
                 if ($employee && $employee->$field) {
                     Storage::disk('public')->delete($employee->$field);
                 }
-                $path = $request->file($field)->store("employees", 'public');
+                $path = $uploadedFile->store('employees', 'public');
                 $validated[$field] = $path;
             } elseif (array_key_exists($field, $validated) && is_string($validated[$field])) {
                 $val = trim($validated[$field]);

@@ -265,7 +265,6 @@ class HrmEmployeeController extends Controller
         }
 
         $query = HrmEmployee::where('department_id', $departmentId)
-            ->where('id', '!=', $employee->id)
             ->where('organization_id', $employee->organization_id)
             ->with(self::EMPLOYEE_RELATIONS);
 

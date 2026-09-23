@@ -5,6 +5,7 @@ namespace App\Actions\HrmEmployee\Concerns;
 use App\Models\GlobalLookup;
 use App\Models\HrmEmployee;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 
@@ -38,16 +39,23 @@ trait HandlesEmployeeMedia
     protected function handleImageUploads(Request $request, array $validated, ?HrmEmployee $employee = null): array
     {
         foreach (self::IMAGE_FIELDS as $field) {
-            if ($request->hasFile($field) && $request->file($field)->isValid()) {
+            $uploadedFile = $request->file($field) ?: ($validated[$field] ?? null);
+
+            if ($uploadedFile instanceof UploadedFile && $uploadedFile->isValid()) {
                 if ($employee && $employee->$field) {
                     Storage::disk('public')->delete($employee->$field);
                 }
-                $path = $request->file($field)->store("employees", 'public');
+                $path = $uploadedFile->store('employees', 'public');
                 $validated[$field] = $path;
             } elseif (array_key_exists($field, $validated) && is_string($validated[$field])) {
-                $val = $validated[$field];
-                if (str_contains($val, '/storage/')) {
-                    $validated[$field] = explode('/storage/', $val, 2)[1];
+                $val = trim($validated[$field]);
+                if ($val === '' || in_array(strtolower($val), ['0', 'null', 'undefined'], true)) {
+                    unset($validated[$field]);
+                } else {
+                    if (str_contains($val, '/storage/')) {
+                        $val = explode('/storage/', $val, 2)[1];
+                    }
+                    $validated[$field] = $val;
                 }
             } else {
                 unset($validated[$field]);

@@ -65,6 +65,10 @@ trait HasUuidColumn
      */
     public static function resolveId(string $uuid): ?int
     {
-        return static::where('uuid', $uuid)->value('id');
+        $model = new static();
+        $keyName = $model->getKeyName();
+        $value = static::where('uuid', $uuid)->value($keyName);
+
+        return $value === null ? null : (int) $value;
     }
 }

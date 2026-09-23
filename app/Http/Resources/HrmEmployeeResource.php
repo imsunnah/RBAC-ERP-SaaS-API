@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\MetadataResource;
+use Carbon\Carbon;
 
 class HrmEmployeeResource extends JsonResource
 {
@@ -57,7 +58,18 @@ class HrmEmployeeResource extends JsonResource
             'employee_type'        => new MetadataResource($this->whenLoaded('employeeType')),
             'employee_category_id' => $this->employee_category_id ? (int) $this->employee_category_id : null,
             'employment_type'      => new MetadataResource($this->whenLoaded('employmentType')),
-            'work_shift_id'        => $this->work_shift_id ? (int) $this->work_shift_id : null,
+            'work_shift_id'        => $this->workShift?->uuid,
+            'work_shift'           => $this->relationLoaded('workShift') && $this->workShift ? [
+                'uuid'                    => $this->workShift->uuid,
+                'name'                    => $this->workShift->name,
+                'start_time'              => $this->workShift->start_time
+                    ? Carbon::parse($this->workShift->start_time)->format('g:i A')
+                    : null,
+                'end_time'                => $this->workShift->end_time
+                    ? Carbon::parse($this->workShift->end_time)->format('g:i A')
+                    : null,
+                'weekend'                 => $this->workShift->weekend,
+            ] : null,
             'work_location'        => $this->work_location,
             'hire_date'            => $this->hire_date ? $this->hire_date->format('Y-m-d') : null,
             'start_date'           => $this->start_date ? $this->start_date->format('Y-m-d') : null,

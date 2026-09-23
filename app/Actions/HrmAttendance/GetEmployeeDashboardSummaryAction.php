@@ -6,7 +6,6 @@ use App\Models\HrmEmployee;
 use App\Models\HrmAttendance;
 use App\Models\HrmLeaveApplication;
 use App\Models\HrmHoliday;
-use App\Models\WorkShift;
 use Carbon\Carbon;
 
 class GetEmployeeDashboardSummaryAction
@@ -40,9 +39,12 @@ class GetEmployeeDashboardSummaryAction
             
         $startOfMonth = $targetMonth->copy()->startOfMonth();
         $endOfMonth   = $targetMonth->copy()->endOfMonth();
+        $totalDaysInMonth = $startOfMonth->daysInMonth;
 
-        // 1. Resolve Date Range for "Hours Logged" (initially from start of month for 15 days)
-        $days = isset($filters['days']) && is_numeric($filters['days']) ? (int) $filters['days'] : 15;
+        // 1. Resolve Date Range for "Hours Logged"
+        $days = isset($filters['days']) && is_numeric($filters['days'])
+            ? (int) $filters['days']
+            : $totalDaysInMonth;
 
         if (!empty($filters['from_date']) && !empty($filters['to_date'])) {
             $hoursLoggedStart = Carbon::parse($filters['from_date'])->startOfDay();
@@ -55,9 +57,11 @@ class GetEmployeeDashboardSummaryAction
             $hoursLoggedStart = $refDate->copy();
             $hoursLoggedEnd   = $hoursLoggedStart->copy()->addDays($days - 1);
         } else {
-            // Default initial: Starts from the 1st of the month for 15 days (Day 1 to Day 15)
+            // Default: include the complete selected month unless a day limit is supplied.
             $hoursLoggedStart = $startOfMonth->copy()->startOfDay();
-            $hoursLoggedEnd   = $hoursLoggedStart->copy()->addDays($days - 1);
+            $hoursLoggedEnd   = isset($filters['days']) && is_numeric($filters['days'])
+                ? $hoursLoggedStart->copy()->addDays($days - 1)
+                : $endOfMonth->copy()->startOfDay();
             if ($hoursLoggedEnd->gt($endOfMonth)) {
                 $hoursLoggedEnd = $endOfMonth->copy()->startOfDay();
             }
@@ -68,7 +72,7 @@ class GetEmployeeDashboardSummaryAction
             ->whereDate('date', $today->format('Y-m-d'))
             ->first();
 
-        $shift = $employee->workShift ?? WorkShift::where('organization_id', $employee->organization_id)->first();
+        $shift = $employee->workShift;
         $shiftStart = $shift ? Carbon::parse($shift->start_time)->format('g:i A') : '10:00 AM';
         $shiftEnd = $shift ? Carbon::parse($shift->end_time)->format('g:i A') : '7:00 PM';
         $officeTimeStr = "{$shiftStart}-{$shiftEnd}";
@@ -172,7 +176,6 @@ class GetEmployeeDashboardSummaryAction
             ->get();
 
         // 4. Calculate Monthly Overview
-        $totalDaysInMonth = $startOfMonth->daysInMonth;
         $presentCount = 0;
         $absentCount = 0;
         $leaveCount = 0;
@@ -249,7 +252,7 @@ class GetEmployeeDashboardSummaryAction
             ]
         ];
 
-        // 5. Compile "Hours Logged" for the resolved date range (initial 15 days or filtered days)
+        // 5. Compile "Hours Logged" for the resolved date range (full month)
         $hoursLoggedList = [];
         $periodDays = $hoursLoggedStart->diffInDays($hoursLoggedEnd) + 1;
 
@@ -277,11 +280,17 @@ class GetEmployeeDashboardSummaryAction
             $color = 'orange';
 
             if ($att) {
-                if (in_array(strtoupper($att->status), ['PRESENT', 'LATE'])) {
-                    $isLate = strtoupper($att->status) === 'LATE';
+                $attendanceStatus = strtoupper(str_replace(['-', ' '], '_', (string) $att->status));
+
+                if (in_array($attendanceStatus, ['PRESENT', 'LATE'])) {
+                    $isLate = $attendanceStatus === 'LATE';
                     $status = $isLate ? 'Late' : 'Present';
                     $hours = $att->working_hours ? sprintf('%02d:%02d', floor($att->working_hours), round(($att->working_hours - floor($att->working_hours)) * 60)) : '00:00';
                     $color = $isLate ? 'red' : 'blue';
+                } elseif ($attendanceStatus === 'HALF_DAY') {
+                    $status = 'Half day';
+                    $hours = $att->working_hours ? sprintf('%02d:%02d', floor($att->working_hours), round(($att->working_hours - floor($att->working_hours)) * 60)) : '00:00';
+                    $color = 'yellow';
                 } else {
                     $status = 'Absent';
                 }
@@ -294,7 +303,7 @@ class GetEmployeeDashboardSummaryAction
             } elseif ($isWeekend) {
                 $status = 'Weekly holiday';
                 $color = 'green';
-                $hours = '08:45';
+                $hours = '00:00';
             } else {
                 if ($currentDate->lt($today->copy()->startOfDay())) {
                     $status = 'Absent';

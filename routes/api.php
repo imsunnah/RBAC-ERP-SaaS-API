@@ -52,8 +52,8 @@ Route::prefix('v1')->group(function () {
 
         // Auth
         Route::prefix('auth')->group(function () {
-            Route::post('logout', [AuthController::class, 'logout']);
-            Route::get('me', [AuthController::class, 'me']);
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::get('/me', [AuthController::class, 'me']);
         });
 
         // Global Management (no org context needed)
@@ -305,6 +305,7 @@ Route::prefix('v1')->group(function () {
             Route::prefix('work-shifts')->group(function () {
                 Route::get('/', [WorkShiftController::class, 'index'])
                     ->middleware('permission:hrm.shift.view');
+                Route::get('/all', [WorkShiftController::class, 'fullIndex']);
                 Route::post('/', [WorkShiftController::class, 'store'])
                     ->middleware('permission:hrm.shift.create');
                 Route::get('/{workShift}', [WorkShiftController::class, 'show'])

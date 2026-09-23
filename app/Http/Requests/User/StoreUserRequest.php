@@ -26,7 +26,8 @@ class StoreUserRequest extends FormRequest
             'status' => ['nullable', 'in:active,inactive,suspended'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['uuid', 'exists:roles,uuid'],
-            'organization_id' => ['required', 'uuid', 'exists:organizations,uuid'],
+            'organization_id' => ['required', 'array'],
+            'organization_id.*' => ['required', 'uuid', 'exists:organizations,uuid'],
         ];
     }
 
@@ -37,7 +38,7 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'roles' => [Role::class],
-            'organization_id' => Organization::class,
+            'organization_id' => [Organization::class],
         ];
     }
 

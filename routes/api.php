@@ -305,6 +305,8 @@ Route::prefix('v1')->group(function () {
             Route::prefix('work-shifts')->group(function () {
                 Route::get('/', [WorkShiftController::class, 'index'])
                     ->middleware('permission:hrm.shift.view');
+                Route::get('/all', [WorkShiftController::class, 'fullIndex'])
+                    ->middleware('permission:hrm.shift.view');
                 Route::post('/', [WorkShiftController::class, 'store'])
                     ->middleware('permission:hrm.shift.create');
                 Route::get('/{workShift}', [WorkShiftController::class, 'show'])

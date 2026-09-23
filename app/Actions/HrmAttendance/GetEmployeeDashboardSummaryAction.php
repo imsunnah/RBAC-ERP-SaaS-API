@@ -2,12 +2,10 @@
 
 namespace App\Actions\HrmAttendance;
 
-use App\Models\GlobalLookup;
 use App\Models\HrmEmployee;
 use App\Models\HrmAttendance;
 use App\Models\HrmLeaveApplication;
 use App\Models\HrmHoliday;
-use App\Models\WorkShift;
 use Carbon\Carbon;
 
 class GetEmployeeDashboardSummaryAction
@@ -74,7 +72,7 @@ class GetEmployeeDashboardSummaryAction
             ->whereDate('date', $today->format('Y-m-d'))
             ->first();
 
-        $shift = GlobalLookup::where('id', $employee->shift_id)->first();
+        $shift = $employee->workShift;
         $shiftStart = $shift ? Carbon::parse($shift->start_time)->format('g:i A') : '10:00 AM';
         $shiftEnd = $shift ? Carbon::parse($shift->end_time)->format('g:i A') : '7:00 PM';
         $officeTimeStr = "{$shiftStart}-{$shiftEnd}";

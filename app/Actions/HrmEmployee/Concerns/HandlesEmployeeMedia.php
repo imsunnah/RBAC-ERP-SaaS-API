@@ -38,7 +38,75 @@ trait HandlesEmployeeMedia
      */
     protected function handleImageUploads(Request $request, array $validated, ?HrmEmployee $employee = null): array
     {
-        foreach (self::IMAGE_FIELDS as $field) {
+        // 1. Employee Photo / Profile Picture resolution
+        $photoFile = null;
+        $photoFieldProvided = false;
+
+        foreach (['employee_photo', 'profile_picture', 'photo', 'avatar'] as $alias) {
+            if ($request->hasFile($alias)) {
+                $photoFile = $request->file($alias);
+                $photoFieldProvided = true;
+                break;
+            }
+            if (array_key_exists($alias, $validated)) {
+                $photoFile = $validated[$alias];
+                $photoFieldProvided = true;
+                if (!empty($photoFile)) {
+                    break;
+                }
+            }
+        }
+
+        if ($photoFile instanceof UploadedFile && $photoFile->isValid()) {
+            if ($employee) {
+                if ($employee->employee_photo) {
+                    Storage::disk('public')->delete($employee->employee_photo);
+                }
+                if ($employee->profile_picture && $employee->profile_picture !== $employee->employee_photo) {
+                    Storage::disk('public')->delete($employee->profile_picture);
+                }
+            }
+            $path = $photoFile->store('employees', 'public');
+            $validated['employee_photo']  = $path;
+            $validated['profile_picture'] = $path;
+        } elseif (is_string($photoFile)) {
+            $val = trim($photoFile);
+            if (preg_match('/^data:image\/(\w+);base64,/', $val, $matches)) {
+                $decoded = base64_decode(substr($val, strpos($val, ',') + 1));
+                if ($decoded !== false) {
+                    $ext = strtolower($matches[1]) === 'jpeg' ? 'jpg' : strtolower($matches[1]);
+                    $path = 'employees/' . uniqid('photo_', true) . '.' . $ext;
+                    if ($employee) {
+                        if ($employee->employee_photo) {
+                            Storage::disk('public')->delete($employee->employee_photo);
+                        }
+                        if ($employee->profile_picture && $employee->profile_picture !== $employee->employee_photo) {
+                            Storage::disk('public')->delete($employee->profile_picture);
+                        }
+                    }
+                    Storage::disk('public')->put($path, $decoded);
+                    $validated['employee_photo']  = $path;
+                    $validated['profile_picture'] = $path;
+                }
+            } elseif ($val !== '' && !in_array(strtolower($val), ['0', 'null', 'undefined'], true)) {
+                if (str_contains($val, '/storage/')) {
+                    $val = explode('/storage/', $val, 2)[1];
+                }
+                $validated['employee_photo']  = $val;
+                $validated['profile_picture'] = $val;
+            } else {
+                unset($validated['employee_photo'], $validated['profile_picture']);
+            }
+        } elseif ($photoFieldProvided) {
+            unset($validated['employee_photo'], $validated['profile_picture']);
+        } else {
+            unset($validated['employee_photo'], $validated['profile_picture']);
+        }
+
+        unset($validated['photo'], $validated['avatar']);
+
+        // 2. Handle remaining image fields: signature_image, nid_image, business_card_image
+        foreach (['signature_image', 'nid_image', 'business_card_image'] as $field) {
             $uploadedFile = $request->file($field) ?: ($validated[$field] ?? null);
 
             if ($uploadedFile instanceof UploadedFile && $uploadedFile->isValid()) {
@@ -49,7 +117,18 @@ trait HandlesEmployeeMedia
                 $validated[$field] = $path;
             } elseif (array_key_exists($field, $validated) && is_string($validated[$field])) {
                 $val = trim($validated[$field]);
-                if ($val === '' || in_array(strtolower($val), ['0', 'null', 'undefined'], true)) {
+                if (preg_match('/^data:image\/(\w+);base64,/', $val, $matches)) {
+                    $decoded = base64_decode(substr($val, strpos($val, ',') + 1));
+                    if ($decoded !== false) {
+                        $ext = strtolower($matches[1]) === 'jpeg' ? 'jpg' : strtolower($matches[1]);
+                        $path = 'employees/' . uniqid($field . '_', true) . '.' . $ext;
+                        if ($employee && $employee->$field) {
+                            Storage::disk('public')->delete($employee->$field);
+                        }
+                        Storage::disk('public')->put($path, $decoded);
+                        $validated[$field] = $path;
+                    }
+                } elseif ($val === '' || in_array(strtolower($val), ['0', 'null', 'undefined'], true)) {
                     unset($validated[$field]);
                 } else {
                     if (str_contains($val, '/storage/')) {

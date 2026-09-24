@@ -39,67 +39,61 @@ trait HandlesEmployeeMedia
     protected function handleImageUploads(Request $request, array $validated, ?HrmEmployee $employee = null): array
     {
         // 1. Employee Photo / Profile Picture resolution
-        $photoFile = null;
-        $photoFieldProvided = false;
+        $photoInput = null;
+        $photoProvided = false;
 
-        foreach (['employee_photo', 'profile_picture', 'photo', 'avatar'] as $alias) {
-            if ($request->hasFile($alias)) {
-                $photoFile = $request->file($alias);
-                $photoFieldProvided = true;
+        // First pass: search for an UploadedFile instance (multipart/form-data)
+        foreach (['profile_picture', 'employee_photo', 'photo', 'avatar'] as $alias) {
+            $file = $request->file($alias);
+            if ($file instanceof UploadedFile && $file->isValid()) {
+                $photoInput = $file;
+                $photoProvided = true;
                 break;
             }
-            if (array_key_exists($alias, $validated)) {
-                $photoFile = $validated[$alias];
-                $photoFieldProvided = true;
-                if (!empty($photoFile)) {
-                    break;
+            if (isset($validated[$alias]) && $validated[$alias] instanceof UploadedFile && $validated[$alias]->isValid()) {
+                $photoInput = $validated[$alias];
+                $photoProvided = true;
+                break;
+            }
+        }
+
+        // Check allFiles() if nested or flat file array
+        if (!$photoInput) {
+            foreach ($request->allFiles() as $key => $file) {
+                if (in_array($key, ['profile_picture', 'employee_photo', 'photo', 'avatar'], true)) {
+                    if ($file instanceof UploadedFile && $file->isValid()) {
+                        $photoInput = $file;
+                        $photoProvided = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if ($photoFile instanceof UploadedFile && $photoFile->isValid()) {
-            if ($employee) {
-                if ($employee->employee_photo) {
-                    Storage::disk('public')->delete($employee->employee_photo);
-                }
-                if ($employee->profile_picture && $employee->profile_picture !== $employee->employee_photo) {
-                    Storage::disk('public')->delete($employee->profile_picture);
-                }
-            }
-            $path = $photoFile->store('employees', 'public');
-            $validated['employee_photo']  = $path;
-            $validated['profile_picture'] = $path;
-        } elseif (is_string($photoFile)) {
-            $val = trim($photoFile);
-            if (preg_match('/^data:image\/(\w+);base64,/', $val, $matches)) {
-                $decoded = base64_decode(substr($val, strpos($val, ',') + 1));
-                if ($decoded !== false) {
-                    $ext = strtolower($matches[1]) === 'jpeg' ? 'jpg' : strtolower($matches[1]);
-                    $path = 'employees/' . uniqid('photo_', true) . '.' . $ext;
-                    if ($employee) {
-                        if ($employee->employee_photo) {
-                            Storage::disk('public')->delete($employee->employee_photo);
-                        }
-                        if ($employee->profile_picture && $employee->profile_picture !== $employee->employee_photo) {
-                            Storage::disk('public')->delete($employee->profile_picture);
-                        }
+        // Second pass: if no UploadedFile found, search for non-empty string input
+        if (!$photoInput) {
+            foreach (['profile_picture', 'employee_photo', 'photo', 'avatar'] as $alias) {
+                $val = $request->input($alias) ?? ($validated[$alias] ?? null);
+                if (is_string($val)) {
+                    $cleanVal = trim($val);
+                    if ($cleanVal !== '' && !in_array(strtolower($cleanVal), ['null', 'undefined', '0', 'false'], true)) {
+                        $photoInput = $cleanVal;
+                        $photoProvided = true;
+                        break;
                     }
-                    Storage::disk('public')->put($path, $decoded);
-                    $validated['employee_photo']  = $path;
-                    $validated['profile_picture'] = $path;
                 }
-            } elseif ($val !== '' && !in_array(strtolower($val), ['0', 'null', 'undefined'], true)) {
-                if (str_contains($val, '/storage/')) {
-                    $val = explode('/storage/', $val, 2)[1];
-                }
-                $validated['employee_photo']  = $val;
-                $validated['profile_picture'] = $val;
-            } else {
-                unset($validated['employee_photo'], $validated['profile_picture']);
             }
-        } elseif ($photoFieldProvided) {
+        }
+
+        $oldPhotoPath = $employee ? ($employee->employee_photo ?? $employee->profile_picture) : null;
+        $savedPhotoPath = $this->saveImageValue($photoInput, 'photo_', $oldPhotoPath);
+
+        if ($savedPhotoPath) {
+            $validated['employee_photo']  = $savedPhotoPath;
+            $validated['profile_picture'] = $savedPhotoPath;
+        } elseif ($photoProvided && !$employee) {
             unset($validated['employee_photo'], $validated['profile_picture']);
-        } else {
+        } elseif (!$savedPhotoPath && $employee) {
             unset($validated['employee_photo'], $validated['profile_picture']);
         }
 
@@ -107,41 +101,132 @@ trait HandlesEmployeeMedia
 
         // 2. Handle remaining image fields: signature_image, nid_image, business_card_image
         foreach (['signature_image', 'nid_image', 'business_card_image'] as $field) {
-            $uploadedFile = $request->file($field) ?: ($validated[$field] ?? null);
+            $fieldInput = $request->file($field);
+            if (!($fieldInput instanceof UploadedFile)) {
+                $fieldInput = $validated[$field] ?? $request->input($field);
+            }
 
-            if ($uploadedFile instanceof UploadedFile && $uploadedFile->isValid()) {
-                if ($employee && $employee->$field) {
-                    Storage::disk('public')->delete($employee->$field);
-                }
-                $path = $uploadedFile->store('employees', 'public');
-                $validated[$field] = $path;
-            } elseif (array_key_exists($field, $validated) && is_string($validated[$field])) {
-                $val = trim($validated[$field]);
-                if (preg_match('/^data:image\/(\w+);base64,/', $val, $matches)) {
-                    $decoded = base64_decode(substr($val, strpos($val, ',') + 1));
-                    if ($decoded !== false) {
-                        $ext = strtolower($matches[1]) === 'jpeg' ? 'jpg' : strtolower($matches[1]);
-                        $path = 'employees/' . uniqid($field . '_', true) . '.' . $ext;
-                        if ($employee && $employee->$field) {
-                            Storage::disk('public')->delete($employee->$field);
-                        }
-                        Storage::disk('public')->put($path, $decoded);
-                        $validated[$field] = $path;
-                    }
-                } elseif ($val === '' || in_array(strtolower($val), ['0', 'null', 'undefined'], true)) {
-                    unset($validated[$field]);
-                } else {
-                    if (str_contains($val, '/storage/')) {
-                        $val = explode('/storage/', $val, 2)[1];
-                    }
-                    $validated[$field] = $val;
-                }
+            $oldFieldPath = $employee ? $employee->$field : null;
+            $savedFieldPath = $this->saveImageValue($fieldInput, $field . '_', $oldFieldPath);
+
+            if ($savedFieldPath) {
+                $validated[$field] = $savedFieldPath;
             } else {
                 unset($validated[$field]);
             }
         }
 
         return $validated;
+    }
+
+    /**
+     * Save an uploaded file, base64 string, local file path, or URL to public storage disk.
+     */
+    protected function saveImageValue(mixed $value, string $prefix = 'photo_', ?string $oldPath = null): ?string
+    {
+        // 1. UploadedFile instance (multipart/form-data)
+        if ($value instanceof UploadedFile) {
+            if ($value->isValid()) {
+                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+                return $value->store('employees', 'public');
+            }
+            return null;
+        }
+
+        if (empty($value) || !is_string($value) || in_array(strtolower(trim($value)), ['null', 'undefined', '0', 'false', ''], true)) {
+            return null;
+        }
+
+        $val = trim($value);
+        if (str_contains($val, '/storage/')) {
+            $val = explode('/storage/', $val, 2)[1];
+        }
+        $val = ltrim($val, '/');
+
+        // 2. Base64 Data URI string
+        if (preg_match('/^data:image\/(\w+);base64,/i', $val, $matches)) {
+            $decoded = base64_decode(substr($val, strpos($val, ',') + 1));
+            if ($decoded !== false) {
+                $ext = strtolower($matches[1]) === 'jpeg' ? 'jpg' : strtolower($matches[1]);
+                $path = 'employees/' . uniqid($prefix, true) . '.' . $ext;
+                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+                Storage::disk('public')->put($path, $decoded);
+                return $path;
+            }
+        }
+
+        // 3. Raw Base64 string without data URI header
+        if (strlen($val) > 100 && !str_contains($val, ' ') && preg_match('/^[a-zA-Z0-9\/\r\n+=\-_]+$/', $val)) {
+            $decoded = base64_decode($val, true);
+            if ($decoded !== false) {
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $mime = $finfo->buffer($decoded);
+                if ($mime && str_starts_with($mime, 'image/')) {
+                    $ext = explode('/', $mime)[1] ?? 'jpg';
+                    $ext = $ext === 'jpeg' ? 'jpg' : $ext;
+                    $path = 'employees/' . uniqid($prefix, true) . '.' . $ext;
+                    if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                    Storage::disk('public')->put($path, $decoded);
+                    return $path;
+                }
+            }
+        }
+
+        // 4. Pre-existing file on public storage disk
+        if (Storage::disk('public')->exists($val)) {
+            return $val;
+        }
+
+        // 5. Local file path check (temp directory, public path, storage path)
+        $possiblePaths = [
+            $val,
+            public_path($val),
+            storage_path($val),
+            storage_path('app/' . $val),
+            storage_path('app/public/' . $val),
+            sys_get_temp_dir() . '/' . basename($val),
+        ];
+
+        foreach ($possiblePaths as $possiblePath) {
+            if (!empty($possiblePath) && file_exists($possiblePath) && is_file($possiblePath)) {
+                $ext = pathinfo($possiblePath, PATHINFO_EXTENSION) ?: 'jpg';
+                $path = 'employees/' . uniqid($prefix, true) . '.' . $ext;
+                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+                Storage::disk('public')->put($path, file_get_contents($possiblePath));
+                return $path;
+            }
+        }
+
+        // 6. External URL check
+        if (filter_var($val, FILTER_VALIDATE_URL)) {
+            try {
+                $contents = @file_get_contents($val);
+                if ($contents !== false) {
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo->buffer($contents);
+                    $ext = ($mime && str_starts_with($mime, 'image/')) ? explode('/', $mime)[1] : 'jpg';
+                    $ext = $ext === 'jpeg' ? 'jpg' : $ext;
+                    $path = 'employees/' . uniqid($prefix, true) . '.' . $ext;
+                    if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                    Storage::disk('public')->put($path, $contents);
+                    return $path;
+                }
+            } catch (\Throwable $e) {
+                // Ignore download error
+            }
+        }
+
+        return $val;
     }
 
     /**

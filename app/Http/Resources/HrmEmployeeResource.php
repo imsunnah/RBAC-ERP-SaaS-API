@@ -150,8 +150,8 @@ class HrmEmployeeResource extends JsonResource
             }) : null,
 
             // ── Images / Files ────────────────────────────────────────────────
-            'employee_photo'      => $this->employee_photo ? asset(Storage::url($this->employee_photo)) : null,
-            'profile_picture'     => $this->profile_picture ? asset(Storage::url($this->profile_picture)) : null,
+            'employee_photo'      => ($this->employee_photo ?? $this->profile_picture) ? asset(Storage::url($this->employee_photo ?? $this->profile_picture)) : null,
+            'profile_picture'     => ($this->profile_picture ?? $this->employee_photo) ? asset(Storage::url($this->profile_picture ?? $this->employee_photo)) : null,
             'signature_image'     => $this->signature_image ? asset(Storage::url($this->signature_image)) : null,
             'nid_image'           => $this->nid_image ? asset(Storage::url($this->nid_image)) : null,
             'business_card_image' => $this->business_card_image ? asset(Storage::url($this->business_card_image)) : null,

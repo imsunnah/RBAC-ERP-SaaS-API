@@ -178,10 +178,18 @@ class HrmAttendanceController extends Controller
             ->get();
 
         // Fetch summarized attendance records for this month
-        $attendances = HrmAttendance::where('employee_id', $employee->id)
-            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->get()
-            ->keyBy(fn($att) => \Carbon\Carbon::parse($att->date)->format('Y-m-d'));
+        $attendances = HrmAttendance::where(function ($q) use ($employee) {
+            $q->where('employee_id', $employee->id);
+            if (!empty($employee->biometric_id)) {
+                $q->orWhere('biometric_id', $employee->biometric_id);
+            }
+            if (!empty($employee->user_employee_id)) {
+                $q->orWhere('biometric_id', $employee->user_employee_id);
+            }
+        })
+        ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+        ->get()
+        ->keyBy(fn($att) => \Carbon\Carbon::parse($att->date)->format('Y-m-d'));
 
         $calendar = [];
         $daysOffCount = 0;
@@ -536,10 +544,12 @@ class HrmAttendanceController extends Controller
         ]);
 
         $user = $request->user();
+        $isSuperAdmin = (bool) ($user && ($user->is_super_admin || (method_exists($user, 'hasRole') && ($user->hasRole('super_admin') || $user->hasRole('Super Admin')))));
+        $hasEmployeeFilter = $request->filled('employee_id');
 
         // Find employee: Check request employee_id (UUID) first, fallback to logged-in user
         $employee = null;
-        if ($request->filled('employee_id')) {
+        if ($hasEmployeeFilter) {
             $employee = \App\Models\HrmEmployee::with(['designation', 'workShift'])
                 ->where('uuid', $request->input('employee_id'))
                 ->first();
@@ -548,7 +558,16 @@ class HrmAttendanceController extends Controller
                 ->find($user->employee_id);
         }
 
-        // all employee for admin
+        if (!$employee && $user) {
+            $employee = \App\Models\HrmEmployee::with(['designation', 'workShift'])
+                ->where('office_email', $user->email)
+                ->orWhere('personal_email', $user->email)
+                ->first();
+        }
+
+        if (!$employee) {
+            $employee = \App\Models\HrmEmployee::with(['designation', 'workShift'])->first();
+        }
 
         if (!$employee) {
             return response()->json([
@@ -556,6 +575,8 @@ class HrmAttendanceController extends Controller
                 'message' => 'Employee record not found.',
             ], 404);
         }
+
+        $validated['is_global'] = ($isSuperAdmin && !$hasEmployeeFilter);
 
         $summary = $action->execute($employee, $request->input('month'), $validated);
 

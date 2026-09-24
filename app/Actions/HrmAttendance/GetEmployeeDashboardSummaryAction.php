@@ -7,6 +7,7 @@ use App\Models\HrmAttendance;
 use App\Models\HrmLeaveApplication;
 use App\Models\HrmHoliday;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class GetEmployeeDashboardSummaryAction
 {
@@ -21,6 +22,7 @@ class GetEmployeeDashboardSummaryAction
     public function execute(HrmEmployee $employee, ?string $targetMonthInput = null, array $filters = []): array
     {
         $today = Carbon::now();
+        $isGlobal = !empty($filters['is_global']);
         
         if ($targetMonthInput === '0' || $targetMonthInput === 0 || empty($targetMonthInput)) {
             $targetMonth = $today->copy();
@@ -68,9 +70,39 @@ class GetEmployeeDashboardSummaryAction
         }
 
         // 2. Resolve Office/Today Attendance
-        $todayAttendance = HrmAttendance::where('employee_id', $employee->id)
+        if ($isGlobal) {
+            $todayAttendanceQuery = HrmAttendance::whereDate('date', $today->toDateString())
+                ->whereNotNull('check_in');
+            if ($employee->organization_id) {
+                $todayAttendanceQuery->where(function ($q) use ($employee) {
+                    $q->where('organization_id', $employee->organization_id)
+                      ->orWhereNull('organization_id');
+                });
+            }
+            $todayAttendance = (clone $todayAttendanceQuery)->latest('check_in')->first();
+            if (!$todayAttendance) {
+                $fallbackQuery = HrmAttendance::whereDate('date', $today->toDateString());
+                if ($employee->organization_id) {
+                    $fallbackQuery->where(function ($q) use ($employee) {
+                        $q->where('organization_id', $employee->organization_id)
+                          ->orWhereNull('organization_id');
+                    });
+                }
+                $todayAttendance = $fallbackQuery->latest()->first();
+            }
+        } else {
+            $todayAttendance = HrmAttendance::where(function ($q) use ($employee) {
+                $q->where('employee_id', $employee->id);
+                if (!empty($employee->biometric_id)) {
+                    $q->orWhere('biometric_id', $employee->biometric_id);
+                }
+                if (!empty($employee->user_employee_id)) {
+                    $q->orWhere('biometric_id', $employee->user_employee_id);
+                }
+            })
             ->whereDate('date', $today->format('Y-m-d'))
             ->first();
+        }
 
         $shift = $employee->workShift;
         $shiftStart = $shift ? Carbon::parse($shift->start_time)->format('g:i A') : '10:00 AM';
@@ -112,24 +144,43 @@ class GetEmployeeDashboardSummaryAction
             'office_time'      => $officeTimeStr,
         ];
 
-        $totalEmployees = HrmEmployee::where('organization_id', $employee->organization_id)
-            ->where('is_active', true)
-            ->count();
+        $totalEmployeesQuery = HrmEmployee::where('is_active', true);
+        if ($employee->organization_id) {
+            $totalEmployeesQuery->where('organization_id', $employee->organization_id);
+        }
+        $totalEmployees = $totalEmployeesQuery->count();
 
-        $presentEmployees = HrmAttendance::where('organization_id', $employee->organization_id)
-            ->whereDate('date', $today->toDateString())
-            ->whereIn('status', [HrmAttendance::STATUS_PRESENT, HrmAttendance::STATUS_LATE])
-            ->whereHas('employee', fn ($query) => $query->where('is_active', true))
-            ->distinct('employee_id')
-            ->count('employee_id');
+        // Late & Half Day count as present
+        $activeBioIds = HrmEmployee::where('is_active', true)->pluck('biometric_id')->filter()->toArray();
+        $activeUserEmpIds = HrmEmployee::where('is_active', true)->pluck('user_employee_id')->filter()->toArray();
 
-        $leaveEmployees = HrmLeaveApplication::where('organization_id', $employee->organization_id)
-            ->where('status', 'approved')
+        $presentEmployeesQuery = HrmAttendance::whereDate('date', $today->toDateString())
+            ->whereIn(DB::raw('UPPER(status)'), ['PRESENT', 'LATE', 'HALF_DAY', 'HALF DAY', 'ON_TIME'])
+            ->where(function ($q) use ($activeBioIds, $activeUserEmpIds) {
+                $q->whereHas('employee', fn ($query) => $query->where('is_active', true));
+                if (!empty($activeBioIds)) {
+                    $q->orWhereIn('biometric_id', $activeBioIds);
+                }
+                if (!empty($activeUserEmpIds)) {
+                    $q->orWhereIn('biometric_id', $activeUserEmpIds);
+                }
+            });
+        if ($employee->organization_id) {
+            $presentEmployeesQuery->where(function ($q) use ($employee) {
+                $q->where('organization_id', $employee->organization_id)
+                  ->orWhereNull('organization_id');
+            });
+        }
+        $presentEmployees = $presentEmployeesQuery->distinct('employee_id')->count('employee_id');
+
+        $leaveEmployeesQuery = HrmLeaveApplication::where('status', 'approved')
             ->whereDate('from_date', '<=', $today->toDateString())
             ->whereDate('to_date', '>=', $today->toDateString())
-            ->whereHas('employee', fn ($query) => $query->where('is_active', true))
-            ->distinct('hrm_employee_id')
-            ->count('hrm_employee_id');
+            ->whereHas('employee', fn ($query) => $query->where('is_active', true));
+        if ($employee->organization_id) {
+            $leaveEmployeesQuery->where('organization_id', $employee->organization_id);
+        }
+        $leaveEmployees = $leaveEmployeesQuery->distinct('hrm_employee_id')->count('hrm_employee_id');
 
         $leaveAndAbsenceEmployees = max(0, $totalEmployees - $presentEmployees);
         $attendanceTotal = $totalEmployees ?: 1;
@@ -153,104 +204,227 @@ class GetEmployeeDashboardSummaryAction
         $queryStartDate = $startOfMonth->min($hoursLoggedStart)->format('Y-m-d');
         $queryEndDate   = $endOfMonth->max($hoursLoggedEnd)->format('Y-m-d');
 
-        $attendances = HrmAttendance::where('employee_id', $employee->id)
-            ->whereBetween('date', [$queryStartDate, $queryEndDate])
-            ->get()
-            ->keyBy(fn($a) => Carbon::parse($a->date)->format('Y-m-d'));
+        if ($isGlobal) {
+            $attQuery = HrmAttendance::whereBetween('date', [$queryStartDate, $queryEndDate])
+                ->whereHas('employee', fn ($q) => $q->where('is_active', true));
+            if ($employee->organization_id) {
+                $attQuery->where(function ($q) use ($employee) {
+                    $q->where('organization_id', $employee->organization_id)
+                      ->orWhereNull('organization_id');
+                });
+            }
+            $attendances = $attQuery->get();
 
-        $leaves = HrmLeaveApplication::where('hrm_employee_id', $employee->id)
-            ->where('status', 'approved')
-            ->where(function ($q) use ($queryStartDate, $queryEndDate) {
-                $q->whereBetween('from_date', [$queryStartDate, $queryEndDate])
-                  ->orWhereBetween('to_date', [$queryStartDate, $queryEndDate])
-                  ->orWhere(function ($sub) use ($queryStartDate, $queryEndDate) {
-                      $sub->where('from_date', '<=', $queryStartDate)
-                          ->where('to_date', '>=', $queryEndDate);
-                  });
+            $leaveQuery = HrmLeaveApplication::where('status', 'approved')
+                ->whereHas('employee', fn ($q) => $q->where('is_active', true))
+                ->where(function ($q) use ($queryStartDate, $queryEndDate) {
+                    $q->whereBetween('from_date', [$queryStartDate, $queryEndDate])
+                      ->orWhereBetween('to_date', [$queryStartDate, $queryEndDate])
+                      ->orWhere(function ($sub) use ($queryStartDate, $queryEndDate) {
+                          $sub->where('from_date', '<=', $queryStartDate)
+                              ->where('to_date', '>=', $queryEndDate);
+                      });
+                });
+            if ($employee->organization_id) {
+                $leaveQuery->where('organization_id', $employee->organization_id);
+            }
+            $leaves = $leaveQuery->get();
+        } else {
+            $attendances = HrmAttendance::where(function ($q) use ($employee) {
+                $q->where('employee_id', $employee->id);
+                if (!empty($employee->biometric_id)) {
+                    $q->orWhere('biometric_id', $employee->biometric_id);
+                }
+                if (!empty($employee->user_employee_id)) {
+                    $q->orWhere('biometric_id', $employee->user_employee_id);
+                }
             })
-            ->get();
-
-        $holidays = HrmHoliday::where('organization_id', $employee->organization_id)
-            ->where('is_active', 1)
             ->whereBetween('date', [$queryStartDate, $queryEndDate])
             ->get();
+
+            $leaves = HrmLeaveApplication::where('hrm_employee_id', $employee->id)
+                ->where('status', 'approved')
+                ->where(function ($q) use ($queryStartDate, $queryEndDate) {
+                    $q->whereBetween('from_date', [$queryStartDate, $queryEndDate])
+                      ->orWhereBetween('to_date', [$queryStartDate, $queryEndDate])
+                      ->orWhere(function ($sub) use ($queryStartDate, $queryEndDate) {
+                          $sub->where('from_date', '<=', $queryStartDate)
+                              ->where('to_date', '>=', $queryEndDate);
+                      });
+                })
+                ->get();
+        }
+
+        $attendancesByDate = $attendances->groupBy(function ($a) {
+            $d = method_exists($a, 'getRawOriginal') ? $a->getRawOriginal('date') : null;
+            if (!$d) {
+                if ($a->date instanceof \Carbon\CarbonInterface) {
+                    $d = $a->date->format('Y-m-d');
+                } else {
+                    $d = (string) $a->date;
+                }
+            }
+            return substr((string) $d, 0, 10);
+        });
+
+        $holidayQuery = HrmHoliday::where('is_active', 1)
+            ->whereBetween('date', [$queryStartDate, $queryEndDate]);
+        if ($employee->organization_id) {
+            $holidayQuery->where('organization_id', $employee->organization_id);
+        }
+        $holidays = $holidayQuery->get();
 
         // 4. Calculate Monthly Overview
+        $isStatusPresent = function ($status) {
+            $clean = strtoupper(trim(str_replace(['-', ' '], '_', (string) $status)));
+            $clean = preg_replace('/_+/', '_', trim($clean, '_'));
+            return in_array($clean, ['PRESENT', 'LATE', 'HALF_DAY', 'ON_TIME']);
+        };
+
         $presentCount = 0;
         $absentCount = 0;
         $leaveCount = 0;
         $holidayCount = 0;
         $weeklyHolidayCount = 0;
 
-        for ($day = 1; $day <= $totalDaysInMonth; $day++) {
-            $currentDate = $startOfMonth->copy()->day($day);
-            $dateStr = $currentDate->format('Y-m-d');
-            $dayOfWeek = $currentDate->dayOfWeek; // 0=Sunday, 5=Friday, 6=Saturday
-            
-            $isWeekend = ($dayOfWeek === 5 || $dayOfWeek === 6); // Friday, Saturday
+        if ($isGlobal) {
+            for ($day = 1; $day <= $totalDaysInMonth; $day++) {
+                $currentDate = $startOfMonth->copy()->day($day);
+                $dateStr = $currentDate->format('Y-m-d');
+                $dayOfWeek = $currentDate->dayOfWeek; // 0=Sunday, 5=Friday, 6=Saturday
+                
+                $isWeekend = ($dayOfWeek === 5 || $dayOfWeek === 6); // Friday, Saturday
 
-            // Resolve leave
-            $hasLeave = $leaves->first(function ($leave) use ($dateStr) {
-                return $dateStr >= $leave->from_date && $dateStr <= $leave->to_date;
-            });
+                $hasLeave = $leaves->first(function ($leave) use ($dateStr) {
+                    return $dateStr >= $leave->from_date && $dateStr <= $leave->to_date;
+                });
 
-            // Resolve holiday
-            $hasHoliday = $holidays->first(function ($holiday) use ($dateStr) {
-                return $holiday->date && $holiday->date->format('Y-m-d') === $dateStr;
-            });
+                $hasHoliday = $holidays->first(function ($holiday) use ($dateStr) {
+                    return $holiday->date && $holiday->date->format('Y-m-d') === $dateStr;
+                });
 
-            $att = $attendances->get($dateStr);
+                $dayAtts = $attendancesByDate->get($dateStr, collect());
+                $presentRecords = $dayAtts->filter(fn ($att) => $isStatusPresent($att->status));
+                $absentRecords = $dayAtts->filter(fn ($att) => !$isStatusPresent($att->status));
 
-            if ($att) {
-                if (in_array(strtoupper($att->status), ['PRESENT', 'LATE'])) {
-                    $presentCount++;
+                if ($presentRecords->isNotEmpty()) {
+                    $presentCount += $presentRecords->count();
+                } elseif ($absentRecords->isNotEmpty()) {
+                    $absentCount += $absentRecords->count();
+                } elseif ($hasLeave) {
+                    $leaveCount++;
+                } elseif ($hasHoliday) {
+                    $holidayCount++;
+                } elseif ($isWeekend) {
+                    $weeklyHolidayCount++;
                 } else {
-                    $absentCount++;
-                }
-            } elseif ($hasLeave) {
-                $leaveCount++;
-            } elseif ($hasHoliday) {
-                $holidayCount++;
-            } elseif ($isWeekend) {
-                $weeklyHolidayCount++;
-            } else {
-                if ($currentDate->lt($today->copy()->startOfDay())) {
-                    $absentCount++;
+                    if ($currentDate->lt($today->copy()->startOfDay())) {
+                        $absentCount++;
+                    }
                 }
             }
-        }
 
-        $totalAccountedDays = $presentCount + $absentCount + $leaveCount + $holidayCount + $weeklyHolidayCount;
-        $totalAccountedDays = $totalAccountedDays ?: 1;
+            $totalAccountedDays = $presentCount + $absentCount + $leaveCount + $holidayCount + $weeklyHolidayCount;
+            $totalAccountedDays = $totalAccountedDays ?: 1;
 
-        $overview = [
-            'month_label' => $targetMonth->format('F'),
-            'month_year'  => $targetMonth->format('Y'),
-            'total_days'  => $totalDaysInMonth,
-            'attendance_ratio' => "{$presentCount}/{$totalDaysInMonth}",
-            'stats' => [
-                'present' => [
-                    'label' => 'Present',
-                    'days'  => sprintf('%02d Days', $presentCount),
-                    'percentage' => round(($presentCount / $totalAccountedDays) * 100) . '%'
-                ],
-                'absent' => [
-                    'label' => 'Absent',
-                    'days'  => sprintf('%02d Days', $absentCount),
-                    'percentage' => round(($absentCount / $totalAccountedDays) * 100) . '%'
-                ],
-                'leave' => [
-                    'label' => 'Leave',
-                    'days'  => sprintf('%02d Days', $leaveCount),
-                    'percentage' => round(($leaveCount / $totalAccountedDays) * 100) . '%'
-                ],
-                'holiday' => [
-                    'label' => 'Holiday',
-                    'days'  => sprintf('%02d Days', $holidayCount + $weeklyHolidayCount),
-                    'percentage' => round((($holidayCount + $weeklyHolidayCount) / $totalAccountedDays) * 100) . '%'
+            $overview = [
+                'month_label' => $targetMonth->format('F'),
+                'month_year'  => $targetMonth->format('Y'),
+                'total_days'  => $totalDaysInMonth,
+                'attendance_ratio' => "{$presentCount}/{$totalDaysInMonth}",
+                'stats' => [
+                    'present' => [
+                        'label' => 'Present',
+                        'days'  => sprintf('%02d Days', $presentCount),
+                        'percentage' => round(($presentCount / $totalAccountedDays) * 100) . '%'
+                    ],
+                    'absent' => [
+                        'label' => 'Absent',
+                        'days'  => sprintf('%02d Days', $absentCount),
+                        'percentage' => round(($absentCount / $totalAccountedDays) * 100) . '%'
+                    ],
+                    'leave' => [
+                        'label' => 'Leave',
+                        'days'  => sprintf('%02d Days', $leaveCount),
+                        'percentage' => round(($leaveCount / $totalAccountedDays) * 100) . '%'
+                    ],
+                    'holiday' => [
+                        'label' => 'Holiday',
+                        'days'  => sprintf('%02d Days', $holidayCount + $weeklyHolidayCount),
+                        'percentage' => round((($holidayCount + $weeklyHolidayCount) / $totalAccountedDays) * 100) . '%'
+                    ]
                 ]
-            ]
-        ];
+            ];
+        } else {
+            $presentCount = 0;
+
+            for ($day = 1; $day <= $totalDaysInMonth; $day++) {
+                $currentDate = $startOfMonth->copy()->day($day);
+                $dateStr = $currentDate->format('Y-m-d');
+                $dayOfWeek = $currentDate->dayOfWeek; // 0=Sunday, 5=Friday, 6=Saturday
+                
+                $isWeekend = ($dayOfWeek === 5 || $dayOfWeek === 6);
+
+                $hasLeave = $leaves->first(function ($leave) use ($dateStr) {
+                    return $dateStr >= $leave->from_date && $dateStr <= $leave->to_date;
+                });
+
+                $hasHoliday = $holidays->first(function ($holiday) use ($dateStr) {
+                    return $holiday->date && $holiday->date->format('Y-m-d') === $dateStr;
+                });
+
+                $dayAtts = $attendancesByDate->get($dateStr, collect());
+                $presentRecords = $dayAtts->filter(fn ($att) => $isStatusPresent($att->status));
+
+                if ($presentRecords->isNotEmpty()) {
+                    $presentCount++;
+                } elseif ($dayAtts->isNotEmpty()) {
+                    $absentCount++;
+                } elseif ($hasLeave) {
+                    $leaveCount++;
+                } elseif ($hasHoliday) {
+                    $holidayCount++;
+                } elseif ($isWeekend) {
+                    $weeklyHolidayCount++;
+                } else {
+                    if ($currentDate->lt($today->copy()->startOfDay())) {
+                        $absentCount++;
+                    }
+                }
+            }
+
+            $totalAccountedDays = $presentCount + $absentCount + $leaveCount + $holidayCount + $weeklyHolidayCount;
+            $totalAccountedDays = $totalAccountedDays ?: 1;
+
+            $overview = [
+                'month_label' => $targetMonth->format('F'),
+                'month_year'  => $targetMonth->format('Y'),
+                'total_days'  => $totalDaysInMonth,
+                'attendance_ratio' => "{$presentCount}/{$totalDaysInMonth}",
+                'stats' => [
+                    'present' => [
+                        'label' => 'Present',
+                        'days'  => sprintf('%02d Days', $presentCount),
+                        'percentage' => round(($presentCount / $totalAccountedDays) * 100) . '%'
+                    ],
+                    'absent' => [
+                        'label' => 'Absent',
+                        'days'  => sprintf('%02d Days', $absentCount),
+                        'percentage' => round(($absentCount / $totalAccountedDays) * 100) . '%'
+                    ],
+                    'leave' => [
+                        'label' => 'Leave',
+                        'days'  => sprintf('%02d Days', $leaveCount),
+                        'percentage' => round(($leaveCount / $totalAccountedDays) * 100) . '%'
+                    ],
+                    'holiday' => [
+                        'label' => 'Holiday',
+                        'days'  => sprintf('%02d Days', $holidayCount + $weeklyHolidayCount),
+                        'percentage' => round((($holidayCount + $weeklyHolidayCount) / $totalAccountedDays) * 100) . '%'
+                    ]
+                ]
+            ];
+        }
 
         // 5. Compile "Hours Logged" for the resolved date range (full month)
         $hoursLoggedList = [];
@@ -273,27 +447,44 @@ class GetEmployeeDashboardSummaryAction
                 return $holiday->date && $holiday->date->format('Y-m-d') === $dateStr;
             });
 
-            $att = $attendances->get($dateStr);
+            $dayAtts = $attendancesByDate->get($dateStr, collect());
+            $presentRecords = $dayAtts->filter(fn ($att) => $isStatusPresent($att->status));
             
             $status = 'Absent';
             $hours = '00:00';
             $color = 'orange';
 
-            if ($att) {
-                $attendanceStatus = strtoupper(str_replace(['-', ' '], '_', (string) $att->status));
+            if ($presentRecords->isNotEmpty()) {
+                $hasHalfDay = false;
+                $workingSecs = 0;
 
-                if (in_array($attendanceStatus, ['PRESENT', 'LATE'])) {
-                    $isLate = $attendanceStatus === 'LATE';
-                    $status = $isLate ? 'Late' : 'Present';
-                    $hours = $att->working_hours ? sprintf('%02d:%02d', floor($att->working_hours), round(($att->working_hours - floor($att->working_hours)) * 60)) : '00:00';
-                    $color = $isLate ? 'red' : 'blue';
-                } elseif ($attendanceStatus === 'HALF_DAY') {
+                foreach ($presentRecords as $att) {
+                    $st = strtoupper(trim(str_replace(['-', ' '], '_', (string) $att->status)));
+                    if ($st === 'HALF_DAY') {
+                        $hasHalfDay = true;
+                    }
+
+                    if (!empty($att->working_hours)) {
+                        $workingSecs += (float) $att->working_hours * 3600;
+                    } elseif ($att->check_in && $att->check_out) {
+                        $workingSecs += Carbon::parse($att->check_in)->diffInSeconds(Carbon::parse($att->check_out));
+                    } elseif ($att->check_in) {
+                        $workingSecs += Carbon::parse($att->check_in)->diffInSeconds(Carbon::now());
+                    }
+                }
+
+                $hours = sprintf('%02d:%02d', floor($workingSecs / 3600), floor(($workingSecs / 60) % 60));
+
+                if ($hasHalfDay && $presentRecords->count() === 1) {
                     $status = 'Half day';
-                    $hours = $att->working_hours ? sprintf('%02d:%02d', floor($att->working_hours), round(($att->working_hours - floor($att->working_hours)) * 60)) : '00:00';
                     $color = 'yellow';
                 } else {
-                    $status = 'Absent';
+                    $status = 'Present';
+                    $color = 'blue';
                 }
+            } elseif ($dayAtts->isNotEmpty()) {
+                $status = 'Absent';
+                $color = 'orange';
             } elseif ($hasLeave) {
                 $status = 'Leave';
                 $color = 'purple';
@@ -331,3 +522,5 @@ class GetEmployeeDashboardSummaryAction
         ];
     }
 }
+
+

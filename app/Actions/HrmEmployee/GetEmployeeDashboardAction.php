@@ -45,9 +45,11 @@ class GetEmployeeDashboardAction
             : ($newEmployeesThisMonth > 0 ? 100 : 0);
 
         // 3. Present Today & Day-Over-Day Comparison
-        $presentToday = HrmAttendance::whereDate('date', $todayStr)
-            ->whereIn('status', [HrmAttendance::STATUS_PRESENT, HrmAttendance::STATUS_LATE])
-            ->count();
+        $presentToday =HrmAttendance::whereDate('date', $todayStr)
+            ->whereIn(DB::raw('UPPER(status)'), [HrmAttendance::STATUS_PRESENT, HrmAttendance::STATUS_LATE])
+            ->whereHas('employee', fn ($q) => $q->where('is_active', true))
+            ->distinct('employee_id')
+            ->count('employee_id');
 
         $presentYesterday = HrmAttendance::whereDate('date', $yesterdayStr)
             ->whereIn('status', [HrmAttendance::STATUS_PRESENT, HrmAttendance::STATUS_LATE])

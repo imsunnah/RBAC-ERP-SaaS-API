@@ -28,7 +28,7 @@ trait HandlesEmployeeMedia
         'relationship_id',
     ];
 
-    /** Fields that contain GlobalLookup UUIDs in the emergency_contacts array. */
+    /** Fields that contain lookup UUIDs in the emergency_contacts array. */
     protected const EMERGENCY_LOOKUP_FIELDS = [
         'relationship_id',
     ];
@@ -229,14 +229,12 @@ trait HandlesEmployeeMedia
         return $val;
     }
 
-    /**
-     * Resolve GlobalLookup UUID strings to integer IDs for the given fields.
-     */
-    protected function resolveLookupFields(array $data, array $fields): array
+    /** Resolve lookup UUID strings to integer IDs for the given fields. */
+    protected function resolveLookupFields(array $data, array $fields, string $lookupModel = GlobalLookup::class): array
     {
         foreach ($fields as $field) {
             if (!empty($data[$field])) {
-                $data[$field] = GlobalLookup::resolveId($data[$field]);
+                $data[$field] = $lookupModel::resolveId($data[$field]);
             }
         }
 
@@ -246,7 +244,13 @@ trait HandlesEmployeeMedia
     /**
      * Sync a hasMany relation using update-or-create logic.
      */
-    protected function syncRelation(HrmEmployee $employee, string $relation, mixed $items, array $lookupFields = []): void
+    protected function syncRelation(
+        HrmEmployee $employee,
+        string $relation,
+        mixed $items,
+        array $lookupFields = [],
+        string $lookupModel = GlobalLookup::class
+    ): void
     {
         $data = is_string($items) ? json_decode($items, true) : $items;
 
@@ -259,7 +263,7 @@ trait HandlesEmployeeMedia
         foreach ($data as $item) {
             $uuid     = $item['uuid'] ?? null;
             $itemData = Arr::except($item, ['uuid', 'id']);
-            $itemData = $this->resolveLookupFields($itemData, $lookupFields);
+            $itemData = $this->resolveLookupFields($itemData, $lookupFields, $lookupModel);
 
             if ($uuid) {
                 $record = $employee->{$relation}()->where('uuid', $uuid)->first();

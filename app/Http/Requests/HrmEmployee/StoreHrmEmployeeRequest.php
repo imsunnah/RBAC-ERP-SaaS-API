@@ -113,7 +113,7 @@ class StoreHrmEmployeeRequest extends FormRequest
 
             'emergency_contacts'                            => 'nullable|array',
             'emergency_contacts.*.contact_name'             => 'nullable|string|max:100',
-            'emergency_contacts.*.relationship_id'          => 'nullable|uuid|exists:global_lookups,uuid',
+            'emergency_contacts.*.relationship_id'          => 'nullable|uuid|exists:hrm_lookups,uuid',
             'emergency_contacts.*.contact_number'           => 'nullable|string|max:20',
             'emergency_contacts.*.alternate_contact_number' => 'nullable|string|max:20',
             'emergency_contacts.*.address'                  => 'nullable|string|max:300',

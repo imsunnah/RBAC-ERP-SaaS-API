@@ -15,7 +15,7 @@ class UserResource extends JsonResource
             'uuid' => $this->uuid,
             'name' => $this->full_name ?? $this->name,
             'email' => $this->email,
-            'employee_uuid' => $this->employee->uuid ?? null,
+            'employee_uuid' => $this->employee_id ? $this->employee?->uuid : null,
             'is_super_admin' => $isSuperAdmin,
             'organizations' => $this->whenLoaded('organizations', function () use ($isSuperAdmin) {
                 return $this->organizations->map(function($org) use ($isSuperAdmin) {

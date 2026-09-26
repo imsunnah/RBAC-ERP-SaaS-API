@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\GlobalLookup;
 use App\Models\HrmEmployee;
 use App\Models\HrmHoliday;
+use App\Models\HrmLookup;
 use App\Models\WorkShift;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -249,7 +250,12 @@ class HrmUpgradeTest extends TestCase
             'hrm.employee.view',
         ]);
 
-        $rel = GlobalLookup::factory()->create(['name' => 'Brother', 'slug' => 'brother']);
+        $rel = HrmLookup::factory()->create([
+            'name' => 'Brother',
+            'slug' => 'brother',
+            'organization_id' => $org['org']->id,
+            'company_id' => $org['org']->company_id,
+        ]);
 
         $response = $this->actingAsOrgMember($org['user'], $org['org'])
             ->postJson('/api/v1/hrm-employees', [

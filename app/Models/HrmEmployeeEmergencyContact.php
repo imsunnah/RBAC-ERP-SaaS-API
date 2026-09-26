@@ -34,6 +34,6 @@ class HrmEmployeeEmergencyContact extends Model
 
     public function relationship(): BelongsTo
     {
-        return $this->belongsTo(GlobalLookup::class, 'relationship_id');
+        return $this->belongsTo(HrmLookup::class, 'relationship_id');
     }
 }

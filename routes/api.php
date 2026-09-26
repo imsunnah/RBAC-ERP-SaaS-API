@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\SubmenuController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\HrmEmployeeController;
+use App\Http\Controllers\Api\V1\TeamController;
 use App\Http\Controllers\Api\V1\HrmAttendanceController;
 use App\Http\Controllers\Api\V1\AdmsPushController;
 use App\Http\Controllers\Api\V1\BulkAccessController;
@@ -209,6 +210,20 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/{hrmEmployee}', [HrmEmployeeController::class, 'destroy'])
                     ->whereUuid('hrmEmployee')
                     ->middleware('permission:hrm.employee.delete');
+            });
+
+            // Teams — requires hrm.team.* permissions
+            Route::prefix('teams')->group(function () {
+                Route::get('/', [TeamController::class, 'index'])
+                    ->middleware('permission:hrm.team.view');
+                Route::post('/', [TeamController::class, 'store'])
+                    ->middleware('permission:hrm.team.create');
+                Route::get('/{team}', [TeamController::class, 'show'])
+                    ->middleware('permission:hrm.team.view');
+                Route::match(['put', 'post'], '/{team}', [TeamController::class, 'update'])
+                    ->middleware('permission:hrm.team.update');
+                Route::delete('/{team}', [TeamController::class, 'destroy'])
+                    ->middleware('permission:hrm.team.delete');
             });
 
             // HRM Attendance — requires hrm.attendance.view permission

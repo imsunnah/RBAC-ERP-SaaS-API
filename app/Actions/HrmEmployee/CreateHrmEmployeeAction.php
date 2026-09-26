@@ -4,6 +4,7 @@ namespace App\Actions\HrmEmployee;
 
 use App\Actions\HrmEmployee\Concerns\HandlesEmployeeMedia;
 use App\Models\HrmEmployee;
+use App\Models\HrmLookup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -55,7 +56,7 @@ class CreateHrmEmployeeAction
 
             if (!empty($validated['emergency_contacts'])) {
                 foreach ($validated['emergency_contacts'] as $emg) {
-                    $emg = $this->resolveLookupFields($emg, self::EMERGENCY_LOOKUP_FIELDS);
+                    $emg = $this->resolveLookupFields($emg, self::EMERGENCY_LOOKUP_FIELDS, HrmLookup::class);
                     $emp->emergencyContacts()->create($emg);
                 }
             }

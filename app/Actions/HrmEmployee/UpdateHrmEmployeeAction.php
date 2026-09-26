@@ -4,6 +4,7 @@ namespace App\Actions\HrmEmployee;
 
 use App\Actions\HrmEmployee\Concerns\HandlesEmployeeMedia;
 use App\Models\HrmEmployee;
+use App\Models\HrmLookup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +39,7 @@ class UpdateHrmEmployeeAction
             }
 
             if (isset($validated['emergency_contacts'])) {
-                $this->syncRelation($employee, 'emergencyContacts', $validated['emergency_contacts'], self::EMERGENCY_LOOKUP_FIELDS);
+                $this->syncRelation($employee, 'emergencyContacts', $validated['emergency_contacts'], self::EMERGENCY_LOOKUP_FIELDS, HrmLookup::class);
             }
 
             if (isset($validated['documents'])) {

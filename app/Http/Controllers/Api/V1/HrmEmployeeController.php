@@ -246,7 +246,7 @@ class HrmEmployeeController extends Controller
     public function myTeamMembers(Request $request): JsonResponse
     {
         $user = $request->user();
-        $employee = $user->employee;
+        $employee = $user->employee_id ? $user->employee : null;
 
         if (!$employee) {
             return response()->json([

@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\HrmWeeklyMealController;
 use App\Http\Controllers\Api\V1\HrmLeaveBalanceController;
 use App\Http\Controllers\Api\V1\HrmLeavePolicyController;
 use App\Http\Controllers\Api\V1\HrmEmployeeMealSelectionController;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -50,6 +51,11 @@ Route::prefix('v1')->group(function () {
 
     // ─── Authenticated Routes ─────────────────────────────────────────────────
     Route::middleware(['auth:api'])->group(function () {
+
+        Route::get('/reset/user-permission', function () {
+            Artisan::call('cache:clear');
+            return;
+        });
 
         // Auth
         Route::prefix('auth')->group(function () {
@@ -187,7 +193,7 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:admin.submenu.delete');
             });
 
-            
+
             // HRM Employees — requires hrm.employee.* permissions
             Route::prefix('hrm-employees')->group(function () {
                 Route::get('/dashboard', [HrmEmployeeController::class, 'dashboard'])
@@ -406,7 +412,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/dashboard', [HrmEmployeeMealSelectionController::class, 'dashboard'])
                     ->middleware('permission:hrm.meal.view');
                 Route::get('/user-meal-overview', [HrmEmployeeMealSelectionController::class, 'mealOverview'])
-                    ->middleware('permission:hrm.meal.view');    
+                    ->middleware('permission:hrm.meal.view');
                 Route::get('/today/meal-lists', [HrmEmployeeMealSelectionController::class, 'todayMealList'])
                     ->middleware('permission:hrm.meal.view');
                 Route::get('/', [HrmEmployeeMealSelectionController::class, 'index'])

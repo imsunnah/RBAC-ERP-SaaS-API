@@ -87,7 +87,7 @@ class GetHrmEmployeeMealListAction
                     'full_name'        => $selection->employee->full_name,
                     'user_employee_id' => $selection->employee->user_employee_id,
                     'profile_picture'  => $selection->employee->profile_picture 
-                        ? Storage::url($selection->employee->profile_picture) 
+                        ? asset(Storage::url($selection->employee->profile_picture)) 
                         : null,
                     'designation'      => $selection->employee->designation?->name,
                     'department'       => $selection->employee->department?->name,

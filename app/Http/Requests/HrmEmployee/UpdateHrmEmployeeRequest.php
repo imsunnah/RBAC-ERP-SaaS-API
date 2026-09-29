@@ -132,7 +132,7 @@ class UpdateHrmEmployeeRequest extends FormRequest
 
             'family'                        => 'nullable|array',
             'family.*.uuid'                 => 'nullable|uuid',
-            'family.*.full_name'            => 'required|string|max:255',
+            'family.*.full_name'            => 'nullable|string|max:255',
             'family.*.date_of_birth'        => 'nullable|date',
             'family.*.gender_id'            => 'nullable|uuid|exists:global_lookups,uuid',
             'family.*.relationship_id'      => 'nullable|uuid|exists:global_lookups,uuid',

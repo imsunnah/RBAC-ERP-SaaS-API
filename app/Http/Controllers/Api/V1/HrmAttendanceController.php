@@ -23,7 +23,7 @@ class HrmAttendanceController extends Controller
     /**
      * Display a listing of stored attendance records.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $this->authorize('viewAny', HrmAttendance::class);
 
@@ -37,7 +37,7 @@ class HrmAttendanceController extends Controller
         $query = HrmAttendance::with(self::RELATIONS)->latest('date');
 
         $user = $request->user();
-        if (!$user->is_super_admin) {
+        if (!$user->is_super_admin && !$user->is_admin) {
             $query->where('employee_id', $user->employee_id ?: 0);
         }
 

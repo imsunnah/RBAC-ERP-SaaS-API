@@ -54,6 +54,36 @@ test('user can list lookup items by group slug', function () {
         ->assertJsonCount(1, 'data.data');
 });
 
+test('user can get lookup data by group slug path', function () {
+    $org = $this->setupOrgUser('Manager', ['admin.hrm-lookup.view']);
+    $group = HrmLookupGroup::factory()->create([
+        'organization_id' => $org['org']->id,
+        'name' => 'Department',
+        'slug' => 'department',
+    ]);
+
+    HrmLookup::factory()->create([
+        'hrm_lookup_group_id' => $group->id,
+        'organization_id' => $org['org']->id,
+        'name' => 'IT',
+        'slug' => 'it',
+    ]);
+
+    $this->actingAsOrgMember($org['user'], $org['org'])
+        ->getJson('/api/v1/hrm-lookups/group/department')
+        ->assertOk()
+        ->assertJsonPath('data.group_slug', 'department')
+        ->assertJsonPath('data.values.0.name', 'IT');
+});
+
+test('lookup data endpoint returns not found for an unknown group slug', function () {
+    $org = $this->setupOrgUser('Manager', ['admin.hrm-lookup.view']);
+
+    $this->actingAsOrgMember($org['user'], $org['org'])
+        ->getJson('/api/v1/hrm-lookups/group/unknown')
+        ->assertNotFound();
+});
+
 test('user cannot see lookups from another organization', function () {
     $orgA = $this->setupOrgUser('Manager', ['admin.hrm-lookup.view']);
     $orgB = $this->setupOrgUser('Manager', ['admin.hrm-lookup.view']);

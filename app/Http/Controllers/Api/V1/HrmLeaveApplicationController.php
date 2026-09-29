@@ -45,7 +45,7 @@ class HrmLeaveApplicationController extends Controller
         $query = HrmLeaveApplication::with(self::RELATIONS)->orderBy('created_at', 'desc');
 
         $user = $request->user();
-        if (!$user || !$user->is_super_admin) {
+        if (!$user->is_admin && !$user->is_super_admin) {
             $employeeId = $user?->employee_id ?: (HrmEmployee::where('office_email', $user?->email)->value('id') ?: ($user?->id ?: 0));
             $query->where('hrm_employee_id', $employeeId);
         } elseif (!empty($validated['employee_id'])) {

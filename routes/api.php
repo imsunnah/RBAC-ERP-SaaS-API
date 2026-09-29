@@ -282,6 +282,8 @@ Route::prefix('v1')->group(function () {
             Route::prefix('global-lookups')->group(function () {
                 Route::get('/grouped', [GlobalLookupController::class, 'getGroupedLookups'])
                     ->middleware('permission:admin.global-lookup.view');
+                Route::get('/group/{groupSlug}', [GlobalLookupController::class, 'getLookupsByGroupSlug'])
+                    ->middleware('permission:admin.global-lookup.view');
                 Route::get('/', [GlobalLookupController::class, 'index'])
                     ->middleware('permission:admin.global-lookup.view');
                 Route::post('/', [GlobalLookupController::class, 'store'])
@@ -309,6 +311,8 @@ Route::prefix('v1')->group(function () {
 
             Route::prefix('hrm-lookups')->group(function () {
                 Route::get('/grouped', [HrmLookupController::class, 'getGroupedLookups'])
+                    ->middleware('permission:admin.hrm-lookup.view');
+                Route::get('/group/{groupSlug}', [HrmLookupController::class, 'getLookupsByGroupSlug'])
                     ->middleware('permission:admin.hrm-lookup.view');
                 Route::get('/', [HrmLookupController::class, 'index'])
                     ->middleware('permission:admin.hrm-lookup.view');

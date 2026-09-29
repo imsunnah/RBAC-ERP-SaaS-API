@@ -64,7 +64,8 @@ class UpdateHrmLeaveApplicationAction
             $toDate   = Carbon::parse($updateData['to_date'] ?? $leave->to_date);
             $startSession = $updateData['start_session'] ?? $leave->start_session;
             $endSession = $updateData['end_session'] ?? $leave->end_session;
-            $updateData['total_days'] = $calculator->calculateDays($fromDate, $toDate, $startSession, $endSession);
+            $leave->loadMissing('employee.workShift');
+            $updateData['total_days'] = $calculator->calculateDays($fromDate, $toDate, $startSession, $endSession, $leave->employee);
 
             $oldBalance = HrmLeaveBalance::where('hrm_employee_id', $leave->hrm_employee_id)
                 ->where('leave_type_id', $oldLeaveTypeId)

@@ -30,6 +30,7 @@ class User extends Authenticatable implements OAuthenticatable
         'avatar',
         'phone',
         'is_super_admin',
+        'is_admin',
         'status',
         'last_login_at',
         'last_login_ip',
@@ -47,6 +48,7 @@ class User extends Authenticatable implements OAuthenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
+            'is_admin' => 'boolean',
         ];
     }
 

@@ -142,7 +142,7 @@ class HrmEmployeeController extends Controller
             });
         }
 
-        $query->orderBy('user_employee_id', 'asc');
+        $query->orderBy('created_at', 'asc');
 
         $limit = min((int) $request->input('limit', $request->input('per_page', 15)), 50000);
 

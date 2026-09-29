@@ -18,6 +18,7 @@ class UserDetailResource extends JsonResource
             'phone'        => $this->phone,
             'status'       => $this->status,
             'is_super_admin' => $this->is_super_admin,
+            'is_admin'     => $this->is_admin,
             'last_login_at' => $this->last_login_at?->toISOString(),
             'created_at'   => $this->created_at?->toISOString(),
             'roles'        => $this->whenLoaded('roles', function () {

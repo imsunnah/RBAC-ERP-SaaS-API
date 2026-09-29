@@ -2,6 +2,7 @@
 
 namespace App\Services\HrmLeave;
 
+use App\Models\HrmEmployee;
 use App\Models\HrmHoliday;
 use App\Models\HrmLeaveApplication;
 use App\Models\HrmLeaveBalance;
@@ -10,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class LeaveCalculationService
 {
-    public function calculateDays(Carbon $from, Carbon $to, ?string $startSession = null, ?string $endSession = null): float
+    public function calculateDays(Carbon $from, Carbon $to, ?string $startSession = null, ?string $endSession = null, ?HrmEmployee $employee = null): float
     {
         if (!$from->isSameYear($to)) {
             throw ValidationException::withMessages(['to_date' => ['A leave application must remain within one leave year.']]);
@@ -24,7 +25,10 @@ class LeaveCalculationService
             ->map(fn ($date) => Carbon::parse($date)->toDateString())
             ->flip();
 
-        $weekendDays = config('hrm.leave_weekend_days', [Carbon::SATURDAY, Carbon::SUNDAY]);
+        $shiftWeekends = $employee?->workShift?->weekend;
+        $weekendDays = is_array($shiftWeekends)
+            ? array_map(fn ($day) => Carbon::parse($day)->dayOfWeek, $shiftWeekends)
+            : config('hrm.leave_weekend_days', [6, 0]);
         for ($date = $from->copy(); $date->lte($to); $date->addDay()) {
             if (in_array($date->dayOfWeek, $weekendDays, true) || $holidays->has($date->toDateString())) {
                 continue;

@@ -109,9 +109,9 @@ class GetEmployeeDashboardAction
             $index++;
         }
 
-        // Percentage of total active employees calculations for KPIs
-        $presentPctOfTotal = $totalActiveCount > 0 ? round(($presentToday / $totalActiveCount) * 100, 2) : 0;
-        $onLeavePctOfTotal = $totalActiveCount > 0 ? round(($onLeaveToday / $totalActiveCount) * 100, 2) : 0;
+        // Day-over-day percentage changes for attendance and leave KPIs
+        $presentPctOfTotal = $presentGrowthPct;
+        $onLeavePctOfTotal = $leaveGrowthPct;
         $newPctOfTotal     = $totalActiveCount > 0 ? round(($newEmployeesThisMonth / $totalActiveCount) * 100, 2) : 0;
 
         return [

@@ -26,6 +26,7 @@ class UpdateUserRequest extends FormRequest
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'phone' => ['nullable', 'string', 'max:45'],
             'status' => ['nullable', 'in:active,inactive,suspended'],
+            'is_admin' => ['sometimes', 'boolean'],
             'organizations' => ['nullable', 'array'],
             'organizations.*' => ['uuid', 'exists:organizations,uuid'],
         ];

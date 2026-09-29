@@ -22,8 +22,7 @@ class UpdateWorkShiftRequest extends FormRequest
             'break_duration_minutes' => 'nullable|integer',
             'expected_hours'         => 'nullable|numeric',
             'grace_minutes'          => 'nullable|integer',
-            'weekend'                => 'nullable|array',
-            'weekend.*'              => 'required|string|in:saturday,sunday,monday,tuesday,wednesday,thursday,friday',
+            'weekend'                => 'nullable|string',
             'is_default'             => 'nullable|boolean',
             'is_active'              => 'nullable|boolean',
         ];

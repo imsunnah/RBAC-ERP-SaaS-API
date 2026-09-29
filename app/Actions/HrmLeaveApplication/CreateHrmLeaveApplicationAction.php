@@ -32,13 +32,15 @@ class CreateHrmLeaveApplicationAction
 
             $employeeId = null;
             if (!empty($data['hrm_employee_id'])) {
-                $employeeId = HrmEmployee::where('uuid', $data['hrm_employee_id'])->value('id');
+                $employeeId = HrmEmployee::query()->where('uuid', $data['hrm_employee_id'])->value('id');
             } else {
                 $user = Auth::user();
                 if ($user) {
                     $employeeId = $user->employee_id ?: $user->id;
                 }
             }
+
+            $employee = $employeeId ? HrmEmployee::with('workShift')->find($employeeId) : null;
 
             $leave = HrmLeaveApplication::create([
                 'hrm_employee_id' => $employeeId,
@@ -51,7 +53,8 @@ class CreateHrmLeaveApplicationAction
                     $fromDate,
                     $toDate,
                     $data['start_session'] ?? 'full_day',
-                    $data['end_session'] ?? 'full_day'
+                    $data['end_session'] ?? 'full_day',
+                    $employee
                 ),
                 'reason'          => $data['reason'] ?? null,
                 'status'          => 'pending',

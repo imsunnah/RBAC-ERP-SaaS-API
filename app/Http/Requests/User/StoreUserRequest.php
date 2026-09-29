@@ -24,6 +24,7 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['nullable', 'string', 'max:45'],
             'status' => ['nullable', 'in:active,inactive,suspended'],
+            'is_admin' => ['sometimes', 'boolean'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['uuid', 'exists:roles,uuid'],
             'organization_id' => ['required', 'array'],

@@ -43,6 +43,32 @@ class HrmLookupController extends Controller
         ]);
     }
 
+    public function getLookupsByGroupSlug(string $groupSlug): JsonResponse
+    {
+        $group = HrmLookupGroup::with(['hrmLookups' => function ($query) {
+            $query->where('is_active', true);
+        }])
+            ->where('is_active', true)
+            ->where('slug', $groupSlug)
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'group_uuid' => $group->uuid,
+                'group_name' => $group->name,
+                'group_slug' => $group->slug,
+                'values' => $group->hrmLookups->map(function ($lookup) {
+                    return [
+                        'uuid' => $lookup->uuid,
+                        'name' => $lookup->name,
+                        'slug' => $lookup->slug,
+                    ];
+                }),
+            ],
+        ]);
+    }
+
     public function indexGroups(Request $request): JsonResponse
     {
         $limit = $request->get('limit', 15);

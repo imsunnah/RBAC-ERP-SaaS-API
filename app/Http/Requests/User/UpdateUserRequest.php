@@ -4,6 +4,7 @@ namespace App\Http\Requests\User;
 
 use App\Http\Requests\Traits\ResolvesUuidToId;
 use App\Models\Organization;
+use App\Models\HrmEmployee;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateUserRequest extends FormRequest
@@ -25,6 +26,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,' . $userId],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'phone' => ['nullable', 'string', 'max:45'],
+            'employee_id' => ['sometimes', 'nullable', 'uuid', 'exists:hrm_employees,uuid'],
             'status' => ['nullable', 'in:active,inactive,suspended'],
             'is_admin' => ['sometimes', 'boolean'],
             'organizations' => ['nullable', 'array'],
@@ -39,6 +41,7 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'organizations' => [Organization::class],
+            'employee_id' => HrmEmployee::class,
         ];
     }
 

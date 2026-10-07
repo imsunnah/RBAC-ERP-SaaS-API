@@ -200,6 +200,8 @@ Route::prefix('v1')->group(function () {
                     ->middleware('permission:hrm.employee.view');
                 Route::get('/my-team-members', [HrmEmployeeController::class, 'myTeamMembers'])
                     ->middleware('permission:hrm.employee.view');
+                Route::get('/without-user', [HrmEmployeeController::class, 'withoutUser'])
+                    ->middleware('permission:hrm.employee.view');
                 Route::get('/{hrmEmployee}/leave-types', [HrmEmployeeController::class, 'leaveTypes'])
                     ->whereUuid('hrmEmployee')
                     ->middleware('permission:hrm.leave.view');

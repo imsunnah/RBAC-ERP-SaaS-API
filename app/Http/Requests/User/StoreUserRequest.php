@@ -4,6 +4,7 @@ namespace App\Http\Requests\User;
 
 use App\Http\Requests\Traits\ResolvesUuidToId;
 use App\Models\Organization;
+use App\Models\HrmEmployee;
 use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,6 +24,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['nullable', 'string', 'max:45'],
+            'employee_id' => ['nullable', 'uuid', 'exists:hrm_employees,uuid'],
             'status' => ['nullable', 'in:active,inactive,suspended'],
             'is_admin' => ['sometimes', 'boolean'],
             'roles' => ['nullable', 'array'],
@@ -40,6 +42,7 @@ class StoreUserRequest extends FormRequest
         return [
             'roles' => [Role::class],
             'organization_id' => [Organization::class],
+            'employee_id' => HrmEmployee::class,
         ];
     }
 

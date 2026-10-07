@@ -385,6 +385,34 @@ class HrmUpgradeTest extends TestCase
         $response->assertJsonPath('data.data.0.workShift.daysOff', 'Friday & Saturday');
     }
 
+    public function test_without_user_endpoint_only_returns_employees_without_user_accounts()
+    {
+        $org = $this->setupOrgUser('Manager', [
+            'hrm.employee.view',
+        ]);
+
+        $linkedEmployee = HrmEmployee::factory()->create([
+            'company_id'      => $org['company']->id,
+            'organization_id' => $org['org']->id,
+            'full_name'       => 'Linked Employee',
+        ]);
+        $unlinkedEmployee = HrmEmployee::factory()->create([
+            'company_id'      => $org['company']->id,
+            'organization_id' => $org['org']->id,
+            'full_name'       => 'Unlinked Employee',
+        ]);
+
+        $org['user']->employee_id = $linkedEmployee->id;
+        $org['user']->save();
+
+        $response = $this->actingAsOrgMember($org['user'], $org['org'])
+            ->getJson('http://localhost/api/v1/hrm-employees/without-user');
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'data.data');
+        $response->assertJsonPath('data.data.0.id', $unlinkedEmployee->uuid);
+    }
+
     public function test_can_manage_holidays_by_date()
     {
         $org = $this->setupOrgUser('Manager', [

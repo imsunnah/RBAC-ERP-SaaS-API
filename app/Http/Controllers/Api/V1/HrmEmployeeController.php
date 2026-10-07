@@ -13,9 +13,11 @@ use App\Http\Resources\HrmEmployeeIndexResource;
 use App\Http\Resources\HrmEmployeeResource;
 use App\Models\HrmEmployee;
 use App\Models\HrmLeaveBalance;
+use App\Models\User;
 use App\Http\Resources\MetadataResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HrmEmployeeController extends Controller
 {
@@ -151,6 +153,42 @@ class HrmEmployeeController extends Controller
             set_time_limit(120);
         }
 
+        $employees = $query->paginate($limit);
+
+        return response()->json([
+            'success' => true,
+            'data'    => HrmEmployeeIndexResource::collection($employees)->response()->getData(true),
+        ]);
+    }
+
+    /** Display employees that are not linked to a user account. */
+    public function withoutUser(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', HrmEmployee::class);
+
+        $request->validate([
+            'search'   => ['nullable', 'string', 'max:255'],
+            'limit'    => ['nullable', 'integer', 'min:1', 'max:50000'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50000'],
+        ]);
+
+        $query = HrmEmployee::with(self::EMPLOYEE_RELATIONS)
+            ->whereNotIn(DB::raw('CAST(hrm_employees.id AS TEXT)'), User::query()
+                ->whereNotNull('employee_id', 'and')
+                ->select('employee_id'));
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('user_employee_id', 'like', "%{$search}%")
+                    ->orWhere('office_email', 'like', "%{$search}%")
+                    ->orWhere('office_mobile_no', 'like', "%{$search}%");
+            });
+        }
+
+        $query->orderBy('created_at', 'asc');
+        $limit = min((int) $request->input('limit', $request->input('per_page', 15)), 50000);
         $employees = $query->paginate($limit);
 
         return response()->json([

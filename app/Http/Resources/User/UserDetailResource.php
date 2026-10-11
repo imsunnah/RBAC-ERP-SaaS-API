@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\User;
 
+use App\Models\HrmEmployee;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,7 +14,7 @@ class UserDetailResource extends JsonResource
             'id'           => $this->uuid,
             'first_name'   => $this->first_name,
             'last_name'    => $this->last_name,
-            'full_name'    => collect([$this->first_name, $this->last_name])->filter()->join(' '),
+            'full_name'    => HrmEmployee::where('id', $this->employee_id)->pluck('full_name')->first(),
             'email'        => $this->email,
             'phone'        => $this->phone,
             'status'       => $this->status,

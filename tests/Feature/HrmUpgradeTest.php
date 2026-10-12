@@ -8,6 +8,8 @@ use App\Models\HrmHoliday;
 use App\Models\HrmLookup;
 use App\Models\WorkShift;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 use Tests\Traits\SetupOrganizationContext;
@@ -383,6 +385,50 @@ class HrmUpgradeTest extends TestCase
         $response->assertJsonPath('data.data.0.workShift.name', 'Shift 3');
         $response->assertJsonPath('data.data.0.workShift.time', '9:00 AM–6:00 PM');
         $response->assertJsonPath('data.data.0.workShift.daysOff', 'Friday & Saturday');
+    }
+
+    public function test_updates_employee_documents_from_multipart_form_data()
+    {
+        config(['app.url' => 'http://localhost']);
+        $org = $this->setupOrgUser('Manager', [
+            'hrm.employee.update',
+        ]);
+        $employee = HrmEmployee::factory()->create([
+            'company_id'      => $org['company']->id,
+            'organization_id' => $org['org']->id,
+            'full_name'       => 'Document Upload Test',
+        ]);
+        Storage::fake('public');
+
+        $response = $this->actingAsOrgMember($org['user'], $org['org'])->call(
+            'POST',
+            "http://localhost/api/v1/hrm-employees/{$employee->uuid}",
+            [
+                '_method'   => 'PUT',
+                'full_name' => $employee->full_name,
+                'documents' => json_encode([['title' => 'Passport copy']]),
+            ],
+            [],
+            [
+                'documents' => [
+                    ['file' => UploadedFile::fake()->create('passport.pdf', 25, 'application/pdf')],
+                ],
+            ],
+            [
+                'HTTP_ACCEPT'   => 'application/json',
+                'HTTP_X_ORG_ID' => $org['org']->uuid,
+            ]
+        );
+
+        $response->assertOk();
+        $document = $employee->documents()->firstOrFail();
+        $this->assertSame('Passport copy', $document->title);
+        Storage::disk('public')->assertExists($document->doc);
+        $this->assertStringStartsWith('employees/documents/', $document->doc);
+        $this->assertStringContainsString(
+            '/storage/employees/documents/',
+            $response->json('data.documents.0.doc')
+        );
     }
 
     public function test_without_user_endpoint_only_returns_employees_without_user_accounts()

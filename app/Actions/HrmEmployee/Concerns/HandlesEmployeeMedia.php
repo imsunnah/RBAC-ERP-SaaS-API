@@ -288,8 +288,8 @@ trait HandlesEmployeeMedia
     {
         foreach ($documents as $doc) {
             $filePath = null;
-            if (isset($doc['doc']) && $doc['doc'] instanceof \Illuminate\Http\UploadedFile && $doc['doc']->isValid()) {
-                $filePath = $doc['doc']->store('employees/documents', 'public');
+            if (isset($doc['doc']) && $doc['doc'] instanceof UploadedFile && $doc['doc']->isValid()) {
+                $filePath = $this->storeDocumentUpload($doc['doc']);
             } elseif (isset($doc['doc']) && is_string($doc['doc'])) {
                 $val = $doc['doc'];
                 if (str_contains($val, '/storage/')) {
@@ -315,21 +315,24 @@ trait HandlesEmployeeMedia
         foreach ($documents as $doc) {
             $uuid       = $doc['uuid'] ?? null;
             $title      = $doc['title'] ?? 'Untitled';
-            $hasNewFile = isset($doc['doc']) && $doc['doc'] instanceof \Illuminate\Http\UploadedFile && $doc['doc']->isValid();
+            $hasNewFile = isset($doc['doc']) && $doc['doc'] instanceof UploadedFile && $doc['doc']->isValid();
 
             if ($uuid) {
                 $record = $employee->documents()->where('uuid', $uuid)->first();
                 if ($record) {
                     $updateData = ['title' => $title];
+                    $oldPath = null;
 
                     if ($hasNewFile) {
-                        if ($record->doc) {
-                            Storage::disk('public')->delete($record->doc);
-                        }
-                        $updateData['doc'] = $doc['doc']->store('employees/documents', 'public');
+                        $newPath = $this->storeDocumentUpload($doc['doc']);
+                        $oldPath = $record->doc;
+                        $updateData['doc'] = $newPath;
                     }
 
                     $record->update($updateData);
+                    if ($hasNewFile && $oldPath) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
                     $keptUuids[] = $record->uuid;
                     continue;
                 }
@@ -337,7 +340,7 @@ trait HandlesEmployeeMedia
 
             $filePath = null;
             if ($hasNewFile) {
-                $filePath = $doc['doc']->store('employees/documents', 'public');
+                $filePath = $this->storeDocumentUpload($doc['doc']);
             } elseif (isset($doc['doc']) && is_string($doc['doc'])) {
                 $val = $doc['doc'];
                 if (str_contains($val, '/storage/')) {
@@ -360,6 +363,48 @@ trait HandlesEmployeeMedia
             }
             $orphan->delete();
         }
+    }
+
+    /**
+     * Merge multipart document files with document metadata before syncing.
+     */
+    protected function mergeDocumentUploads(array $documents, Request $request): array
+    {
+        $files = $request->file('documents', []);
+        if (!is_array($files)) {
+            $files = [$files];
+        }
+
+        foreach ($files as $index => $file) {
+            $document = is_array($documents[$index] ?? null) ? $documents[$index] : [];
+
+            if ($file instanceof UploadedFile && $file->isValid()) {
+                $document['doc'] = $file;
+            } elseif (is_array($file)) {
+                foreach (['doc', 'file', 'document'] as $key) {
+                    if (($file[$key] ?? null) instanceof UploadedFile && $file[$key]->isValid()) {
+                        $document['doc'] = $file[$key];
+                        break;
+                    }
+                }
+            }
+
+            if ($document !== []) {
+                $documents[$index] = $document;
+            }
+        }
+
+        return $documents;
+    }
+
+    protected function storeDocumentUpload(UploadedFile $file): string
+    {
+        $path = $file->store('employees/documents', 'public');
+        if (!is_string($path) || $path === '') {
+            throw new \RuntimeException('Failed to store employee document upload on the public disk.');
+        }
+
+        return $path;
     }
 
     /**

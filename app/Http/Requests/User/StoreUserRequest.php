@@ -19,12 +19,12 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            // 'first_name' => ['nullable', 'string', 'max:255'],
+            // 'last_name' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'string', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'phone' => ['nullable', 'string', 'max:45'],
-            'employee_id' => ['nullable', 'uuid', 'exists:hrm_employees,uuid'],
+            // 'phone' => ['nullable', 'string', 'max:45'],
+            'employee_id' => ['required', 'uuid', 'exists:hrm_employees,uuid'],
             'status' => ['nullable', 'in:active,inactive,suspended'],
             'is_admin' => ['sometimes', 'boolean'],
             'roles' => ['nullable', 'array'],

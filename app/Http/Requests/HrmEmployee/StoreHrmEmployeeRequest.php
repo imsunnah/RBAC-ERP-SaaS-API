@@ -219,7 +219,7 @@ class StoreHrmEmployeeRequest extends FormRequest
             $merges['is_active'] = filter_var($val, FILTER_VALIDATE_BOOLEAN);
         }
 
-        foreach (['family', 'education', 'experience', 'emergency_contacts'] as $arrayField) {
+        foreach (['family', 'education', 'experience', 'emergency_contacts', 'documents'] as $arrayField) {
             if ($this->has($arrayField)) {
                 $val = $this->input($arrayField);
                 if (is_string($val)) {

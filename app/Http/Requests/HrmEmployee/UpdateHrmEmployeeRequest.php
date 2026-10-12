@@ -144,7 +144,7 @@ class UpdateHrmEmployeeRequest extends FormRequest
             'emergency_contacts'                            => 'nullable|array',
             'emergency_contacts.*.uuid'                     => 'nullable|uuid',
             'emergency_contacts.*.contact_name'             => 'nullable|string|max:100',
-            'emergency_contacts.*.relationship_id'          => 'nullable|uuid|exists:global_lookups,uuid',
+            'emergency_contacts.*.relationship_id'          => 'nullable|uuid|exists:hrm_lookups,uuid',
             'emergency_contacts.*.contact_number'           => 'nullable|string|max:20',
             'emergency_contacts.*.alternate_contact_number' => 'nullable|string|max:20',
             'emergency_contacts.*.address'                  => 'nullable|string|max:300',
@@ -250,7 +250,7 @@ class UpdateHrmEmployeeRequest extends FormRequest
             $merges['is_active'] = filter_var($val, FILTER_VALIDATE_BOOLEAN);
         }
 
-        foreach (['family', 'education', 'experience', 'emergency_contacts'] as $arrayField) {
+        foreach (['family', 'education', 'experience', 'emergency_contacts', 'documents'] as $arrayField) {
             if ($this->has($arrayField)) {
                 $val = $this->input($arrayField);
                 if (is_string($val)) {

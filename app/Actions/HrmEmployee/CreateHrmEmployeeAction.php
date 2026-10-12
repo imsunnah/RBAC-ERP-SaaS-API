@@ -20,6 +20,11 @@ class CreateHrmEmployeeAction
     public function execute(array $validated, Request $request, array $relations = []): HrmEmployee
     {
         $validated = $this->handleImageUploads($request, $validated);
+        $documentFiles = $request->file('documents');
+        if ((isset($validated['documents']) && is_array($validated['documents'])) || !empty($documentFiles)) {
+            $documents = is_array($validated['documents'] ?? null) ? $validated['documents'] : [];
+            $validated['documents'] = $this->mergeDocumentUploads($documents, $request);
+        }
 
         $currentOrg = app('current_organization');
         if ($currentOrg) {

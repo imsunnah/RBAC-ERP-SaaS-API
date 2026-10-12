@@ -20,6 +20,11 @@ class UpdateHrmEmployeeAction
     public function execute(HrmEmployee $employee, array $validated, Request $request, array $relations = []): HrmEmployee
     {
         $validated = $this->handleImageUploads($request, $validated, $employee);
+        $documentFiles = $request->file('documents');
+        if ((isset($validated['documents']) && is_array($validated['documents'])) || !empty($documentFiles)) {
+            $documents = is_array($validated['documents'] ?? null) ? $validated['documents'] : [];
+            $validated['documents'] = $this->mergeDocumentUploads($documents, $request);
+        }
         $validated['updated_by'] = Auth::id();
 
         DB::transaction(function () use ($employee, $validated) {
